@@ -5,5 +5,9 @@
     "rootDir": ".",
     "types": ["node"]
   },
-  "include": ["src/shared/**/*.ts", "tests/**/*.ts"]
+  "include": [
+    "src/overlay/elements/selectedPlayer/playerProfileData.ts",
+    "src/shared/**/*.ts",
+    "tests/**/*.ts"
+  ]
 }

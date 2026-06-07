@@ -1,0 +1,74 @@
+@font-face {
+  font-display: swap;
+  font-family: "RadianceOverlay";
+  font-style: normal;
+  font-weight: 400;
+  src: url("../../assets/fonts/radiance-light.otf") format("opentype");
+}
+
+@font-face {
+  font-display: swap;
+  font-family: "RadianceOverlay";
+  font-style: normal;
+  font-weight: 700;
+  src: url("../../assets/fonts/radiance-semibold.otf") format("opentype");
+}
+
+.selected-player {
+  align-items: center;
+  box-sizing: border-box;
+  display: flex;
+  gap: 14px;
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+.selected-player[data-visible="true"] {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.selected-player__team {
+  color: #9cc7d9;
+  font-family: "RadianceOverlay", serif;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-shadow:
+    0 0 4px #000,
+    2px 2px 4px #000;
+  text-transform: uppercase;
+}
+
+.selected-player__row {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+}
+
+.selected-player__name,
+.selected-player__mmr {
+  color: #f8fbff;
+  font-family: "RadianceOverlay", serif;
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1;
+  text-shadow:
+    0 0 4px #000,
+    2px 2px 4px #000;
+  white-space: nowrap;
+}
+
+.selected-player__medal {
+  display: block;
+  height: 54px;
+  object-fit: contain;
+  width: 54px;
+}
+
+.selected-player__medal[hidden] {
+  display: none;
+}

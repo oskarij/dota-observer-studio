@@ -44,16 +44,16 @@ export interface DotaGsiPlayer {
   readonly team_name?: 'radiant' | 'dire' | string;
 }
 
-export interface SelectedDotaGsiHero {
+export interface SelectedDotaGsiPlayer {
   readonly hero: DotaGsiHero;
-  readonly heroKey: DotaGsiPlayerKey;
   readonly player: DotaGsiPlayer | null;
+  readonly playerKey: DotaGsiPlayerKey;
   readonly teamKey: DotaGsiTeamKey;
 }
 
 const DOTA_GSI_TEAM_KEYS = ['team2', 'team3'] as const;
 
-export function getSelectedDotaGsiHero(gsiData: DotaGsiData): SelectedDotaGsiHero | null {
+export function getSelectedDotaGsiPlayer(gsiData: DotaGsiData): SelectedDotaGsiPlayer | null {
   if (gsiData.map?.game_state !== 'DOTA_GAMERULES_STATE_GAME_IN_PROGRESS') {
     return null;
   }
@@ -65,17 +65,17 @@ export function getSelectedDotaGsiHero(gsiData: DotaGsiData): SelectedDotaGsiHer
       continue;
     }
 
-    for (const [heroKey, hero] of Object.entries(heroTeam)) {
+    for (const [playerKey, hero] of Object.entries(heroTeam)) {
       if (hero?.selected_unit !== true) {
         continue;
       }
 
-      const playerKey = heroKey as DotaGsiPlayerKey;
+      const typedPlayerKey = playerKey as DotaGsiPlayerKey;
 
       return {
         hero,
-        heroKey: playerKey,
-        player: gsiData.player?.[teamKey]?.[playerKey] ?? null,
+        player: gsiData.player?.[teamKey]?.[typedPlayerKey] ?? null,
+        playerKey: typedPlayerKey,
         teamKey
       };
     }

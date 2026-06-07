@@ -1,7 +1,7 @@
-import type { DotaGsiData, SelectedDotaGsiHero } from '../shared/gsi.js';
+import type { DotaGsiData, SelectedDotaGsiPlayer } from '../shared/gsi.js';
 
 export interface OverlayElementContext {
-  readonly selectedHero: SelectedDotaGsiHero | null;
+  readonly selectedPlayer: SelectedDotaGsiPlayer | null;
 }
 
 export interface OverlayElement {

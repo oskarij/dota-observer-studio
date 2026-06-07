@@ -1,5 +1,5 @@
 import type { DotaGsiData } from '../shared/gsi.js';
-import { getSelectedDotaGsiHero } from '../shared/gsi.js';
+import { getSelectedDotaGsiPlayer } from '../shared/gsi.js';
 import { OVERLAY_REALTIME_EVENTS_URL } from '../shared/overlayRuntime.js';
 
 import { overlayElementRegistry } from './elementRegistry.js';
@@ -20,7 +20,7 @@ events.onmessage = (event) => {
   }
 
   const context = {
-    selectedHero: getSelectedDotaGsiHero(gsiData)
+    selectedPlayer: getSelectedDotaGsiPlayer(gsiData)
   };
 
   for (const overlayElement of overlayElements) {

@@ -8,19 +8,23 @@
   <body>
     <section
       aria-live="polite"
-      class="selected-unit"
+      class="selected-player"
       data-enabled="true"
       data-visible="false"
-      id="selected-unit"
+      id="selected-player"
     >
-      <div class="label" data-selected-unit-team>Waiting for game in progress</div>
-      <div class="hero" data-selected-unit-hero>No selected unit</div>
-      <div class="meta">
-        <span data-selected-unit-player>Observer selection</span>
-        <span data-selected-unit-level>Level --</span>
+      <div class="selected-player__team" data-selected-player-team>
+        Waiting for game in progress
       </div>
-      <div aria-hidden="true" class="meter">
-        <span data-selected-unit-health></span>
+      <div class="selected-player__row">
+        <span class="selected-player__name" data-selected-player-name>No selected player</span>
+        <img
+          alt=""
+          class="selected-player__medal"
+          data-selected-player-medal
+          hidden
+        />
+        <span class="selected-player__mmr" data-selected-player-mmr>MMR --</span>
       </div>
     </section>
 

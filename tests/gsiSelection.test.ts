@@ -2,9 +2,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import type { DotaGsiData } from '../src/shared/gsi.js';
-import { getSelectedDotaGsiHero } from '../src/shared/gsi.js';
+import { getSelectedDotaGsiPlayer } from '../src/shared/gsi.js';
 
-test('finds the selected unit path while the game is in progress', () => {
+test('finds the selected player path while the game is in progress', () => {
   const gsiData: DotaGsiData = {
     hero: {
       team2: {
@@ -34,16 +34,16 @@ test('finds the selected unit path while the game is in progress', () => {
     }
   };
 
-  const selectedHero = getSelectedDotaGsiHero(gsiData);
+  const selectedPlayer = getSelectedDotaGsiPlayer(gsiData);
 
-  assert.equal(selectedHero?.teamKey, 'team3');
-  assert.equal(selectedHero?.heroKey, 'player7');
-  assert.equal(selectedHero?.hero.name, 'npc_dota_hero_tidehunter');
-  assert.equal(selectedHero?.hero.level, 13);
-  assert.equal(selectedHero?.player?.name, 'Driftwood');
+  assert.equal(selectedPlayer?.teamKey, 'team3');
+  assert.equal(selectedPlayer?.playerKey, 'player7');
+  assert.equal(selectedPlayer?.hero.name, 'npc_dota_hero_tidehunter');
+  assert.equal(selectedPlayer?.hero.level, 13);
+  assert.equal(selectedPlayer?.player?.name, 'Driftwood');
 });
 
-test('ignores selected units before the game is in progress', () => {
+test('ignores selected players before the game is in progress', () => {
   const gsiData: DotaGsiData = {
     hero: {
       team2: {
@@ -58,5 +58,5 @@ test('ignores selected units before the game is in progress', () => {
     }
   };
 
-  assert.equal(getSelectedDotaGsiHero(gsiData), null);
+  assert.equal(getSelectedDotaGsiPlayer(gsiData), null);
 });

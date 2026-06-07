@@ -1,6 +1,6 @@
 import { OVERLAY_ELEMENT_DEFINITIONS } from '../shared/overlay.js';
 
-import { mountSelectedUnitElement } from './elements/selectedUnit/index.js';
+import { mountSelectedPlayerElement } from './elements/selectedPlayer/index.js';
 import type { OverlayElement } from './overlayElement.js';
 
 export interface OverlayElementRegistration {
@@ -13,9 +13,9 @@ export interface OverlayElementRegistration {
 
 export const overlayElementRegistry: OverlayElementRegistration[] = [
   {
-    ...getElementDefinition('selected-unit'),
-    mount: mountSelectedUnitElement,
-    rootId: 'selected-unit'
+    ...getElementDefinition('selected-player'),
+    mount: mountSelectedPlayerElement,
+    rootId: 'selected-player'
   }
 ];
 

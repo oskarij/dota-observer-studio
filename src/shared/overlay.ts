@@ -9,7 +9,7 @@ export interface OverlayElementDefinition {
 export const OVERLAY_ELEMENT_DEFINITIONS: OverlayElementDefinition[] = [
   {
     enabled: true,
-    id: 'selected-unit',
-    name: 'Selected Unit'
+    id: 'selected-player',
+    name: 'Selected Player'
   }
 ];
