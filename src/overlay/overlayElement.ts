@@ -1,11 +1,8 @@
-import type { DotaGsiData, SelectedDotaGsiPlayer } from '../shared/gsi.js';
-
-export interface OverlayElementContext {
-  readonly selectedPlayer: SelectedDotaGsiPlayer | null;
-}
+import type { DotaGsiData } from '../shared/gsi.js';
 
 export interface OverlayElement {
   readonly id: string;
+  destroy(): void;
   setEnabled(enabled: boolean): void;
-  update(gsiData: DotaGsiData, context: OverlayElementContext): void;
+  update(gsiData: DotaGsiData): void;
 }

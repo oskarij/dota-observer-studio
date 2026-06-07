@@ -1,12 +1,12 @@
 import type {
   DotaGsiData,
-  DotaGsiTeamKey,
   SelectedDotaGsiPlayer
 } from '../../../shared/gsi.js';
+import { getSelectedDotaGsiPlayer } from '../../../shared/gsi.js';
 import { mmrToMedal, type PlayerProfile, type RankMedal } from './playerProfileData.js';
 import { getPlayerProfile } from './playerProfiles.js';
 
-import type { OverlayElement, OverlayElementContext } from '../../overlayElement.js';
+import type { OverlayElement } from '../../overlayElement.js';
 
 import ancientMedalUrl from './rankMedals/ancient.webp';
 import archonMedalUrl from './rankMedals/archon.webp';
@@ -29,19 +29,26 @@ const MEDAL_IMAGE_URLS: Record<RankMedal, string> = {
   legend: legendMedalUrl
 };
 
-export function mountSelectedPlayerElement(root: HTMLElement): OverlayElement {
-  const team = getRequiredChild(root, '[data-selected-player-team]');
+export function mountSelectedPlayerElement(container: HTMLElement): OverlayElement {
+  const root = createSelectedPlayerRoot();
   const name = getRequiredChild(root, '[data-selected-player-name]');
   const medal = getRequiredImage(root, '[data-selected-player-medal]');
   const mmr = getRequiredChild(root, '[data-selected-player-mmr]');
 
+  container.append(root);
+
   return {
     id: 'selected-player',
+    destroy() {
+      root.remove();
+    },
     setEnabled(enabled) {
       root.dataset.enabled = String(enabled);
     },
-    update(_gsiData: DotaGsiData, context: OverlayElementContext) {
-      if (root.dataset.enabled === 'false' || context.selectedPlayer === null) {
+    update(gsiData: DotaGsiData) {
+      const selectedPlayer = getSelectedDotaGsiPlayer(gsiData);
+
+      if (root.dataset.enabled === 'false' || selectedPlayer === null) {
         root.dataset.visible = 'false';
         return;
       }
@@ -50,13 +57,30 @@ export function mountSelectedPlayerElement(root: HTMLElement): OverlayElement {
         medal,
         mmr,
         name,
-        profile: getPlayerProfile(context.selectedPlayer.player?.accountid),
-        selectedPlayer: context.selectedPlayer,
-        team
+        profile: getPlayerProfile(selectedPlayer.player?.accountid),
+        selectedPlayer
       });
       root.dataset.visible = 'true';
     }
   };
+}
+
+function createSelectedPlayerRoot(): HTMLElement {
+  const root = document.createElement('section');
+  root.id = 'selected-player';
+  root.className = 'selected-player';
+  root.dataset.enabled = 'true';
+  root.dataset.visible = 'false';
+  root.setAttribute('aria-live', 'polite');
+  root.innerHTML = `
+    <div class="selected-player__row">
+      <span class="selected-player__name" data-selected-player-name>No selected player</span>
+      <img alt="" class="selected-player__medal" data-selected-player-medal hidden />
+      <span class="selected-player__mmr" data-selected-player-mmr>--</span>
+    </div>
+  `;
+
+  return root;
 }
 
 interface SelectedPlayerView {
@@ -65,14 +89,12 @@ interface SelectedPlayerView {
   readonly name: HTMLElement;
   readonly profile: PlayerProfile | null;
   readonly selectedPlayer: SelectedDotaGsiPlayer;
-  readonly team: HTMLElement;
 }
 
 function renderSelectedPlayer(view: SelectedPlayerView): void {
   const mmr = view.profile?.mmr ?? null;
   const medal = mmrToMedal(mmr);
 
-  view.team.textContent = `${formatTeamName(view.selectedPlayer.teamKey)} selected`;
   view.name.textContent =
     view.profile?.name ?? view.selectedPlayer.player?.name ?? view.selectedPlayer.playerKey;
   view.mmr.textContent = formatMmr(mmr);
@@ -92,20 +114,20 @@ function updateMedalImage(element: HTMLImageElement, medal: RankMedal | null): v
   element.alt = `${formatMedalName(medal)} medal`;
 }
 
-function formatTeamName(teamKey: DotaGsiTeamKey): string {
-  if (teamKey === 'team2') {
-    return 'Radiant';
-  }
-
-  return 'Dire';
-}
-
 function formatMmr(mmr: number | null): string {
   if (mmr === null) {
-    return 'MMR --';
+    return '--';
   }
 
-  return `${mmr} MMR`;
+  if (mmr < 1000) {
+    return String(mmr);
+  }
+
+  const truncatedTenths = Math.trunc(mmr / 100);
+  const thousands = Math.trunc(truncatedTenths / 10);
+  const tenths = truncatedTenths % 10;
+
+  return tenths === 0 ? `${thousands}k` : `${thousands}.${tenths}k`;
 }
 
 function formatMedalName(medal: RankMedal): string {

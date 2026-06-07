@@ -1,5 +1,4 @@
 import type { DotaGsiData } from '../shared/gsi.js';
-import { getSelectedDotaGsiPlayer } from '../shared/gsi.js';
 import { OVERLAY_REALTIME_EVENTS_URL } from '../shared/overlayRuntime.js';
 
 import { overlayElementRegistry } from './elementRegistry.js';
@@ -8,6 +7,8 @@ import type { OverlayElement } from './overlayElement.js';
 import './overlay.css';
 
 type RealtimeConnectionState = 'connected' | 'disconnected';
+
+const OVERLAY_ROOT_ID = 'overlay-root';
 
 const overlayElements = mountOverlayElements();
 const events = new EventSource(OVERLAY_REALTIME_EVENTS_URL);
@@ -19,12 +20,8 @@ events.onmessage = (event) => {
     return;
   }
 
-  const context = {
-    selectedPlayer: getSelectedDotaGsiPlayer(gsiData)
-  };
-
   for (const overlayElement of overlayElements) {
-    overlayElement.update(gsiData, context);
+    overlayElement.update(gsiData);
   }
 };
 
@@ -36,13 +33,26 @@ events.onerror = () => {
   setRealtimeConnectionState('disconnected');
 };
 
+window.addEventListener('beforeunload', () => {
+  events.close();
+  destroyOverlayElements(overlayElements);
+});
+
 function mountOverlayElements(): OverlayElement[] {
+  const root = getRequiredElement(OVERLAY_ROOT_ID);
+
   return overlayElementRegistry.map((registration) => {
-    const overlayElement = registration.mount(getRequiredElement(registration.rootId));
+    const overlayElement = registration.mount(root);
     overlayElement.setEnabled(registration.enabled);
 
     return overlayElement;
   });
+}
+
+function destroyOverlayElements(elements: OverlayElement[]): void {
+  for (const overlayElement of elements) {
+    overlayElement.destroy();
+  }
 }
 
 function setRealtimeConnectionState(state: RealtimeConnectionState): void {

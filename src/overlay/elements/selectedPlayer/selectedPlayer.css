@@ -17,9 +17,12 @@
 .selected-player {
   align-items: center;
   box-sizing: border-box;
+  bottom: 32px;
   display: flex;
   gap: 14px;
+  left: 32px;
   opacity: 0;
+  position: absolute;
   transform: translateY(8px);
   transition:
     opacity 160ms ease,
@@ -29,18 +32,6 @@
 .selected-player[data-visible="true"] {
   opacity: 1;
   transform: translateY(0);
-}
-
-.selected-player__team {
-  color: #9cc7d9;
-  font-family: "RadianceOverlay", serif;
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: 0;
-  text-shadow:
-    0 0 4px #000,
-    2px 2px 4px #000;
-  text-transform: uppercase;
 }
 
 .selected-player__row {

@@ -6,27 +6,7 @@
     <title>Dota Spectator Overlay</title>
   </head>
   <body>
-    <section
-      aria-live="polite"
-      class="selected-player"
-      data-enabled="true"
-      data-visible="false"
-      id="selected-player"
-    >
-      <div class="selected-player__team" data-selected-player-team>
-        Waiting for game in progress
-      </div>
-      <div class="selected-player__row">
-        <span class="selected-player__name" data-selected-player-name>No selected player</span>
-        <img
-          alt=""
-          class="selected-player__medal"
-          data-selected-player-medal
-          hidden
-        />
-        <span class="selected-player__mmr" data-selected-player-mmr>MMR --</span>
-      </div>
-    </section>
+    <main class="overlay-root" id="overlay-root"></main>
 
     <script src="./overlay.ts" type="module"></script>
   </body>
