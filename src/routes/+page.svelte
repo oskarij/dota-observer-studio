@@ -5,9 +5,9 @@
 </script>
 
 <svelte:head>
-  <title>Dota Spectator Tools</title>
+  <title>Dota Spectator Overlay Studio</title>
   <meta
-    content="Local overlay hosting platform for Dota spectator workflows."
+    content="Local overlay studio for Dota spectator streams, tournaments, and inhouses."
     name="description"
   />
 </svelte:head>
@@ -16,7 +16,7 @@
   <section class="masthead">
     <div>
       <p class="eyebrow">Local overlay host</p>
-      <h1>Dota Spectator Tools</h1>
+      <h1>Overlay Studio</h1>
     </div>
     <a class="endpoint" href={overlayUrl}>
       {overlayUrl}

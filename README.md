@@ -1,3 +1,3 @@
-# Dota Spectator Tools
+# Dota Spectator Overlay Studio
 
-Local-first desktop application for hosting browser-based streaming overlays.
+Local-first desktop application for creating and hosting Dota spectator stream overlays.
