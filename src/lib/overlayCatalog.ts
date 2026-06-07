@@ -5,16 +5,6 @@ export const starterOverlays: OverlayDefinition[] = [
     id: 'main',
     name: 'Main',
     route: '/overlay/main'
-  },
-  {
-    id: 'chat',
-    name: 'Chat',
-    route: '/overlay/chat'
-  },
-  {
-    id: 'alerts',
-    name: 'Alerts',
-    route: '/overlay/alerts'
   }
 ];
 
