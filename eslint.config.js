@@ -1,40 +1,8 @@
 import js from '@eslint/js';
-import react from 'eslint-plugin-react';
-import reactHooks from 'eslint-plugin-react-hooks';
 import svelte from 'eslint-plugin-svelte';
 import tseslint from 'typescript-eslint';
 
 const projectRules = {
-  'react/boolean-prop-naming': 'error',
-  'react/button-has-type': 'error',
-  'react/default-props-match-prop-types': 'error',
-  'react/display-name': 'off',
-  'react/forbid-dom-props': 'error',
-  'react/forbid-elements': 'error',
-  'react/forbid-foreign-prop-types': 'error',
-  'react/jsx-boolean-value': 'error',
-  'react/jsx-curly-brace-presence': 'error',
-  'react/jsx-curly-spacing': 'error',
-  'react/jsx-equals-spacing': 'error',
-  'react/jsx-filename-extension': ['error', { extensions: ['.jsx', '.tsx'] }],
-  'react/jsx-no-useless-fragment': 'error',
-  'react/jsx-props-no-multi-spaces': 'error',
-  'react/no-access-state-in-setstate': 'error',
-  'react/no-did-mount-set-state': 'error',
-  'react/no-did-update-set-state': 'error',
-  'react/no-redundant-should-component-update': 'error',
-  'react/no-this-in-sfc': 'error',
-  'react/no-typos': 'error',
-  'react/no-unused-prop-types': 'error',
-  'react/no-unused-state': 'error',
-  'react/no-will-update-set-state': 'error',
-  'react/prefer-es6-class': 'error',
-  'react/prop-types': 'off',
-  'react/react-in-jsx-scope': 'off',
-  'react/sort-default-props': 'error',
-  'react/sort-prop-types': 'error',
-  'react/style-prop-object': 'error',
-  'react/void-dom-elements-no-children': 'error',
   'callback-return': 'error',
   camelcase: 'error',
   'comma-dangle': ['error', 'never'],
@@ -120,15 +88,6 @@ export default tseslint.config(
         tsconfigRootDir: import.meta.dirname
       }
     },
-    plugins: {
-      react,
-      'react-hooks': reactHooks
-    },
-    settings: {
-      react: {
-        version: '19.0'
-      }
-    },
     rules: projectRules
   },
   {
@@ -143,24 +102,6 @@ export default tseslint.config(
       parserOptions: {
         parser: tseslint.parser
       }
-    }
-  },
-  {
-    files: ['**/*.{jsx,tsx}'],
-    ...react.configs.flat.recommended,
-    settings: {
-      react: {
-        version: '19.0'
-      }
-    },
-    plugins: {
-      react,
-      'react-hooks': reactHooks
-    },
-    rules: {
-      ...react.configs.flat.recommended.rules,
-      ...reactHooks.configs.recommended.rules,
-      ...projectRules
     }
   }
 );
