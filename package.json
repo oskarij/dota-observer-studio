@@ -9,17 +9,20 @@
     "npm": ">=10.0.0"
   },
   "scripts": {
-    "build": "npm run build:web && npm run build:electron",
+    "build": "npm run build:web && npm run build:overlay && npm run build:electron",
     "build:electron": "tsc -p tsconfig.electron.json",
+    "build:overlay": "vite build --config vite.overlay.config.ts",
     "build:web": "vite build",
     "dev": "concurrently -k \"npm:dev:web\" \"npm:dev:electron\"",
-    "dev:electron": "wait-on http://127.0.0.1:5173 && npm run build:electron && electron .",
+    "dev:electron": "wait-on http://127.0.0.1:5173 && npm run build:overlay && npm run build:electron && electron .",
     "dev:web": "vite dev --host 127.0.0.1 --port 5173 --strictPort",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",
     "preview": "vite preview --host 127.0.0.1 --port 4173 --strictPort",
-    "typecheck": "svelte-kit sync && tsc -p tsconfig.json --noEmit && tsc -p tsconfig.electron.json --noEmit"
+    "test": "npm run test:unit",
+    "test:unit": "tsc -p tsconfig.test.json && node --test build/test/tests/gsiSelection.test.js",
+    "typecheck": "svelte-kit sync && tsc -p tsconfig.json --noEmit && tsc -p tsconfig.electron.json --noEmit && tsc -p tsconfig.overlay.json --noEmit && tsc -p tsconfig.test.json --noEmit"
   },
   "dependencies": {
     "better-sqlite3": "^11.10.0",

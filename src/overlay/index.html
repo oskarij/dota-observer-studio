@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1" name="viewport" />
+    <title>Dota Spectator Overlay</title>
+  </head>
+  <body>
+    <section
+      aria-live="polite"
+      class="selected-unit"
+      data-enabled="true"
+      data-visible="false"
+      id="selected-unit"
+    >
+      <div class="label" data-selected-unit-team>Waiting for game in progress</div>
+      <div class="hero" data-selected-unit-hero>No selected unit</div>
+      <div class="meta">
+        <span data-selected-unit-player>Observer selection</span>
+        <span data-selected-unit-level>Level --</span>
+      </div>
+      <div aria-hidden="true" class="meter">
+        <span data-selected-unit-health></span>
+      </div>
+    </section>
+
+    <script src="./overlay.ts" type="module"></script>
+  </body>
+</html>

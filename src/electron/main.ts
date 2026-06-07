@@ -11,6 +11,7 @@ const gsiListener = createGsiListener({
 });
 
 const overlayHost = createOverlayHost({
+  assetRoot: join(app.getAppPath(), 'build/overlay-assets/overlay'),
   host: '127.0.0.1',
   port: 3333
 });

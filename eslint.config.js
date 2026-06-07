@@ -115,7 +115,7 @@ export default tseslint.config(
       parserOptions: {
         extraFileExtensions: ['.svelte'],
         projectService: {
-          allowDefaultProject: ['*.config.js', 'eslint.config.js']
+          allowDefaultProject: ['*.config.js', 'eslint.config.js', 'vite.overlay.config.ts']
         },
         tsconfigRootDir: import.meta.dirname
       }
