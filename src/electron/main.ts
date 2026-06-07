@@ -1,11 +1,27 @@
 import { app, BrowserWindow, Menu } from 'electron';
 import { join } from 'node:path';
 
+import { createGsiListener } from '../runtime/gsiListener.js';
 import { createOverlayHost } from '../runtime/overlayHost.js';
+import { createOverlayRealtime } from '../runtime/overlayRealtime.js';
+
+const gsiListener = createGsiListener({
+  host: '127.0.0.1',
+  port: 3334
+});
 
 const overlayHost = createOverlayHost({
   host: '127.0.0.1',
   port: 3333
+});
+
+const overlayRealtime = createOverlayRealtime({
+  host: '127.0.0.1',
+  port: 3335
+});
+
+const unsubscribeGsiRealtime = gsiListener.onPayload((payload) => {
+  overlayRealtime.broadcast(payload);
 });
 
 async function createMainWindow(): Promise<void> {
@@ -38,7 +54,7 @@ async function createMainWindow(): Promise<void> {
 app.whenReady().then(async () => {
   Menu.setApplicationMenu(null);
 
-  await overlayHost.start();
+  await Promise.all([overlayHost.start(), gsiListener.start(), overlayRealtime.start()]);
   await createMainWindow();
 
   app.on('activate', () => {
@@ -49,7 +65,10 @@ app.whenReady().then(async () => {
 });
 
 app.on('before-quit', () => {
+  unsubscribeGsiRealtime();
+  void gsiListener.stop();
   void overlayHost.stop();
+  void overlayRealtime.stop();
 });
 
 app.on('window-all-closed', () => {
