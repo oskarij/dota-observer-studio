@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, Menu } from 'electron';
 import { join } from 'node:path';
 
 import { createOverlayHost } from '../runtime/overlayHost.js';
@@ -36,6 +36,8 @@ async function createMainWindow(): Promise<void> {
 }
 
 app.whenReady().then(async () => {
+  Menu.setApplicationMenu(null);
+
   await overlayHost.start();
   await createMainWindow();
 
@@ -55,4 +57,3 @@ app.on('window-all-closed', () => {
     app.quit();
   }
 });
-
