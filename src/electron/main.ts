@@ -5,7 +5,7 @@ import { createGsiListener } from '../runtime/gsiListener.js';
 import { createOverlayGsiEventStream } from '../runtime/overlayGsiEventStream.js';
 import { createOverlayHost } from '../runtime/overlayHost.js';
 
-app.setName('Dota Spectator Overlay Studio');
+app.setName('Observer Studio');
 
 const gsiListener = createGsiListener({
   host: '127.0.0.1',
@@ -33,7 +33,7 @@ async function createMainWindow(): Promise<void> {
     minHeight: 720,
     minWidth: 1024,
     show: false,
-    title: 'Overlay Studio',
+    title: 'Observer Studio',
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,

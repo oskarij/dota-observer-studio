@@ -8,7 +8,7 @@
 </script>
 
 <svelte:head>
-  <title>Dota Spectator Overlay Studio</title>
+  <title>Observer Studio</title>
   <meta
     content="Local overlay studio for Dota spectator streams, tournaments, and inhouses."
     name="description"
@@ -19,7 +19,7 @@
   <section class="masthead">
     <div>
       <p class="eyebrow">Local overlay host</p>
-      <h1>Overlay Studio</h1>
+      <h1>Observer Studio</h1>
     </div>
     <a class="endpoint" href={overlayUrl}>
       {overlayUrl}
