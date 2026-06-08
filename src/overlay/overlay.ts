@@ -1,5 +1,5 @@
-import type { DotaGsiData } from '../shared/gsi.js';
-import { OVERLAY_REALTIME_EVENTS_URL } from '../shared/overlayRuntime.js';
+import type { DotaGsiData } from '../shared/dotaGsiPayload.js';
+import { OVERLAY_REALTIME_EVENTS_URL } from '../shared/overlayEventStreamEndpoint.js';
 
 import { overlayElementRegistry } from './elementRegistry.js';
 import type { OverlayElement } from './overlayElement.js';

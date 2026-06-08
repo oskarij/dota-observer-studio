@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import type { DotaGsiData } from '../src/shared/gsi.js';
-import { getSelectedDotaGsiPlayer } from '../src/shared/gsi.js';
+import type { DotaGsiData } from '../src/shared/dotaGsiPayload.js';
+import { getSelectedDotaGsiPlayer } from '../src/shared/dotaGsiPayload.js';
 
 test('finds the selected player path while the game is in progress', () => {
   const gsiData: DotaGsiData = {

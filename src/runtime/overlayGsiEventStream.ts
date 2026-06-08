@@ -3,13 +3,13 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import type { GsiPayload } from './gsiListener.js';
 import { getRequestPath, normalizePath, writeJson, writeNoContent } from './httpUtils.js';
 
-export interface OverlayRealtimeConfig {
+export interface OverlayGsiEventStreamConfig {
   readonly host: string;
   readonly path?: string;
   readonly port: number;
 }
 
-export interface OverlayRealtime {
+export interface OverlayGsiEventStream {
   broadcast(payload: GsiPayload): void;
   getClientCount(): number;
   onClientCountChange(listener: (clientCount: number) => void): () => void;
@@ -20,7 +20,9 @@ export interface OverlayRealtime {
 const DEFAULT_EVENTS_PATH = '/events';
 const HEARTBEAT_INTERVAL_MS = 15_000;
 
-export function createOverlayRealtime(config: OverlayRealtimeConfig): OverlayRealtime {
+export function createOverlayGsiEventStream(
+  config: OverlayGsiEventStreamConfig
+): OverlayGsiEventStream {
   const eventsPath = normalizePath(config.path ?? DEFAULT_EVENTS_PATH);
   const clients = new Set<ServerResponse>();
   const clientCountListeners = new Set<(clientCount: number) => void>();
@@ -89,7 +91,7 @@ export function createOverlayRealtime(config: OverlayRealtimeConfig): OverlayRea
         response,
         404,
         {
-          error: 'Overlay realtime route not found'
+          error: 'Overlay GSI event stream route not found'
         },
         getCrossOriginHeaders()
       );

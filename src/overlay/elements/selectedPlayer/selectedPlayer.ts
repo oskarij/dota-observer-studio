@@ -1,8 +1,8 @@
 import type {
   DotaGsiData,
   SelectedDotaGsiPlayer
-} from '../../../shared/gsi.js';
-import { getSelectedDotaGsiPlayer } from '../../../shared/gsi.js';
+} from '../../../shared/dotaGsiPayload.js';
+import { getSelectedDotaGsiPlayer } from '../../../shared/dotaGsiPayload.js';
 import { mmrToMedal, type PlayerProfile, type RankMedal } from './playerProfileData.js';
 import { getPlayerProfile } from './playerProfiles.js';
 

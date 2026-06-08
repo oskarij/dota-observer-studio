@@ -1,4 +1,4 @@
-import type { DotaGsiData } from '../shared/gsi.js';
+import type { DotaGsiData } from '../shared/dotaGsiPayload.js';
 
 export interface OverlayElement {
   readonly id: string;

@@ -1,5 +1,8 @@
 <script lang="ts">
-  import { overlayRoute, starterOverlayElements } from '$lib/overlayCatalog';
+  import {
+    OVERLAY_ELEMENT_DEFINITIONS as starterOverlayElements,
+    OVERLAY_ROUTE as overlayRoute
+  } from '../shared/overlayElementCatalog.js';
 
   const overlayUrl = `http://127.0.0.1:3333${overlayRoute}`;
 </script>

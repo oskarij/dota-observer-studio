@@ -2,8 +2,8 @@ import { app, BrowserWindow, Menu } from 'electron';
 import { join } from 'node:path';
 
 import { createGsiListener } from '../runtime/gsiListener.js';
+import { createOverlayGsiEventStream } from '../runtime/overlayGsiEventStream.js';
 import { createOverlayHost } from '../runtime/overlayHost.js';
-import { createOverlayRealtime } from '../runtime/overlayRealtime.js';
 
 app.setName('Dota Spectator Overlay Studio');
 
@@ -18,13 +18,13 @@ const overlayHost = createOverlayHost({
   port: 3333
 });
 
-const overlayRealtime = createOverlayRealtime({
+const overlayGsiEventStream = createOverlayGsiEventStream({
   host: '127.0.0.1',
   port: 3335
 });
 
-const unsubscribeGsiRealtime = gsiListener.onPayload((payload) => {
-  overlayRealtime.broadcast(payload);
+const unsubscribeGsiEventStream = gsiListener.onPayload((payload) => {
+  overlayGsiEventStream.broadcast(payload);
 });
 
 async function createMainWindow(): Promise<void> {
@@ -57,7 +57,7 @@ async function createMainWindow(): Promise<void> {
 app.whenReady().then(async () => {
   Menu.setApplicationMenu(null);
 
-  await Promise.all([overlayHost.start(), gsiListener.start(), overlayRealtime.start()]);
+  await Promise.all([overlayHost.start(), gsiListener.start(), overlayGsiEventStream.start()]);
   await createMainWindow();
 
   app.on('activate', () => {
@@ -68,10 +68,10 @@ app.whenReady().then(async () => {
 });
 
 app.on('before-quit', () => {
-  unsubscribeGsiRealtime();
+  unsubscribeGsiEventStream();
   void gsiListener.stop();
   void overlayHost.stop();
-  void overlayRealtime.stop();
+  void overlayGsiEventStream.stop();
 });
 
 app.on('window-all-closed', () => {

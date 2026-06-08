@@ -1,4 +1,4 @@
-import { OVERLAY_ELEMENT_DEFINITIONS } from '../shared/overlay.js';
+import { OVERLAY_ELEMENT_DEFINITIONS } from '../shared/overlayElementCatalog.js';
 
 import { mountSelectedPlayerElement } from './elements/selectedPlayer/selectedPlayer.js';
 import type { OverlayElement } from './overlayElement.js';
