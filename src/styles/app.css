@@ -1,109 +1,139 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
 :root {
-  color: #f4f7fb;
-  background: #101419;
-  font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
+  --radius: 0.5rem;
+  --background: oklch(0.986 0.004 95);
+  --foreground: oklch(0.218 0.014 252);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.218 0.014 252);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.218 0.014 252);
+  --primary: oklch(0.47 0.113 166);
+  --primary-foreground: oklch(0.985 0.006 166);
+  --secondary: oklch(0.94 0.017 88);
+  --secondary-foreground: oklch(0.267 0.016 252);
+  --muted: oklch(0.946 0.009 95);
+  --muted-foreground: oklch(0.478 0.02 252);
+  --accent: oklch(0.89 0.051 83);
+  --accent-foreground: oklch(0.287 0.024 70);
+  --destructive: oklch(0.59 0.21 27);
+  --border: oklch(0.879 0.012 95);
+  --input: oklch(0.879 0.012 95);
+  --ring: oklch(0.585 0.118 166);
+  --chart-1: oklch(0.58 0.118 166);
+  --chart-2: oklch(0.66 0.145 70);
+  --chart-3: oklch(0.49 0.116 258);
+  --chart-4: oklch(0.62 0.16 32);
+  --chart-5: oklch(0.57 0.09 305);
+  --sidebar: oklch(0.967 0.008 95);
+  --sidebar-foreground: oklch(0.248 0.014 252);
+  --sidebar-primary: oklch(0.47 0.113 166);
+  --sidebar-primary-foreground: oklch(0.985 0.006 166);
+  --sidebar-accent: oklch(0.916 0.022 88);
+  --sidebar-accent-foreground: oklch(0.267 0.016 252);
+  --sidebar-border: oklch(0.866 0.011 95);
+  --sidebar-ring: oklch(0.585 0.118 166);
 }
 
-body {
-  margin: 0;
+.dark {
+  --background: oklch(0.183 0.015 252);
+  --foreground: oklch(0.962 0.006 95);
+  --card: oklch(0.226 0.016 252);
+  --card-foreground: oklch(0.962 0.006 95);
+  --popover: oklch(0.226 0.016 252);
+  --popover-foreground: oklch(0.962 0.006 95);
+  --primary: oklch(0.658 0.118 166);
+  --primary-foreground: oklch(0.142 0.018 166);
+  --secondary: oklch(0.286 0.019 252);
+  --secondary-foreground: oklch(0.942 0.006 95);
+  --muted: oklch(0.286 0.019 252);
+  --muted-foreground: oklch(0.72 0.014 95);
+  --accent: oklch(0.348 0.052 77);
+  --accent-foreground: oklch(0.955 0.014 88);
+  --destructive: oklch(0.704 0.191 22);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.658 0.118 166);
+  --chart-1: oklch(0.66 0.118 166);
+  --chart-2: oklch(0.74 0.145 70);
+  --chart-3: oklch(0.7 0.116 258);
+  --chart-4: oklch(0.72 0.16 32);
+  --chart-5: oklch(0.73 0.09 305);
+  --sidebar: oklch(0.214 0.016 252);
+  --sidebar-foreground: oklch(0.942 0.006 95);
+  --sidebar-primary: oklch(0.658 0.118 166);
+  --sidebar-primary-foreground: oklch(0.142 0.018 166);
+  --sidebar-accent: oklch(0.286 0.019 252);
+  --sidebar-accent-foreground: oklch(0.942 0.006 95);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.658 0.118 166);
 }
 
-a {
-  color: inherit;
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
 }
 
-.workspace {
-  box-sizing: border-box;
-  display: grid;
-  gap: 24px;
-  min-height: 100vh;
-  padding: 32px;
-}
-
-.masthead {
-  align-items: end;
-  border-bottom: 1px solid #303843;
-  display: flex;
-  gap: 24px;
-  justify-content: space-between;
-  padding-bottom: 24px;
-}
-
-.eyebrow {
-  color: #8fbdd3;
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0;
-  margin: 0 0 8px;
-  text-transform: uppercase;
-}
-
-h1,
-h2,
-h3,
-p {
-  margin: 0;
-}
-
-h1 {
-  font-size: clamp(2rem, 6vw, 4.5rem);
-  line-height: 0.95;
-}
-
-.endpoint {
-  color: #c7d4df;
-  font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
-  font-size: 0.9rem;
-  overflow-wrap: anywhere;
-}
-
-.panel {
-  display: grid;
-  gap: 16px;
-}
-
-.panel-header {
-  align-items: center;
-  display: flex;
-  justify-content: space-between;
-}
-
-.panel-header span {
-  color: #a9b4bd;
-  font-size: 0.9rem;
-}
-
-.overlay-grid {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-}
-
-.overlay-card {
-  background: #182029;
-  border: 1px solid #303843;
-  border-radius: 8px;
-  display: grid;
-  gap: 8px;
-  padding: 16px;
-}
-
-.overlay-card p {
-  color: #a9b4bd;
-  font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
-  font-size: 0.86rem;
-}
-
-@media (max-width: 720px) {
-  .workspace {
-    padding: 20px;
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
   }
 
-  .masthead {
-    align-items: start;
-    flex-direction: column;
+  html {
+    font-family:
+      Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+      sans-serif;
+  }
+
+  html,
+  body,
+  body > div {
+    min-height: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    margin: 0;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
   }
 }
-

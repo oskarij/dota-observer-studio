@@ -1,44 +1,39 @@
 <script lang="ts">
-  import {
-    OVERLAY_ELEMENT_DEFINITIONS as starterOverlayElements,
-    OVERLAY_ROUTE as overlayRoute
-  } from '../shared/overlayElementCatalog.js';
+  import ExternalLinkIcon from '@lucide/svelte/icons/external-link';
+
+  import { Button } from '$lib/components/ui/button/index.js';
+  import { OVERLAY_ROUTE as overlayRoute } from '../shared/overlayElementCatalog.js';
 
   const overlayUrl = `http://127.0.0.1:3333${overlayRoute}`;
 </script>
 
 <svelte:head>
-  <title>Observer Studio</title>
+  <title>Overlay | Observer Studio</title>
   <meta
-    content="Local overlay studio for Dota spectator streams, tournaments, and inhouses."
+    content="Hosted overlay URL for Dota Observer Studio."
     name="description"
   />
 </svelte:head>
 
-<main class="workspace">
-  <section class="masthead">
-    <div>
-      <p class="eyebrow">Local overlay host</p>
-      <h1>Observer Studio</h1>
-    </div>
-    <a class="endpoint" href={overlayUrl}>
-      {overlayUrl}
-    </a>
-  </section>
-
-  <section aria-labelledby="elements-heading" class="panel">
-    <div class="panel-header">
-      <h2 id="elements-heading">Overlay Elements</h2>
-      <span>{starterOverlayElements.length} configured</span>
+<section class="grid gap-6 p-6 max-sm:p-4">
+  <div
+    class="flex items-end justify-between gap-4 border-b pb-6 max-sm:flex-col max-sm:items-start"
+  >
+    <div class="grid gap-1">
+      <p class="text-sm font-medium text-muted-foreground">Overlay</p>
+      <h1 class="text-2xl font-semibold leading-tight">Hosted overlay URL</h1>
     </div>
 
-    <div class="overlay-grid">
-      {#each starterOverlayElements as element (element.id)}
-        <article class="overlay-card">
-          <h3>{element.name}</h3>
-          <p>{element.enabled ? 'enabled' : 'disabled'}</p>
-        </article>
-      {/each}
-    </div>
-  </section>
-</main>
+    <Button href={overlayUrl} rel="noreferrer" target="_blank" variant="outline">
+      <ExternalLinkIcon />
+      Open overlay
+    </Button>
+  </div>
+
+  <a
+    class="w-full max-w-3xl rounded-md border bg-card px-3 py-2 font-mono text-sm text-card-foreground [overflow-wrap:anywhere]"
+    href={overlayUrl}
+  >
+    {overlayUrl}
+  </a>
+</section>

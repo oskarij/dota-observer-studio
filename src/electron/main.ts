@@ -46,6 +46,11 @@ async function createMainWindow(): Promise<void> {
     window.show();
   });
 
+  // Keep the window title fixed instead of following the page's document.title.
+  window.on('page-title-updated', (event) => {
+    event.preventDefault();
+  });
+
   if (app.isPackaged) {
     await window.loadFile(join(app.getAppPath(), 'build/web/index.html'));
     return;
