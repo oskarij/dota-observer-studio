@@ -17,11 +17,11 @@
 </svelte:head>
 
 <header
-  class="flex h-14 items-center justify-between border-b px-6 max-sm:px-4"
+  class="flex h-16 items-center justify-between px-6 max-sm:px-4"
 >
-  <span class="text-base font-semibold leading-none">Observer Studio</span>
+  <span class="text-lg font-semibold leading-none">Observer Studio</span>
 
-  <Button class="border-primary text-primary" variant="outline">
+  <Button class="border-primary text-primary" size="lg" variant="outline">
     <SaveIcon />
     Save
   </Button>
