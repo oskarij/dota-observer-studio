@@ -65,6 +65,9 @@ export function createGsiListener(config: GsiListenerConfig): GsiListener {
     const activeServer = server;
     server = null;
 
+    // close() alone waits for idle keep-alive sockets to drain; destroy them so the port frees now.
+    activeServer.closeAllConnections();
+
     await new Promise<void>((resolve, reject) => {
       activeServer.close((error) => {
         if (error === undefined) {

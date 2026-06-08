@@ -81,13 +81,28 @@ app.whenReady().then(async () => {
   });
 });
 
-app.on('before-quit', () => {
+let isShuttingDown = false;
+
+app.on('before-quit', (event) => {
+  // Electron does not await this handler, so defer the quit until the ports are actually released.
+  if (isShuttingDown) {
+    return;
+  }
+
+  event.preventDefault();
+  isShuttingDown = true;
+
   unsubscribeGsiEventStream();
   unsubscribeGsiLiveness();
   gsiLiveness.stop();
-  void gsiListener.stop();
-  void overlayHost.stop();
-  void overlayGsiEventStream.stop();
+
+  void Promise.allSettled([
+    gsiListener.stop(),
+    overlayHost.stop(),
+    overlayGsiEventStream.stop()
+  ]).finally(() => {
+    app.quit();
+  });
 });
 
 app.on('window-all-closed', () => {

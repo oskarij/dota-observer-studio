@@ -69,6 +69,9 @@ export function createOverlayGsiEventStream(
     const activeServer = server;
     server = null;
 
+    // SSE clients are long-lived; client.end() is graceful, so destroy any stragglers to free the port now.
+    activeServer.closeAllConnections();
+
     await new Promise<void>((resolve, reject) => {
       activeServer.close((error) => {
         if (error === undefined) {
