@@ -1,5 +1,6 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 
+import { GSI_STATUS_EVENT, type GsiStatus } from '../shared/gsiStatus.js';
 import type { GsiPayload } from './gsiListener.js';
 import { getRequestPath, normalizePath, writeJson, writeNoContent } from './httpUtils.js';
 
@@ -13,6 +14,8 @@ export interface OverlayGsiEventStream {
   broadcast(payload: GsiPayload): void;
   getClientCount(): number;
   onClientCountChange(listener: (clientCount: number) => void): () => void;
+  /** Push the GSI feed liveness to every client. Replayed to clients that connect later. */
+  setStatus(status: GsiStatus): void;
   start(): Promise<void>;
   stop(): Promise<void>;
 }
@@ -27,6 +30,7 @@ export function createOverlayGsiEventStream(
   const clients = new Set<ServerResponse>();
   const clientCountListeners = new Set<(clientCount: number) => void>();
 
+  let currentStatus: GsiStatus = 'stale';
   let heartbeatTimer: NodeJS.Timeout | null = null;
   let server: Server | null = null;
 
@@ -109,6 +113,8 @@ export function createOverlayGsiEventStream(
       'Content-Type': 'text/event-stream; charset=utf-8'
     });
     response.write(': connected\n\n');
+    // Sync newly connected clients to the current feed liveness immediately.
+    response.write(formatStatusEvent(currentStatus));
 
     clients.add(response);
     emitClientCount();
@@ -120,8 +126,19 @@ export function createOverlayGsiEventStream(
   }
 
   function broadcast(payload: GsiPayload): void {
-    const message = `data: ${JSON.stringify(payload)}\n\n`;
+    writeToClients(`data: ${JSON.stringify(payload)}\n\n`);
+  }
 
+  function setStatus(status: GsiStatus): void {
+    if (status === currentStatus) {
+      return;
+    }
+
+    currentStatus = status;
+    writeToClients(formatStatusEvent(status));
+  }
+
+  function writeToClients(message: string): void {
     for (const client of clients) {
       if (client.destroyed) {
         clients.delete(client);
@@ -185,9 +202,14 @@ export function createOverlayGsiEventStream(
         clientCountListeners.delete(listener);
       };
     },
+    setStatus,
     start,
     stop
   };
+}
+
+function formatStatusEvent(status: GsiStatus): string {
+  return `event: ${GSI_STATUS_EVENT}\ndata: ${status}\n\n`;
 }
 
 function getCrossOriginHeaders(): Record<string, string> {

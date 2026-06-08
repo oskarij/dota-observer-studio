@@ -39,6 +39,9 @@ export function mountSelectedPlayerElement(container: HTMLElement): OverlayEleme
 
   return {
     id: 'selected-player',
+    clear() {
+      root.dataset.visible = 'false';
+    },
     destroy() {
       root.remove();
     },

@@ -1,4 +1,5 @@
 import type { DotaGsiData } from '../shared/dotaGsiPayload.js';
+import { GSI_STATUS_EVENT, type GsiStatus } from '../shared/gsiStatus.js';
 import { OVERLAY_REALTIME_EVENTS_URL } from '../shared/overlayEventStreamEndpoint.js';
 
 import { overlayElementRegistry } from './elementRegistry.js';
@@ -25,12 +26,18 @@ events.onmessage = (event) => {
   }
 };
 
+events.addEventListener(GSI_STATUS_EVENT, (event) => {
+  applyGsiStatus((event as MessageEvent<string>).data);
+});
+
 events.onopen = () => {
   setRealtimeConnectionState('connected');
 };
 
 events.onerror = () => {
   setRealtimeConnectionState('disconnected');
+  // The stream itself dropped: no payloads are coming, so hide stale content.
+  clearOverlayElements();
 };
 
 window.addEventListener('beforeunload', () => {
@@ -52,6 +59,22 @@ function mountOverlayElements(): OverlayElement[] {
 function destroyOverlayElements(elements: OverlayElement[]): void {
   for (const overlayElement of elements) {
     overlayElement.destroy();
+  }
+}
+
+function clearOverlayElements(): void {
+  for (const overlayElement of overlayElements) {
+    overlayElement.clear();
+  }
+}
+
+function applyGsiStatus(status: string): void {
+  const gsiStatus: GsiStatus = status === 'live' ? 'live' : 'stale';
+  document.documentElement.dataset.gsiStatus = gsiStatus;
+
+  // On `live` the next payload re-renders elements; only `stale` needs an explicit hide.
+  if (gsiStatus === 'stale') {
+    clearOverlayElements();
   }
 }
 

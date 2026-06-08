@@ -2,6 +2,7 @@ import { app, BrowserWindow, Menu } from 'electron';
 import { join } from 'node:path';
 
 import { createGsiListener } from '../runtime/gsiListener.js';
+import { createGsiLiveness } from '../runtime/gsiLiveness.js';
 import { createOverlayGsiEventStream } from '../runtime/overlayGsiEventStream.js';
 import { createOverlayHost } from '../runtime/overlayHost.js';
 
@@ -23,7 +24,15 @@ const overlayGsiEventStream = createOverlayGsiEventStream({
   port: 3335
 });
 
+const gsiLiveness = createGsiLiveness();
+
+const unsubscribeGsiLiveness = gsiLiveness.onStatusChange((status) => {
+  overlayGsiEventStream.setStatus(status);
+});
+
 const unsubscribeGsiEventStream = gsiListener.onPayload((payload) => {
+  // Mark alive before broadcasting so a resuming feed sends `live` ahead of the payload.
+  gsiLiveness.markAlive();
   overlayGsiEventStream.broadcast(payload);
 });
 
@@ -74,6 +83,8 @@ app.whenReady().then(async () => {
 
 app.on('before-quit', () => {
   unsubscribeGsiEventStream();
+  unsubscribeGsiLiveness();
+  gsiLiveness.stop();
   void gsiListener.stop();
   void overlayHost.stop();
   void overlayGsiEventStream.stop();

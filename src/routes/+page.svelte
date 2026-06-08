@@ -2,6 +2,7 @@
   import ExternalLinkIcon from '@lucide/svelte/icons/external-link';
   import SaveIcon from '@lucide/svelte/icons/save';
 
+  import GsiStatusIndicator from '$lib/components/gsi-status-indicator.svelte';
   import { Button } from '$lib/components/ui/button/index.js';
   import { OVERLAY_ROUTE as overlayRoute } from '../shared/overlayElementCatalog.js';
 
@@ -21,10 +22,14 @@
 >
   <span class="text-lg font-semibold leading-none">Observer Studio</span>
 
-  <Button class="border-primary text-primary" size="lg" variant="outline">
-    <SaveIcon />
-    Save
-  </Button>
+  <div class="flex items-center gap-4">
+    <GsiStatusIndicator />
+
+    <Button class="border-primary text-primary" size="lg" variant="outline">
+      <SaveIcon />
+      Save
+    </Button>
+  </div>
 </header>
 
 <section class="grid gap-6 p-6 max-sm:p-4">
