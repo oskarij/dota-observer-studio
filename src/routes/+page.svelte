@@ -1,5 +1,6 @@
 <script lang="ts">
   import ExternalLinkIcon from '@lucide/svelte/icons/external-link';
+  import SaveIcon from '@lucide/svelte/icons/save';
 
   import { Button } from '$lib/components/ui/button/index.js';
   import { OVERLAY_ROUTE as overlayRoute } from '../shared/overlayElementCatalog.js';
@@ -14,6 +15,17 @@
     name="description"
   />
 </svelte:head>
+
+<header
+  class="flex h-14 items-center justify-between border-b px-6 max-sm:px-4"
+>
+  <span class="text-base font-semibold leading-none">Observer Studio</span>
+
+  <Button class="border-primary text-primary" variant="outline">
+    <SaveIcon />
+    Save
+  </Button>
+</header>
 
 <section class="grid gap-6 p-6 max-sm:p-4">
   <div
