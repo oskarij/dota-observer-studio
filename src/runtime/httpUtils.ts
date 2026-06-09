@@ -34,10 +34,7 @@ export function writeJson(
   response.end(JSON.stringify(body));
 }
 
-export function writeNoContent(
-  response: ServerResponse,
-  headers: OutgoingHttpHeaders = {}
-): void {
+export function writeNoContent(response: ServerResponse, headers: OutgoingHttpHeaders = {}): void {
   response.writeHead(204, headers);
   response.end();
 }

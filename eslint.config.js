@@ -103,6 +103,13 @@ export default tseslint.config(
     }
   },
   {
+    // Test fixtures mirror Dota's snake_case GSI payload shape verbatim.
+    files: ['tests/**/*.ts'],
+    rules: {
+      camelcase: ['error', { properties: 'never' }]
+    }
+  },
+  {
     files: ['src/lib/components/ui/**/*.{svelte,ts}', 'src/lib/hooks/**/*.svelte.ts'],
     rules: {
       '@typescript-eslint/consistent-type-definitions': 'off',

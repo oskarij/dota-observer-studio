@@ -5,23 +5,24 @@ import { createGsiListener } from '../runtime/gsiListener.js';
 import { createGsiLiveness } from '../runtime/gsiLiveness.js';
 import { createOverlayGsiEventStream } from '../runtime/overlayGsiEventStream.js';
 import { createOverlayHost } from '../runtime/overlayHost.js';
+import { NETWORK_HOST, NETWORK_PORTS } from '../shared/networkConfig.js';
 
 app.setName('Observer Studio');
 
 const gsiListener = createGsiListener({
-  host: '127.0.0.1',
-  port: 3334
+  host: NETWORK_HOST,
+  port: NETWORK_PORTS.gsiListener
 });
 
 const overlayHost = createOverlayHost({
   assetRoot: join(app.getAppPath(), 'build/overlay-assets/overlay'),
-  host: '127.0.0.1',
-  port: 3333
+  host: NETWORK_HOST,
+  port: NETWORK_PORTS.overlayHost
 });
 
 const overlayGsiEventStream = createOverlayGsiEventStream({
-  host: '127.0.0.1',
-  port: 3335
+  host: NETWORK_HOST,
+  port: NETWORK_PORTS.overlayEventStream
 });
 
 const gsiLiveness = createGsiLiveness();

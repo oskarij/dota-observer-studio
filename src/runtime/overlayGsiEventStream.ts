@@ -1,8 +1,10 @@
-import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
+import type { IncomingMessage, ServerResponse } from 'node:http';
 
 import { GSI_STATUS_EVENT, type GsiStatus } from '../shared/gsiStatus.js';
 import type { GsiPayload } from './gsiListener.js';
+import { createManagedHttpServer } from './httpServer.js';
 import { getRequestPath, normalizePath, writeJson, writeNoContent } from './httpUtils.js';
+import { createObservers } from './observers.js';
 
 export interface OverlayGsiEventStreamConfig {
   readonly host: string;
@@ -28,60 +30,31 @@ export function createOverlayGsiEventStream(
 ): OverlayGsiEventStream {
   const eventsPath = normalizePath(config.path ?? DEFAULT_EVENTS_PATH);
   const clients = new Set<ServerResponse>();
-  const clientCountListeners = new Set<(clientCount: number) => void>();
+  const clientCountObservers = createObservers<number>('overlay client count');
 
   let currentStatus: GsiStatus = 'stale';
   let heartbeatTimer: NodeJS.Timeout | null = null;
-  let server: Server | null = null;
+
+  const httpServer = createManagedHttpServer({
+    host: config.host,
+    port: config.port,
+    onRequest: handleRequest,
+    // SSE clients are long-lived; client.end() is graceful, so the factory destroys any stragglers.
+    onBeforeClose() {
+      stopHeartbeat();
+
+      for (const client of clients) {
+        client.end();
+      }
+
+      clients.clear();
+      emitClientCount();
+    }
+  });
 
   async function start(): Promise<void> {
-    if (server !== null) {
-      return;
-    }
-
-    const nextServer = createServer((request, response) => {
-      handleRequest(request, response);
-    });
-
-    await new Promise<void>((resolve, reject) => {
-      nextServer.once('error', reject);
-      nextServer.listen(config.port, config.host, resolve);
-    });
-
-    server = nextServer;
+    await httpServer.start();
     startHeartbeat();
-  }
-
-  async function stop(): Promise<void> {
-    stopHeartbeat();
-
-    for (const client of clients) {
-      client.end();
-    }
-
-    clients.clear();
-    emitClientCount();
-
-    if (server === null) {
-      return;
-    }
-
-    const activeServer = server;
-    server = null;
-
-    // SSE clients are long-lived; client.end() is graceful, so destroy any stragglers to free the port now.
-    activeServer.closeAllConnections();
-
-    await new Promise<void>((resolve, reject) => {
-      activeServer.close((error) => {
-        if (error === undefined) {
-          resolve();
-          return;
-        }
-
-        reject(error);
-      });
-    });
   }
 
   function handleRequest(request: IncomingMessage, response: ServerResponse): void {
@@ -142,6 +115,12 @@ export function createOverlayGsiEventStream(
   }
 
   function writeToClients(message: string): void {
+    writeToAliveClients(message);
+    emitClientCount();
+  }
+
+  // Write to every live client, pruning any that have disconnected since the last write.
+  function writeToAliveClients(message: string): void {
     for (const client of clients) {
       if (client.destroyed) {
         clients.delete(client);
@@ -150,8 +129,6 @@ export function createOverlayGsiEventStream(
 
       client.write(message);
     }
-
-    emitClientCount();
   }
 
   function startHeartbeat(): void {
@@ -160,15 +137,7 @@ export function createOverlayGsiEventStream(
     }
 
     heartbeatTimer = setInterval(() => {
-      for (const client of clients) {
-        if (client.destroyed) {
-          clients.delete(client);
-          continue;
-        }
-
-        client.write(': heartbeat\n\n');
-      }
-
+      writeToAliveClients(': heartbeat\n\n');
       emitClientCount();
     }, HEARTBEAT_INTERVAL_MS);
     heartbeatTimer.unref();
@@ -184,13 +153,7 @@ export function createOverlayGsiEventStream(
   }
 
   function emitClientCount(): void {
-    for (const listener of clientCountListeners) {
-      try {
-        listener(clients.size);
-      } catch {
-        // UI observers should not interrupt overlay streaming.
-      }
-    }
+    clientCountObservers.emit(clients.size);
   }
 
   return {
@@ -198,16 +161,10 @@ export function createOverlayGsiEventStream(
     getClientCount() {
       return clients.size;
     },
-    onClientCountChange(listener) {
-      clientCountListeners.add(listener);
-
-      return () => {
-        clientCountListeners.delete(listener);
-      };
-    },
+    onClientCountChange: clientCountObservers.add,
     setStatus,
     start,
-    stop
+    stop: httpServer.stop
   };
 }
 

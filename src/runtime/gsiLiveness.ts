@@ -1,4 +1,5 @@
 import { GSI_STALE_TIMEOUT_MS, type GsiStatus } from '../shared/gsiStatus.js';
+import { createObservers } from './observers.js';
 
 export interface GsiLivenessConfig {
   readonly timeoutMs?: number;
@@ -13,7 +14,7 @@ export interface GsiLiveness {
 
 export function createGsiLiveness(config: GsiLivenessConfig = {}): GsiLiveness {
   const timeoutMs = config.timeoutMs ?? GSI_STALE_TIMEOUT_MS;
-  const statusListeners = new Set<(status: GsiStatus) => void>();
+  const statusObservers = createObservers<GsiStatus>('GSI liveness');
 
   let status: GsiStatus = 'stale';
   let staleTimer: NodeJS.Timeout | null = null;
@@ -24,7 +25,7 @@ export function createGsiLiveness(config: GsiLivenessConfig = {}): GsiLiveness {
     }
 
     status = nextStatus;
-    emitStatus();
+    statusObservers.emit(status);
   }
 
   function markAlive(): void {
@@ -51,28 +52,12 @@ export function createGsiLiveness(config: GsiLivenessConfig = {}): GsiLiveness {
     staleTimer = null;
   }
 
-  function emitStatus(): void {
-    for (const listener of statusListeners) {
-      try {
-        listener(status);
-      } catch {
-        // Observers must not interrupt liveness tracking.
-      }
-    }
-  }
-
   return {
     getStatus() {
       return status;
     },
     markAlive,
-    onStatusChange(listener) {
-      statusListeners.add(listener);
-
-      return () => {
-        statusListeners.delete(listener);
-      };
-    },
+    onStatusChange: statusObservers.add,
     stop() {
       clearStaleTimer();
       setStatus('stale');

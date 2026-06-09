@@ -1,3 +1,5 @@
+import { logWarning } from '../../../shared/logger.js';
+
 export type RankMedal =
   | 'ancient'
   | 'archon'
@@ -104,6 +106,7 @@ function applyPlayerProfileLine(profile: PlayerProfileDraft, line: string): void
   const match = /^([A-Za-z_][A-Za-z0-9_ ]*):\s*(.*)$/u.exec(line);
 
   if (match === null) {
+    logWarning(`Ignoring malformed player profile line: ${line}`);
     return;
   }
 
@@ -128,7 +131,10 @@ function applyPlayerProfileLine(profile: PlayerProfileDraft, line: string): void
 
   if (key === 'mmr') {
     profile.mmr = parseMmr(value);
+    return;
   }
+
+  logWarning(`Ignoring unknown player profile field: ${rawKey}`);
 }
 
 function normalizeYamlKey(key: string): string {

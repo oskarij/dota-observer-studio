@@ -1,0 +1,9 @@
+# Build output and framework-generated files
+build/
+dist/
+.svelte-kit/
+
+# shadcn / bits-ui generated components — preserve their upstream formatting
+# (these have a matching ESLint override in eslint.config.js)
+src/lib/components/ui/
+src/lib/hooks/

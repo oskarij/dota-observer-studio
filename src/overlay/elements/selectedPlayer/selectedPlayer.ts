@@ -1,10 +1,8 @@
-import type {
-  DotaGsiData,
-  SelectedDotaGsiPlayer
-} from '../../../shared/dotaGsiPayload.js';
+import type { DotaGsiData, SelectedDotaGsiPlayer } from '../../../shared/dotaGsiPayload.js';
 import { getSelectedDotaGsiPlayer } from '../../../shared/dotaGsiPayload.js';
 import { mmrToMedal, type PlayerProfile, type RankMedal } from './playerProfileData.js';
 import { getPlayerProfile } from './playerProfiles.js';
+import { formatMedalName, formatMmr } from './selectedPlayerFormat.js';
 
 import type { OverlayElement } from '../../overlayElement.js';
 
@@ -115,26 +113,6 @@ function updateMedalImage(element: HTMLImageElement, medal: RankMedal | null): v
   element.hidden = false;
   element.src = MEDAL_IMAGE_URLS[medal];
   element.alt = `${formatMedalName(medal)} medal`;
-}
-
-function formatMmr(mmr: number | null): string {
-  if (mmr === null) {
-    return '--';
-  }
-
-  if (mmr < 1000) {
-    return String(mmr);
-  }
-
-  const truncatedTenths = Math.trunc(mmr / 100);
-  const thousands = Math.trunc(truncatedTenths / 10);
-  const tenths = truncatedTenths % 10;
-
-  return tenths === 0 ? `${thousands}k` : `${thousands}.${tenths}k`;
-}
-
-function formatMedalName(medal: RankMedal): string {
-  return medal.charAt(0).toUpperCase() + medal.slice(1);
 }
 
 function getRequiredChild(root: HTMLElement, selector: string): HTMLElement {

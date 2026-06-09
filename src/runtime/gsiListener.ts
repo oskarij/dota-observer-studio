@@ -1,6 +1,8 @@
-import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
+import type { IncomingMessage, ServerResponse } from 'node:http';
 
+import { createManagedHttpServer } from './httpServer.js';
 import { getRequestPath, normalizePath, writeJson, writeNoContent } from './httpUtils.js';
+import { createObservers } from './observers.js';
 
 export type GsiPayload = Record<string, unknown>;
 
@@ -29,16 +31,12 @@ class HttpError extends Error {
 
 export function createGsiListener(config: GsiListenerConfig): GsiListener {
   const endpointPath = normalizePath(config.path ?? DEFAULT_GSI_PATH);
-  const payloadListeners = new Set<(payload: GsiPayload) => void>();
+  const payloadObservers = createObservers<GsiPayload>('GSI payload');
 
-  let server: Server | null = null;
-
-  async function start(): Promise<void> {
-    if (server !== null) {
-      return;
-    }
-
-    const nextServer = createServer((request, response) => {
+  const httpServer = createManagedHttpServer({
+    host: config.host,
+    port: config.port,
+    onRequest(request, response) {
       void handleRequest(request, response).catch((error: unknown) => {
         const statusCode = error instanceof HttpError ? error.statusCode : 500;
         const message = error instanceof Error ? error.message : 'Unexpected GSI listener error';
@@ -47,38 +45,8 @@ export function createGsiListener(config: GsiListenerConfig): GsiListener {
           error: message
         });
       });
-    });
-
-    await new Promise<void>((resolve, reject) => {
-      nextServer.once('error', reject);
-      nextServer.listen(config.port, config.host, resolve);
-    });
-
-    server = nextServer;
-  }
-
-  async function stop(): Promise<void> {
-    if (server === null) {
-      return;
     }
-
-    const activeServer = server;
-    server = null;
-
-    // close() alone waits for idle keep-alive sockets to drain; destroy them so the port frees now.
-    activeServer.closeAllConnections();
-
-    await new Promise<void>((resolve, reject) => {
-      activeServer.close((error) => {
-        if (error === undefined) {
-          resolve();
-          return;
-        }
-
-        reject(error);
-      });
-    });
-  }
+  });
 
   async function handleRequest(request: IncomingMessage, response: ServerResponse): Promise<void> {
     const method = request.method?.toUpperCase() ?? 'GET';
@@ -97,34 +65,15 @@ export function createGsiListener(config: GsiListenerConfig): GsiListener {
       throw new HttpError(400, 'GSI payload must be a JSON object');
     }
 
-    emitPayload(payloadListeners, payload);
+    payloadObservers.emit(payload);
     writeNoContent(response);
   }
 
   return {
-    onPayload(listener) {
-      payloadListeners.add(listener);
-
-      return () => {
-        payloadListeners.delete(listener);
-      };
-    },
-    start,
-    stop
+    onPayload: payloadObservers.add,
+    start: httpServer.start,
+    stop: httpServer.stop
   };
-}
-
-function emitPayload(
-  payloadListeners: Set<(payload: GsiPayload) => void>,
-  payload: GsiPayload
-): void {
-  for (const listener of payloadListeners) {
-    try {
-      listener(payload);
-    } catch {
-      // Listener failures should not interrupt GSI ingestion.
-    }
-  }
 }
 
 async function readJsonBody(request: IncomingMessage): Promise<unknown> {

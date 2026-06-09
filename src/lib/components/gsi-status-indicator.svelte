@@ -16,14 +16,7 @@
   const presentation = $derived(PRESENTATION[watcher.status]);
 </script>
 
-<div
-  class="flex items-center gap-2 text-sm text-muted-foreground"
-  role="status"
-  aria-live="polite"
->
-  <span
-    aria-hidden="true"
-    class={cn('size-2 shrink-0 rounded-full', presentation.dotClass)}
-  ></span>
+<div class="flex items-center gap-2 text-sm text-muted-foreground" role="status" aria-live="polite">
+  <span aria-hidden="true" class={cn('size-2 shrink-0 rounded-full', presentation.dotClass)}></span>
   <span class="leading-none">{presentation.label}</span>
 </div>

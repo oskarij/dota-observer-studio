@@ -10,25 +10,25 @@ test('finds the selected player path while the game is in progress', () => {
       team2: {
         player0: {
           name: 'npc_dota_hero_ursa',
-          'selected_unit': false
+          selected_unit: false
         }
       },
       team3: {
         player7: {
           level: 13,
           name: 'npc_dota_hero_tidehunter',
-          'selected_unit': true
+          selected_unit: true
         }
       }
     },
     map: {
-      'game_state': 'DOTA_GAMERULES_STATE_GAME_IN_PROGRESS'
+      game_state: 'DOTA_GAMERULES_STATE_GAME_IN_PROGRESS'
     },
     player: {
       team3: {
         player7: {
           name: 'Driftwood',
-          'team_name': 'dire'
+          team_name: 'dire'
         }
       }
     }
@@ -49,12 +49,12 @@ test('ignores selected players before the game is in progress', () => {
       team2: {
         player0: {
           name: 'npc_dota_hero_ursa',
-          'selected_unit': true
+          selected_unit: true
         }
       }
     },
     map: {
-      'game_state': 'DOTA_GAMERULES_STATE_PRE_GAME'
+      game_state: 'DOTA_GAMERULES_STATE_PRE_GAME'
     }
   };
 

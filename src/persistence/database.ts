@@ -11,4 +11,3 @@ export function createDatabase(config: DatabaseConfig): DatabaseHandle {
     filePath: config.filePath
   };
 }
-

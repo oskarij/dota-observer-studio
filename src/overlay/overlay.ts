@@ -1,5 +1,6 @@
 import type { DotaGsiData } from '../shared/dotaGsiPayload.js';
 import { GSI_STATUS_EVENT, type GsiStatus } from '../shared/gsiStatus.js';
+import { logWarning } from '../shared/logger.js';
 import { OVERLAY_REALTIME_EVENTS_URL } from '../shared/overlayEventStreamEndpoint.js';
 
 import { overlayElementRegistry } from './elementRegistry.js';
@@ -85,7 +86,8 @@ function setRealtimeConnectionState(state: RealtimeConnectionState): void {
 function parseGsiPayload(data: string): DotaGsiData | null {
   try {
     return JSON.parse(data) as DotaGsiData;
-  } catch {
+  } catch (error) {
+    logWarning('Discarded malformed GSI payload', error);
     return null;
   }
 }

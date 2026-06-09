@@ -1,17 +1,17 @@
 @font-face {
   font-display: swap;
-  font-family: "RadianceOverlay";
+  font-family: 'RadianceOverlay';
   font-style: normal;
   font-weight: 400;
-  src: url("../../assets/fonts/radiance-light.otf") format("opentype");
+  src: url('../../assets/fonts/radiance-light.otf') format('opentype');
 }
 
 @font-face {
   font-display: swap;
-  font-family: "RadianceOverlay";
+  font-family: 'RadianceOverlay';
   font-style: normal;
   font-weight: 700;
-  src: url("../../assets/fonts/radiance-semibold.otf") format("opentype");
+  src: url('../../assets/fonts/radiance-semibold.otf') format('opentype');
 }
 
 .selected-player {
@@ -29,7 +29,7 @@
     transform 160ms ease;
 }
 
-.selected-player[data-visible="true"] {
+.selected-player[data-visible='true'] {
   opacity: 1;
   transform: translateY(0);
 }
@@ -43,7 +43,7 @@
 .selected-player__name,
 .selected-player__mmr {
   color: #f8fbff;
-  font-family: "RadianceOverlay", serif;
+  font-family: 'RadianceOverlay', serif;
   font-size: 34px;
   font-weight: 700;
   line-height: 1;

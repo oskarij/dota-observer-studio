@@ -1,7 +1,8 @@
 import { readFile } from 'node:fs/promises';
-import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import { extname, isAbsolute, join, relative } from 'node:path';
 
+import { createManagedHttpServer } from './httpServer.js';
 import { getRequestPath, writeJson } from './httpUtils.js';
 
 export interface OverlayHostConfig {
@@ -16,51 +17,17 @@ export interface OverlayHost {
 }
 
 export function createOverlayHost(config: OverlayHostConfig): OverlayHost {
-  let server: Server | null = null;
-
-  async function start(): Promise<void> {
-    if (server !== null) {
-      return;
-    }
-
-    const nextServer = createServer((request, response) => {
+  const httpServer = createManagedHttpServer({
+    host: config.host,
+    port: config.port,
+    onRequest(request, response) {
       void handleRequest(request, response);
-    });
-
-    await new Promise<void>((resolve, reject) => {
-      nextServer.once('error', reject);
-      nextServer.listen(config.port, config.host, resolve);
-    });
-
-    server = nextServer;
-  }
-
-  async function stop(): Promise<void> {
-    if (server === null) {
-      return;
     }
-
-    const activeServer = server;
-    server = null;
-
-    // close() alone waits for idle keep-alive sockets to drain; destroy them so the port frees now.
-    activeServer.closeAllConnections();
-
-    await new Promise<void>((resolve, reject) => {
-      activeServer.close((error) => {
-        if (error === undefined) {
-          resolve();
-          return;
-        }
-
-        reject(error);
-      });
-    });
-  }
+  });
 
   return {
-    start,
-    stop
+    start: httpServer.start,
+    stop: httpServer.stop
   };
 
   async function handleRequest(request: IncomingMessage, response: ServerResponse): Promise<void> {

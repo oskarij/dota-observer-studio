@@ -4,22 +4,18 @@
 
   import GsiStatusIndicator from '$lib/components/gsi-status-indicator.svelte';
   import { Button } from '$lib/components/ui/button/index.js';
+  import { NETWORK_HOST, NETWORK_PORTS } from '../shared/networkConfig.js';
   import { OVERLAY_ROUTE as overlayRoute } from '../shared/overlayElementCatalog.js';
 
-  const overlayUrl = `http://127.0.0.1:3333${overlayRoute}`;
+  const overlayUrl = `http://${NETWORK_HOST}:${NETWORK_PORTS.overlayHost}${overlayRoute}`;
 </script>
 
 <svelte:head>
   <title>Overlay | Observer Studio</title>
-  <meta
-    content="Hosted overlay URL for Dota Observer Studio."
-    name="description"
-  />
+  <meta content="Hosted overlay URL for Dota Observer Studio." name="description" />
 </svelte:head>
 
-<header
-  class="flex h-16 items-center justify-between px-6 max-sm:px-4"
->
+<header class="flex h-16 items-center justify-between px-6 max-sm:px-4">
   <span class="text-lg font-semibold leading-none">Observer Studio</span>
 
   <div class="flex items-center gap-4">

@@ -21,7 +21,7 @@
     "lint": "eslint .",
     "preview": "vite preview --host 127.0.0.1 --port 4173 --strictPort",
     "test": "npm run test:unit",
-    "test:unit": "tsc -p tsconfig.test.json && node --test build/test/tests/gsiSelection.test.js build/test/tests/playerProfiles.test.js",
+    "test:unit": "tsc -p tsconfig.test.json && node --test build/test/tests/gsiSelection.test.js build/test/tests/playerProfiles.test.js build/test/tests/observers.test.js build/test/tests/httpServer.test.js build/test/tests/selectedPlayerFormat.test.js",
     "typecheck": "svelte-kit sync && tsc -p tsconfig.json --noEmit && tsc -p tsconfig.electron.json --noEmit && tsc -p tsconfig.overlay.json --noEmit && tsc -p tsconfig.test.json --noEmit"
   },
   "dependencies": {

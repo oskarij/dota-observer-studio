@@ -5,4 +5,3 @@ const api = {
 } as const;
 
 contextBridge.exposeInMainWorld('dotaSpectatorTools', api);
-
