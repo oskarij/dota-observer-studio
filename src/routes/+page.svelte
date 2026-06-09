@@ -1,14 +1,32 @@
 <script lang="ts">
   import SaveIcon from '@lucide/svelte/icons/save';
 
+  import {
+    createDefaultComponentSettings,
+    type ComponentSettings
+  } from '../shared/componentSettings.js';
   import { OVERLAY_ELEMENT_DEFINITIONS } from '../shared/overlayElementCatalog.js';
   import ComponentMenu from '$lib/components/component-menu.svelte';
+  import ComponentSettingsPanel from '$lib/components/component-settings.svelte';
   import GsiStatusIndicator from '$lib/components/gsi-status-indicator.svelte';
   import OverlayPreview from '$lib/components/overlay-preview.svelte';
   import { Button } from '$lib/components/ui/button/index.js';
 
   let componentEnabled = $state<Record<string, boolean>>(
     Object.fromEntries(OVERLAY_ELEMENT_DEFINITIONS.map((element) => [element.id, element.enabled]))
+  );
+
+  let componentSettings = $state<Record<string, ComponentSettings>>(
+    Object.fromEntries(
+      OVERLAY_ELEMENT_DEFINITIONS.map((element) => [element.id, createDefaultComponentSettings()])
+    )
+  );
+
+  // The selected component drives the settings panel; defaults to the first.
+  let selectedId = $state<string | undefined>(OVERLAY_ELEMENT_DEFINITIONS[0]?.id);
+
+  let selectedName = $derived(
+    OVERLAY_ELEMENT_DEFINITIONS.find((element) => element.id === selectedId)?.name
   );
 </script>
 
@@ -32,7 +50,13 @@
   </header>
 
   <section class="flex min-h-0 flex-1 gap-3 px-6 pb-6 max-sm:gap-2 max-sm:px-4 max-sm:pb-4">
-    <ComponentMenu enabled={componentEnabled} />
+    <div class="flex w-64 min-h-0 shrink-0 flex-col gap-3">
+      <ComponentMenu enabled={componentEnabled} bind:selectedId />
+      <ComponentSettingsPanel
+        name={selectedName}
+        settings={selectedId === undefined ? undefined : componentSettings[selectedId]}
+      />
+    </div>
 
     <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border bg-card shadow-sm">
       <div class="flex h-12 shrink-0 items-center justify-between gap-4 border-b px-4">

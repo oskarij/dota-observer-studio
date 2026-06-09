@@ -5,17 +5,18 @@
   import { OVERLAY_ELEMENT_DEFINITIONS } from '../../shared/overlayElementCatalog.js';
 
   // Mutating enabled[id] propagates to the parent's $state proxy; no bind: needed.
-  let { enabled }: { enabled: Record<string, boolean> } = $props();
-
-  // The selected component is the one being configured; defaults to the first.
-  let selectedId = $state<string | undefined>(OVERLAY_ELEMENT_DEFINITIONS[0]?.id);
+  // selectedId is owned by the page so the settings panel can read the selection.
+  let {
+    enabled,
+    selectedId = $bindable()
+  }: { enabled: Record<string, boolean>; selectedId?: string | undefined } = $props();
 
   function toggleVisibility(id: string) {
     enabled[id] = !(enabled[id] ?? false);
   }
 </script>
 
-<div class="flex w-64 shrink-0 flex-col overflow-hidden rounded-lg border bg-card shadow-sm">
+<div class="flex min-h-0 flex-col overflow-hidden rounded-lg border bg-card shadow-sm">
   <div class="flex h-12 shrink-0 items-center border-b px-4">
     <span class="text-base font-semibold">Components</span>
   </div>

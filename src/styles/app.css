@@ -3,6 +3,11 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Bits UI exposes orientation via data-orientation; shadcn components style off the
+   data-horizontal/data-vertical shorthands, which need these variant definitions. */
+@custom-variant data-horizontal (&[data-orientation='horizontal']);
+@custom-variant data-vertical (&[data-orientation='vertical']);
+
 /* Graphite Console — neutral graphite base with a single gold brand accent. */
 :root {
   --radius: 0.5rem;
