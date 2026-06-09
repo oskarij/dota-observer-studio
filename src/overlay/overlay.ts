@@ -3,8 +3,7 @@ import { GSI_STATUS_EVENT, type GsiStatus } from '../shared/gsiStatus.js';
 import { logWarning } from '../shared/logger.js';
 import { OVERLAY_REALTIME_EVENTS_URL } from '../shared/overlayEventStreamEndpoint.js';
 
-import { overlayElementRegistry } from './elementRegistry.js';
-import type { OverlayElement } from './overlayElement.js';
+import { createOverlayStage } from './overlayStage.js';
 
 import './overlay.css';
 
@@ -12,7 +11,7 @@ type RealtimeConnectionState = 'connected' | 'disconnected';
 
 const OVERLAY_ROOT_ID = 'overlay-root';
 
-const overlayElements = mountOverlayElements();
+const stage = createOverlayStage(getRequiredElement(OVERLAY_ROOT_ID));
 const events = new EventSource(OVERLAY_REALTIME_EVENTS_URL);
 
 events.onmessage = (event) => {
@@ -22,9 +21,7 @@ events.onmessage = (event) => {
     return;
   }
 
-  for (const overlayElement of overlayElements) {
-    overlayElement.update(gsiData);
-  }
+  stage.update(gsiData);
 };
 
 events.addEventListener(GSI_STATUS_EVENT, (event) => {
@@ -38,36 +35,13 @@ events.onopen = () => {
 events.onerror = () => {
   setRealtimeConnectionState('disconnected');
   // The stream itself dropped: no payloads are coming, so hide stale content.
-  clearOverlayElements();
+  stage.clear();
 };
 
 window.addEventListener('beforeunload', () => {
   events.close();
-  destroyOverlayElements(overlayElements);
+  stage.destroy();
 });
-
-function mountOverlayElements(): OverlayElement[] {
-  const root = getRequiredElement(OVERLAY_ROOT_ID);
-
-  return overlayElementRegistry.map((registration) => {
-    const overlayElement = registration.mount(root);
-    overlayElement.setEnabled(registration.enabled);
-
-    return overlayElement;
-  });
-}
-
-function destroyOverlayElements(elements: OverlayElement[]): void {
-  for (const overlayElement of elements) {
-    overlayElement.destroy();
-  }
-}
-
-function clearOverlayElements(): void {
-  for (const overlayElement of overlayElements) {
-    overlayElement.clear();
-  }
-}
 
 function applyGsiStatus(status: string): void {
   const gsiStatus: GsiStatus = status === 'live' ? 'live' : 'stale';
@@ -75,7 +49,7 @@ function applyGsiStatus(status: string): void {
 
   // On `live` the next payload re-renders elements; only `stale` needs an explicit hide.
   if (gsiStatus === 'stale') {
-    clearOverlayElements();
+    stage.clear();
   }
 }
 
