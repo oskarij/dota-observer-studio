@@ -9,6 +9,7 @@ import type { OverlayElement } from './overlayElement.js';
 export interface OverlayStage {
   clear(): void;
   destroy(): void;
+  setEnabled(id: string, enabled: boolean): void;
   update(gsiData: DotaGsiData): void;
 }
 
@@ -29,6 +30,13 @@ export function createOverlayStage(root: HTMLElement): OverlayStage {
     destroy() {
       for (const overlayElement of elements) {
         overlayElement.destroy();
+      }
+    },
+    setEnabled(id, enabled) {
+      for (const overlayElement of elements) {
+        if (overlayElement.id === id) {
+          overlayElement.setEnabled(enabled);
+        }
       }
     },
     update(gsiData) {

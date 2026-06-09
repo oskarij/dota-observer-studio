@@ -7,7 +7,10 @@
   const STAGE_WIDTH = 1920;
   const STAGE_HEIGHT = 1080;
 
-  let { gsiData = SAMPLE_GSI_DATA }: { gsiData?: DotaGsiData } = $props();
+  let {
+    gsiData = SAMPLE_GSI_DATA,
+    enabled
+  }: { gsiData?: DotaGsiData; enabled?: Record<string, boolean> } = $props();
 
   let root = $state<HTMLElement | null>(null);
   let stageEl = $state<HTMLElement | null>(null);
@@ -30,7 +33,17 @@
   });
 
   $effect(() => {
-    stage?.update(gsiData);
+    if (stage === null) {
+      return;
+    }
+
+    // Apply the menu's toggles before updating so each element re-evaluates its
+    // visibility against the latest enabled state, not just on GSI changes.
+    for (const [id, value] of Object.entries(enabled ?? {})) {
+      stage.setEnabled(id, value);
+    }
+
+    stage.update(gsiData);
   });
 
   // Contain the 1080p stage within the available area so it never overflows.
@@ -40,7 +53,12 @@
     }
 
     const observer = new ResizeObserver((entries) => {
-      const { width, height } = entries[0].contentRect;
+      const entry = entries[0];
+      if (entry === undefined) {
+        return;
+      }
+
+      const { width, height } = entry.contentRect;
       scale = Math.min(width / STAGE_WIDTH, height / STAGE_HEIGHT);
     });
     observer.observe(root);
