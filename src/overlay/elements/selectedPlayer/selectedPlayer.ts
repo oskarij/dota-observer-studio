@@ -1,3 +1,4 @@
+import type { ComponentSettings } from '../../../shared/componentSettings.js';
 import type { DotaGsiData, SelectedDotaGsiPlayer } from '../../../shared/dotaGsiPayload.js';
 import { getSelectedDotaGsiPlayer } from '../../../shared/dotaGsiPayload.js';
 import { mmrToMedal, type PlayerProfile, type RankMedal } from './playerProfileData.js';
@@ -37,6 +38,9 @@ export function mountSelectedPlayerElement(container: HTMLElement): OverlayEleme
 
   return {
     id: 'selected-player',
+    applySettings(settings: ComponentSettings) {
+      applySelectedPlayerSettings(root, settings);
+    },
     clear() {
       root.dataset.visible = 'false';
     },
@@ -64,6 +68,21 @@ export function mountSelectedPlayerElement(container: HTMLElement): OverlayEleme
       root.dataset.visible = 'true';
     }
   };
+}
+
+// Settings are applied as CSS custom properties so layout stays in CSS; the
+// selectedPlayer.css fallbacks keep the default config a visual no-op.
+function applySelectedPlayerSettings(root: HTMLElement, settings: ComponentSettings): void {
+  const { shadow } = settings;
+  const shadowValue = `0 0 ${shadow.blur}px ${shadow.color}, ${shadow.offsetX}px ${shadow.offsetY}px ${shadow.blur}px ${shadow.color}`;
+
+  root.style.setProperty('--sp-x', `${settings.position.x}px`);
+  root.style.setProperty('--sp-y', `${settings.position.y}px`);
+  root.style.setProperty('--sp-scale', String(settings.size / 100));
+  root.style.setProperty('--sp-color', settings.color);
+  root.style.setProperty('--sp-font-family', settings.font.family);
+  root.style.setProperty('--sp-font-weight', String(settings.font.weight));
+  root.style.setProperty('--sp-shadow', shadowValue);
 }
 
 function createSelectedPlayerRoot(): HTMLElement {

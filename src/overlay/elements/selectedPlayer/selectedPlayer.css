@@ -17,12 +17,14 @@
 .selected-player {
   align-items: center;
   box-sizing: border-box;
-  bottom: 32px;
   display: flex;
   gap: 14px;
-  left: 32px;
+  left: var(--sp-x, 32px);
   opacity: 0;
   position: absolute;
+  top: var(--sp-y, 994px);
+  transform: scale(var(--sp-scale, 1));
+  transform-origin: top left;
 }
 
 .selected-player[data-visible='true'] {
@@ -37,14 +39,12 @@
 
 .selected-player__name,
 .selected-player__mmr {
-  color: #f8fbff;
-  font-family: 'RadianceOverlay', serif;
+  color: var(--sp-color, #f8fbff);
+  font-family: var(--sp-font-family, 'RadianceOverlay'), serif;
   font-size: 34px;
-  font-weight: 700;
+  font-weight: var(--sp-font-weight, 700);
   line-height: 1;
-  text-shadow:
-    0 0 4px #000,
-    2px 2px 4px #000;
+  text-shadow: var(--sp-shadow, 0 0 4px #000, 2px 2px 4px #000);
   white-space: nowrap;
 }
 
