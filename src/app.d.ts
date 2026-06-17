@@ -16,6 +16,11 @@ declare global {
         get(): Promise<OverlayConfig>;
         set(config: OverlayConfig): Promise<void>;
       };
+      app?: {
+        setDirty(dirty: boolean): void;
+        onSaveAndQuit(handler: () => void): () => void;
+        confirmQuit(): void;
+      };
     };
   }
 }

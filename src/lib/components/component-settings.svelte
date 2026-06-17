@@ -21,6 +21,20 @@
   // Font families offered for now; expand as more overlay fonts are bundled.
   const FONT_FAMILIES = ['RadianceOverlay', 'sans-serif', 'serif', 'monospace'];
   const FONT_WEIGHTS = [400, 700];
+
+  // Reset swaps the trigger out for an inline confirm/cancel pair instead of a modal.
+  let confirmingReset = $state(false);
+
+  // Drop the pending confirmation when the user switches to a different component.
+  $effect(() => {
+    void name;
+    confirmingReset = false;
+  });
+
+  function confirmReset(): void {
+    onReset?.();
+    confirmingReset = false;
+  }
 </script>
 
 <div class="flex min-h-0 flex-col overflow-hidden rounded-lg border bg-card shadow-sm">
@@ -168,10 +182,22 @@
     </div>
 
     {#if onReset}
-      <div class="shrink-0 border-t p-3">
-        <Button variant="ghost" size="sm" class="w-full" onclick={() => onReset?.()}>
-          Reset to defaults
-        </Button>
+      <div
+        class="flex shrink-0 items-center gap-2 border-t p-3 {confirmingReset
+          ? 'justify-end'
+          : 'justify-center'}"
+      >
+        {#if confirmingReset}
+          <span class="mr-auto text-xs text-muted-foreground">Reset to defaults?</span>
+          <Button variant="ghost" size="xs" onclick={() => (confirmingReset = false)}>
+            Cancel
+          </Button>
+          <Button variant="destructive" size="xs" onclick={confirmReset}>Reset</Button>
+        {:else}
+          <Button variant="ghost" size="xs" onclick={() => (confirmingReset = true)}>
+            Reset to defaults
+          </Button>
+        {/if}
       </div>
     {/if}
   {/if}

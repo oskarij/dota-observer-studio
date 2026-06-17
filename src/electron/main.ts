@@ -1,10 +1,15 @@
-import { app, BrowserWindow, Menu } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron';
 import { join } from 'node:path';
 
 import { createGsiListener } from '../runtime/gsiListener.js';
 import { createGsiLiveness } from '../runtime/gsiLiveness.js';
 import { createOverlayGsiEventStream } from '../runtime/overlayGsiEventStream.js';
 import { createOverlayHost } from '../runtime/overlayHost.js';
+import {
+  APP_DIRTY_CHANGED_CHANNEL,
+  APP_QUIT_CONFIRMED_CHANNEL,
+  APP_SAVE_AND_QUIT_CHANNEL
+} from '../shared/ipcChannels.js';
 import { logError } from '../shared/logger.js';
 import { NETWORK_HOST, NETWORK_PORTS } from '../shared/networkConfig.js';
 
@@ -29,6 +34,47 @@ const overlayGsiEventStream = createOverlayGsiEventStream({
 });
 
 const gsiLiveness = createGsiLiveness();
+
+// Unsaved-changes guard for window close. The renderer mirrors its dirty flag here so the
+// main process can intercept the close, and `allowClose` lets a confirmed quit pass through.
+let rendererDirty = false;
+let allowClose = false;
+
+ipcMain.on(APP_DIRTY_CHANGED_CHANNEL, (_event, dirty: boolean) => {
+  rendererDirty = dirty;
+});
+
+ipcMain.on(APP_QUIT_CONFIRMED_CHANNEL, () => {
+  allowClose = true;
+  BrowserWindow.getAllWindows().forEach((window) => window.close());
+});
+
+async function confirmCloseWithUnsavedChanges(window: BrowserWindow): Promise<void> {
+  const { response } = await dialog.showMessageBox(window, {
+    type: 'warning',
+    buttons: ['Save', "Don't Save", 'Cancel'],
+    defaultId: 0,
+    cancelId: 2,
+    title: 'Save changes?',
+    // Lead with the decision; keep the consequence as a short secondary line so the
+    // message + buttons are enough to act on without reading further.
+    message: 'Save changes to the overlay layout before closing?',
+    detail: "If you don't save, your changes will be lost."
+  });
+
+  if (response === 2) {
+    return; // Cancel — keep the window open.
+  }
+
+  if (response === 1) {
+    allowClose = true; // Don't Save — discard and quit.
+    window.close();
+    return;
+  }
+
+  // Save — let the renderer persist, then it calls back to confirm the quit.
+  window.webContents.send(APP_SAVE_AND_QUIT_CHANNEL);
+}
 
 // Registered after the app is ready (electron-store needs the userData path).
 let unregisterSettingsIpc: (() => void) | null = null;
@@ -70,6 +116,16 @@ async function createMainWindow(): Promise<void> {
   // Keep the window title fixed instead of following the page's document.title.
   window.on('page-title-updated', (event) => {
     event.preventDefault();
+  });
+
+  // Guard against losing unsaved overlay edits when the window is closed.
+  window.on('close', (event) => {
+    if (allowClose || !rendererDirty) {
+      return;
+    }
+
+    event.preventDefault();
+    void confirmCloseWithUnsavedChanges(window);
   });
 
   if (app.isPackaged) {

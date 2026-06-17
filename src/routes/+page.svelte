@@ -14,6 +14,17 @@
 
   onMount(() => {
     void config.load();
+
+    // When the close-guard chooses "Save", persist then let main proceed with the quit.
+    return globalThis.window?.dotaSpectatorTools?.app?.onSaveAndQuit(async () => {
+      await config.save();
+      globalThis.window?.dotaSpectatorTools?.app?.confirmQuit();
+    });
+  });
+
+  // Mirror the dirty flag to the main process so it can guard the window close.
+  $effect(() => {
+    globalThis.window?.dotaSpectatorTools?.app?.setDirty(config.dirty);
   });
 
   // The selected component drives the settings panel; defaults to the first.
