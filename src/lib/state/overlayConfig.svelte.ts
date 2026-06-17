@@ -85,3 +85,7 @@ export class OverlayConfigStore {
     this.#saved = JSON.stringify(config);
   }
 }
+
+// Shared across the app so the Overlay and Components pages edit one working copy and the
+// app-wide Save/Discard bar reflects a single dirty state. Loaded once from the layout.
+export const overlayConfig = new OverlayConfigStore();

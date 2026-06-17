@@ -1,6 +1,8 @@
 <script lang="ts">
+  import { resolve } from '$app/paths';
   import EyeIcon from '@lucide/svelte/icons/eye';
   import EyeOffIcon from '@lucide/svelte/icons/eye-off';
+  import SettingsIcon from '@lucide/svelte/icons/settings';
 
   import { OVERLAY_ELEMENT_DEFINITIONS } from '../../shared/overlayElementCatalog.js';
 
@@ -44,21 +46,32 @@
           </span>
         </button>
 
-        <button
-          type="button"
-          aria-label={isEnabled ? `Hide ${definition.name}` : `Show ${definition.name}`}
-          aria-pressed={isEnabled}
-          class="relative z-10 mr-3 flex size-7 shrink-0 cursor-pointer items-center justify-center transition-colors {isEnabled
-            ? 'text-primary hover:text-primary/70'
-            : 'text-muted-foreground hover:text-foreground'}"
-          onclick={() => toggleVisibility(definition.id)}
-        >
-          {#if isEnabled}
-            <EyeIcon class="size-4" />
-          {:else}
-            <EyeOffIcon class="size-4" />
-          {/if}
-        </button>
+        <!-- These float above the row's stretched-link (z-10) so they stay clickable. -->
+        <div class="relative z-10 mr-3 flex shrink-0 items-center gap-1">
+          <a
+            aria-label={`Settings for ${definition.name}`}
+            class="flex size-7 cursor-pointer items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+            href="{resolve('/components')}?id={definition.id}"
+          >
+            <SettingsIcon class="size-4" />
+          </a>
+
+          <button
+            type="button"
+            aria-label={isEnabled ? `Hide ${definition.name}` : `Show ${definition.name}`}
+            aria-pressed={isEnabled}
+            class="flex size-7 cursor-pointer items-center justify-center transition-colors {isEnabled
+              ? 'text-primary hover:text-primary/70'
+              : 'text-muted-foreground hover:text-foreground'}"
+            onclick={() => toggleVisibility(definition.id)}
+          >
+            {#if isEnabled}
+              <EyeIcon class="size-4" />
+            {:else}
+              <EyeOffIcon class="size-4" />
+            {/if}
+          </button>
+        </div>
       </div>
     {/each}
   </div>
