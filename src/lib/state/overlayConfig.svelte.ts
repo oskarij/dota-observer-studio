@@ -1,3 +1,4 @@
+import type { ComponentOptions } from '../../shared/componentOptions.js';
 import {
   createDefaultComponentSettings,
   createDefaultOverlayConfig,
@@ -15,6 +16,7 @@ const BRIDGE_UNAVAILABLE =
 export class OverlayConfigStore {
   #enabled = $state<Record<string, boolean>>({});
   #settings = $state<Record<string, ComponentSettings>>({});
+  #options = $state<Record<string, ComponentOptions>>({});
   // Last saved/loaded config as JSON, for dirty detection and discard.
   #saved = $state('');
   #dirty = $derived(this.#currentJson() !== this.#saved);
@@ -29,6 +31,10 @@ export class OverlayConfigStore {
 
   get settings(): Record<string, ComponentSettings> {
     return this.#settings;
+  }
+
+  get options(): Record<string, ComponentOptions> {
+    return this.#options;
   }
 
   get dirty(): boolean {
@@ -71,7 +77,8 @@ export class OverlayConfigStore {
   #current(): OverlayConfig {
     return {
       enabled: $state.snapshot(this.#enabled),
-      settings: $state.snapshot(this.#settings)
+      settings: $state.snapshot(this.#settings),
+      options: $state.snapshot(this.#options)
     };
   }
 
@@ -82,6 +89,7 @@ export class OverlayConfigStore {
   #apply(config: OverlayConfig): void {
     this.#enabled = config.enabled;
     this.#settings = config.settings;
+    this.#options = config.options;
     this.#saved = JSON.stringify(config);
   }
 }

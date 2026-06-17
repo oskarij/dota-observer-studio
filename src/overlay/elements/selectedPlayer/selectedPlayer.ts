@@ -1,3 +1,8 @@
+import {
+  createDefaultSelectedPlayerOptions,
+  type PlayerNameSource,
+  type SelectedPlayerOptions
+} from '../../../shared/componentOptions.js';
 import type { ComponentSettings } from '../../../shared/componentSettings.js';
 import type { DotaGsiData, SelectedDotaGsiPlayer } from '../../../shared/dotaGsiPayload.js';
 import { getSelectedDotaGsiPlayer } from '../../../shared/dotaGsiPayload.js';
@@ -34,10 +39,15 @@ export function mountSelectedPlayerElement(container: HTMLElement): OverlayEleme
   const medal = getRequiredImage(root, '[data-selected-player-medal]');
   const mmr = getRequiredChild(root, '[data-selected-player-mmr]');
 
+  let options = createDefaultSelectedPlayerOptions();
+
   container.append(root);
 
   return {
     id: 'selected-player',
+    applyOptions(nextOptions) {
+      options = nextOptions;
+    },
     applySettings(settings: ComponentSettings) {
       applySelectedPlayerSettings(root, settings);
     },
@@ -58,13 +68,16 @@ export function mountSelectedPlayerElement(container: HTMLElement): OverlayEleme
         return;
       }
 
-      renderSelectedPlayer({
-        medal,
-        mmr,
-        name,
-        profile: getPlayerProfile(selectedPlayer.player?.accountid),
-        selectedPlayer
-      });
+      renderSelectedPlayer(
+        {
+          medal,
+          mmr,
+          name,
+          profile: getPlayerProfile(selectedPlayer.player?.accountid),
+          selectedPlayer
+        },
+        options
+      );
       root.dataset.visible = 'true';
     }
   };
@@ -112,14 +125,33 @@ interface SelectedPlayerView {
   readonly selectedPlayer: SelectedDotaGsiPlayer;
 }
 
-function renderSelectedPlayer(view: SelectedPlayerView): void {
+function renderSelectedPlayer(view: SelectedPlayerView, options: SelectedPlayerOptions): void {
   const mmr = view.profile?.mmr ?? null;
-  const medal = mmrToMedal(mmr);
+  const medal = options.showMedal ? mmrToMedal(mmr) : null;
 
-  view.name.textContent =
-    view.profile?.name ?? view.selectedPlayer.player?.name ?? view.selectedPlayer.playerKey;
-  view.mmr.textContent = formatMmr(mmr);
+  view.name.textContent = resolveName(view, options.nameSource);
+
+  // MMR is only known for curated profiles; in-game mode treats the player as live/unknown,
+  // where MMR isn't public, so it is never shown regardless of the rank-value setting.
+  if (options.rankValue === 'hidden' || options.nameSource === 'ingame') {
+    view.mmr.hidden = true;
+    view.mmr.textContent = '';
+  } else {
+    view.mmr.hidden = false;
+    view.mmr.textContent = formatMmr(mmr);
+  }
+
   updateMedalImage(view.medal, medal);
+}
+
+function resolveName(view: SelectedPlayerView, source: PlayerNameSource): string {
+  const ingameName = view.selectedPlayer.player?.name ?? view.selectedPlayer.playerKey;
+
+  if (source === 'ingame') {
+    return ingameName;
+  }
+
+  return view.profile?.name ?? ingameName;
 }
 
 function updateMedalImage(element: HTMLImageElement, medal: RankMedal | null): void {

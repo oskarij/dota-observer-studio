@@ -1,3 +1,4 @@
+import { createDefaultComponentOptions, type ComponentOptions } from './componentOptions.js';
 import { OVERLAY_ELEMENT_DEFINITIONS } from './overlayElementCatalog.js';
 
 // General per-component overlay settings. Kept framework-agnostic so the overlay
@@ -25,10 +26,12 @@ export function createDefaultComponentSettings(): ComponentSettings {
   };
 }
 
-// Per-component visibility + settings, persisted and broadcast to the live overlay as one unit.
+// Per-component visibility + styling + behavioral options, persisted and broadcast to the live
+// overlay as one unit.
 export interface OverlayConfig {
   enabled: Record<string, boolean>;
   settings: Record<string, ComponentSettings>;
+  options: Record<string, ComponentOptions>;
 }
 
 export function createDefaultOverlayConfig(): OverlayConfig {
@@ -38,6 +41,7 @@ export function createDefaultOverlayConfig(): OverlayConfig {
     ),
     settings: Object.fromEntries(
       OVERLAY_ELEMENT_DEFINITIONS.map((element) => [element.id, createDefaultComponentSettings()])
-    )
+    ),
+    options: createDefaultComponentOptions()
   };
 }

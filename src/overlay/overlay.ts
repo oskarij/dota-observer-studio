@@ -77,6 +77,12 @@ function applyOverlayConfig(data: string): void {
   for (const [id, settings] of Object.entries(config.settings)) {
     stage.applySettings(id, settings);
   }
+
+  // Options change content (name source, medal/MMR visibility), so they take effect on the
+  // next GSI payload — which streams continuously during a live game.
+  for (const [id, options] of Object.entries(config.options)) {
+    stage.applyOptions(id, options);
+  }
 }
 
 function parseOverlayConfig(data: string): OverlayConfig | null {

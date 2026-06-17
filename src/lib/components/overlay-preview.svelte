@@ -1,6 +1,7 @@
 <script lang="ts">
   import { SAMPLE_GSI_DATA } from '$lib/dev/sampleGsiData.js';
   import { createOverlayStage, type OverlayStage } from '../../overlay/overlayStage.js';
+  import type { ComponentOptions } from '../../shared/componentOptions.js';
   import type { ComponentSettings } from '../../shared/componentSettings.js';
   import type { DotaGsiData } from '../../shared/dotaGsiPayload.js';
 
@@ -11,11 +12,13 @@
   let {
     gsiData = SAMPLE_GSI_DATA,
     enabled,
-    settings
+    settings,
+    options
   }: {
     gsiData?: DotaGsiData;
     enabled?: Record<string, boolean>;
     settings?: Record<string, ComponentSettings>;
+    options?: Record<string, ComponentOptions>;
   } = $props();
 
   let root = $state<HTMLElement | null>(null);
@@ -51,6 +54,10 @@
 
     for (const [id, value] of Object.entries(settings ?? {})) {
       stage.applySettings(id, value);
+    }
+
+    for (const [id, value] of Object.entries(options ?? {})) {
+      stage.applyOptions(id, value);
     }
 
     stage.update(gsiData);

@@ -1,3 +1,4 @@
+import type { ComponentOptions } from '../shared/componentOptions.js';
 import type { ComponentSettings } from '../shared/componentSettings.js';
 import type { DotaGsiData } from '../shared/dotaGsiPayload.js';
 
@@ -8,6 +9,7 @@ import type { OverlayElement } from './overlayElement.js';
 // exact same elements. Intentionally does NOT import overlay.css (its transparent
 // `html, body` rules belong only to the standalone overlay page).
 export interface OverlayStage {
+  applyOptions(id: string, options: ComponentOptions): void;
   applySettings(id: string, settings: ComponentSettings): void;
   clear(): void;
   destroy(): void;
@@ -24,6 +26,13 @@ export function createOverlayStage(root: HTMLElement): OverlayStage {
   });
 
   return {
+    applyOptions(id, options) {
+      for (const overlayElement of elements) {
+        if (overlayElement.id === id) {
+          overlayElement.applyOptions?.(options);
+        }
+      }
+    },
     applySettings(id, settings) {
       for (const overlayElement of elements) {
         if (overlayElement.id === id) {

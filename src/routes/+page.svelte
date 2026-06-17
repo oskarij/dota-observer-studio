@@ -47,7 +47,11 @@
     </div>
 
     <div class="min-h-0 flex-1 p-4">
-      <OverlayPreview enabled={overlayConfig.enabled} settings={overlayConfig.settings} />
+      <OverlayPreview
+        enabled={overlayConfig.enabled}
+        settings={overlayConfig.settings}
+        options={overlayConfig.options}
+      />
     </div>
   </div>
 </section>

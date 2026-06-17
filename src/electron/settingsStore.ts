@@ -1,5 +1,6 @@
 import Store from 'electron-store';
 
+import type { ComponentOptions } from '../shared/componentOptions.js';
 import { createDefaultOverlayConfig, type OverlayConfig } from '../shared/componentSettings.js';
 
 const STORE_KEY = 'overlayConfig';
@@ -20,9 +21,17 @@ export function createSettingsStore(): SettingsStore {
       const defaults = createDefaultOverlayConfig();
       const stored = store.get(STORE_KEY);
 
+      // Field-level merge per component so options saved before a new field existed still get
+      // the default for that field (stored.options is absent in configs from before options).
+      const options: Record<string, ComponentOptions> = { ...defaults.options };
+      for (const [id, value] of Object.entries(stored.options ?? {})) {
+        options[id] = { ...defaults.options[id], ...value };
+      }
+
       return {
         enabled: { ...defaults.enabled, ...stored.enabled },
-        settings: { ...defaults.settings, ...stored.settings }
+        settings: { ...defaults.settings, ...stored.settings },
+        options
       };
     },
     set(config) {
