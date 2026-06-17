@@ -37,11 +37,12 @@
 
 <div class="flex h-svh flex-col">
   <header class="flex h-16 shrink-0 items-center justify-between px-6 max-sm:px-4">
-    <span class="text-lg font-semibold leading-none">Observer Studio</span>
+    <div class="flex items-center gap-4">
+      <span class="text-lg font-semibold leading-none">Observer Studio</span>
+      <GsiStatusIndicator />
+    </div>
 
     <div class="flex items-center gap-4">
-      <GsiStatusIndicator />
-
       {#if config.dirty}
         <span class="text-sm text-muted-foreground" role="status" aria-live="polite">
           Unsaved changes
