@@ -132,9 +132,12 @@
       sans-serif;
   }
 
+  /* Scope to the app root, not `body > div` — portaled popover/select/tooltip
+     wrappers are also direct children of body, and min-height:100% on them stretches
+     the floating element to full viewport height, breaking collision positioning. */
   html,
   body,
-  body > div {
+  #app {
     min-height: 100%;
   }
 

@@ -120,7 +120,15 @@
                 </Button>
               {/snippet}
             </Popover.Trigger>
-            <Popover.Content side="right" align="start" sideOffset={8} class="w-56">
+            <!-- collisionPadding keeps an 8px gap from the window edges so the popover
+                 shifts up with breathing room instead of sitting flush against the bottom. -->
+            <Popover.Content
+              side="right"
+              align="start"
+              sideOffset={8}
+              collisionPadding={8}
+              class="w-56"
+            >
               <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Shadow
               </span>
