@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { resolve } from '$app/paths';
+  import { asset, resolve } from '$app/paths';
   import { page } from '$app/state';
   import LayoutGridIcon from '@lucide/svelte/icons/layout-grid';
   import LayersIcon from '@lucide/svelte/icons/layers';
@@ -38,13 +38,11 @@
 <aside
   class="flex h-svh w-20 shrink-0 flex-col items-center border-r border-sidebar-border bg-sidebar py-4"
 >
-  <a
-    aria-label="Observer Studio"
-    class="inline-flex size-10 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sm font-bold text-sidebar-primary-foreground"
-    href={resolve('/')}
-  >
-    OS
-  </a>
+  <img
+    src={asset('/logo.png')}
+    alt="Observer Studio"
+    class="size-12 shrink-0 rounded-lg object-cover"
+  />
 
   <nav class="mt-6 flex w-full flex-col gap-1 px-2">
     {#each navigation as item (item.href)}

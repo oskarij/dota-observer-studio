@@ -92,8 +92,14 @@ const unsubscribeGsiEventStream = gsiListener.onPayload((payload) => {
 });
 
 async function createMainWindow(): Promise<void> {
+  // Packaged builds serve static assets from the web bundle; dev reads them straight from static/.
+  const iconPath = app.isPackaged
+    ? join(app.getAppPath(), 'build/web/icon.ico')
+    : join(app.getAppPath(), 'static/icon.ico');
+
   const window = new BrowserWindow({
     height: 900,
+    icon: iconPath,
     minHeight: 720,
     minWidth: 1024,
     show: false,
