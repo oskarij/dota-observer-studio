@@ -1,6 +1,8 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
+import type { OverlayConfig } from '../shared/componentSettings.js';
 import { GSI_STATUS_EVENT, type GsiStatus } from '../shared/gsiStatus.js';
+import { OVERLAY_SETTINGS_EVENT } from '../shared/overlaySettingsEvent.js';
 import type { GsiPayload } from './gsiListener.js';
 import { createManagedHttpServer } from './httpServer.js';
 import { getRequestPath, normalizePath, writeJson, writeNoContent } from './httpUtils.js';
@@ -16,6 +18,8 @@ export interface OverlayGsiEventStream {
   broadcast(payload: GsiPayload): void;
   getClientCount(): number;
   onClientCountChange(listener: (clientCount: number) => void): () => void;
+  /** Push overlay settings to every client. Replayed to clients that connect later. */
+  setSettings(config: OverlayConfig): void;
   /** Push the GSI feed liveness to every client. Replayed to clients that connect later. */
   setStatus(status: GsiStatus): void;
   start(): Promise<void>;
@@ -33,6 +37,7 @@ export function createOverlayGsiEventStream(
   const clientCountObservers = createObservers<number>('overlay client count');
 
   let currentStatus: GsiStatus = 'stale';
+  let currentSettings: OverlayConfig | null = null;
   let heartbeatTimer: NodeJS.Timeout | null = null;
 
   const httpServer = createManagedHttpServer({
@@ -89,8 +94,11 @@ export function createOverlayGsiEventStream(
       'Content-Type': 'text/event-stream; charset=utf-8'
     });
     response.write(': connected\n\n');
-    // Sync newly connected clients to the current feed liveness immediately.
+    // Sync newly connected clients to the current feed liveness and saved settings immediately.
     response.write(formatStatusEvent(currentStatus));
+    if (currentSettings !== null) {
+      response.write(formatSettingsEvent(currentSettings));
+    }
 
     clients.add(response);
     emitClientCount();
@@ -103,6 +111,11 @@ export function createOverlayGsiEventStream(
 
   function broadcast(payload: GsiPayload): void {
     writeToClients(`data: ${JSON.stringify(payload)}\n\n`);
+  }
+
+  function setSettings(settings: OverlayConfig): void {
+    currentSettings = settings;
+    writeToClients(formatSettingsEvent(settings));
   }
 
   function setStatus(status: GsiStatus): void {
@@ -162,6 +175,7 @@ export function createOverlayGsiEventStream(
       return clients.size;
     },
     onClientCountChange: clientCountObservers.add,
+    setSettings,
     setStatus,
     start,
     stop: httpServer.stop
@@ -170,6 +184,10 @@ export function createOverlayGsiEventStream(
 
 function formatStatusEvent(status: GsiStatus): string {
   return `event: ${GSI_STATUS_EVENT}\ndata: ${status}\n\n`;
+}
+
+function formatSettingsEvent(config: OverlayConfig): string {
+  return `event: ${OVERLAY_SETTINGS_EVENT}\ndata: ${JSON.stringify(config)}\n\n`;
 }
 
 function getCrossOriginHeaders(): Record<string, string> {

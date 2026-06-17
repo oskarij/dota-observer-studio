@@ -5,7 +5,10 @@ import { createGsiListener } from '../runtime/gsiListener.js';
 import { createGsiLiveness } from '../runtime/gsiLiveness.js';
 import { createOverlayGsiEventStream } from '../runtime/overlayGsiEventStream.js';
 import { createOverlayHost } from '../runtime/overlayHost.js';
+import { logError } from '../shared/logger.js';
 import { NETWORK_HOST, NETWORK_PORTS } from '../shared/networkConfig.js';
+
+import { registerSettingsIpc } from './ipc/settings.js';
 
 app.setName('Observer Studio');
 
@@ -27,6 +30,9 @@ const overlayGsiEventStream = createOverlayGsiEventStream({
 
 const gsiLiveness = createGsiLiveness();
 
+// Registered after the app is ready (electron-store needs the userData path).
+let unregisterSettingsIpc: (() => void) | null = null;
+
 const unsubscribeGsiLiveness = gsiLiveness.onStatusChange((status) => {
   overlayGsiEventStream.setStatus(status);
 });
@@ -47,13 +53,18 @@ async function createMainWindow(): Promise<void> {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
-      preload: join(app.getAppPath(), 'build/electron/electron/preload.js')
+      preload: join(app.getAppPath(), 'build/electron/electron/preload.cjs')
     },
     width: 1280
   });
 
   window.once('ready-to-show', () => {
     window.show();
+  });
+
+  // Surfaces a thrown/missing preload (e.g. the settings bridge) in the dev terminal.
+  window.webContents.on('preload-error', (_event, preloadPath, error) => {
+    logError(`Preload failed to load: ${preloadPath}`, error);
   });
 
   // Keep the window title fixed instead of following the page's document.title.
@@ -66,6 +77,8 @@ async function createMainWindow(): Promise<void> {
     return;
   }
 
+  // The default menu (and its DevTools accelerator) is removed, so open it explicitly in dev.
+  window.webContents.openDevTools({ mode: 'detach' });
   await window.loadURL('http://127.0.0.1:5173');
 }
 
@@ -73,6 +86,7 @@ app.whenReady().then(async () => {
   Menu.setApplicationMenu(null);
 
   await Promise.all([overlayHost.start(), gsiListener.start(), overlayGsiEventStream.start()]);
+  unregisterSettingsIpc = registerSettingsIpc(overlayGsiEventStream);
   await createMainWindow();
 
   app.on('activate', () => {
@@ -95,6 +109,7 @@ app.on('before-quit', (event) => {
 
   unsubscribeGsiEventStream();
   unsubscribeGsiLiveness();
+  unregisterSettingsIpc?.();
   gsiLiveness.stop();
 
   void Promise.allSettled([

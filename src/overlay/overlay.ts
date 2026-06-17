@@ -1,7 +1,9 @@
+import type { OverlayConfig } from '../shared/componentSettings.js';
 import type { DotaGsiData } from '../shared/dotaGsiPayload.js';
 import { GSI_STATUS_EVENT, type GsiStatus } from '../shared/gsiStatus.js';
 import { logWarning } from '../shared/logger.js';
 import { OVERLAY_REALTIME_EVENTS_URL } from '../shared/overlayEventStreamEndpoint.js';
+import { OVERLAY_SETTINGS_EVENT } from '../shared/overlaySettingsEvent.js';
 
 import { createOverlayStage } from './overlayStage.js';
 
@@ -26,6 +28,10 @@ events.onmessage = (event) => {
 
 events.addEventListener(GSI_STATUS_EVENT, (event) => {
   applyGsiStatus((event as MessageEvent<string>).data);
+});
+
+events.addEventListener(OVERLAY_SETTINGS_EVENT, (event) => {
+  applyOverlayConfig((event as MessageEvent<string>).data);
 });
 
 events.onopen = () => {
@@ -55,6 +61,31 @@ function applyGsiStatus(status: string): void {
 
 function setRealtimeConnectionState(state: RealtimeConnectionState): void {
   document.documentElement.dataset.realtime = state;
+}
+
+function applyOverlayConfig(data: string): void {
+  const config = parseOverlayConfig(data);
+
+  if (config === null) {
+    return;
+  }
+
+  for (const [id, enabled] of Object.entries(config.enabled)) {
+    stage.setEnabled(id, enabled);
+  }
+
+  for (const [id, settings] of Object.entries(config.settings)) {
+    stage.applySettings(id, settings);
+  }
+}
+
+function parseOverlayConfig(data: string): OverlayConfig | null {
+  try {
+    return JSON.parse(data) as OverlayConfig;
+  } catch (error) {
+    logWarning('Discarded malformed overlay settings payload', error);
+    return null;
+  }
 }
 
 function parseGsiPayload(data: string): DotaGsiData | null {

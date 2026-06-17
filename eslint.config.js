@@ -83,7 +83,12 @@ export default tseslint.config(
       parserOptions: {
         extraFileExtensions: ['.svelte'],
         projectService: {
-          allowDefaultProject: ['*.config.js', 'eslint.config.js', 'vite.overlay.config.ts']
+          allowDefaultProject: [
+            '*.config.js',
+            'eslint.config.js',
+            'vite.overlay.config.ts',
+            'src/electron/preload.cts'
+          ]
         },
         tsconfigRootDir: import.meta.dirname
       }
