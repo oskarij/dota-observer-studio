@@ -1,5 +1,16 @@
 <script lang="ts">
+  import ItalicIcon from '@lucide/svelte/icons/italic';
+  import { onMount } from 'svelte';
+
   import type { ComponentSettings } from '../../shared/componentSettings.js';
+  import {
+    BUNDLED_FONTS,
+    defaultWeightFor,
+    fontHasItalic,
+    fontLabel,
+    fontWeights,
+    weightLabel
+  } from '../../shared/fontCatalog.js';
   import { Button } from '$lib/components/ui/button/index.js';
   import { Input } from '$lib/components/ui/input/index.js';
   import * as Popover from '$lib/components/ui/popover/index.js';
@@ -18,9 +29,35 @@
     onReset?: (() => void) | undefined;
   } = $props();
 
-  // Font families offered for now; expand as more overlay fonts are bundled.
-  const FONT_FAMILIES = ['RadianceOverlay', 'sans-serif', 'serif', 'monospace'];
-  const FONT_WEIGHTS = [400, 700];
+  // The user's installed fonts, loaded over the IPC bridge (empty in a plain browser).
+  let systemFonts = $state<string[]>([]);
+
+  onMount(async () => {
+    const fonts = await globalThis.window?.dotaSpectatorTools?.fonts?.list?.();
+    if (fonts) {
+      systemFonts = fonts;
+    }
+  });
+
+  // The weights the selected font ships, and whether it has italic faces.
+  let weightOptions = $derived(settings ? fontWeights(settings.font.family) : []);
+  let hasItalic = $derived(settings ? fontHasItalic(settings.font.family) : false);
+
+  // Switching font: snap to a weight the new font has and drop italic if it has none,
+  // so we never request a face the picker shows as unavailable.
+  function setFamily(family: string): void {
+    if (settings === undefined) {
+      return;
+    }
+
+    settings.font.family = family;
+    if (!fontWeights(family).some((weight) => weight.value === settings.font.weight)) {
+      settings.font.weight = defaultWeightFor(family);
+    }
+    if (!fontHasItalic(family)) {
+      settings.font.italic = false;
+    }
+  }
 
   // Reset swaps the trigger out for an inline confirm/cancel pair instead of a modal.
   let confirmingReset = $state(false);
@@ -81,34 +118,73 @@
         <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Font
         </span>
-        <div class="flex gap-2">
-          <div class="flex min-w-0 flex-1 flex-col gap-1 text-xs">
+        <div class="flex flex-col gap-2">
+          <div class="flex flex-col gap-1 text-xs">
             <span class="text-muted-foreground">Family</span>
-            <Select.Root type="single" bind:value={settings.font.family}>
+            <Select.Root type="single" value={settings.font.family} onValueChange={setFamily}>
               <Select.Trigger class="h-8 w-full">
-                <span class="min-w-0 flex-1 truncate text-left">{settings.font.family}</span>
+                <span
+                  class="min-w-0 flex-1 truncate text-left"
+                  style="font-family: '{settings.font.family}'"
+                >
+                  {fontLabel(settings.font.family)}
+                </span>
               </Select.Trigger>
-              <Select.Content>
-                {#each FONT_FAMILIES as family (family)}
-                  <Select.Item value={family} label={family} />
-                {/each}
+              <Select.Content class="max-h-64">
+                <Select.Group>
+                  <Select.GroupHeading>Overlay fonts</Select.GroupHeading>
+                  {#each BUNDLED_FONTS as font (font.id)}
+                    <Select.Item value={font.family} label={font.label}>
+                      <span style="font-family: '{font.family}'">{font.label}</span>
+                    </Select.Item>
+                  {/each}
+                </Select.Group>
+                {#if systemFonts.length > 0}
+                  <Select.Separator />
+                  <Select.Group>
+                    <Select.GroupHeading>System fonts</Select.GroupHeading>
+                    {#each systemFonts as family (family)}
+                      <Select.Item value={family} label={family}>
+                        <span style="font-family: '{family}'">{family}</span>
+                      </Select.Item>
+                    {/each}
+                  </Select.Group>
+                {/if}
               </Select.Content>
             </Select.Root>
           </div>
-          <div class="flex w-20 shrink-0 flex-col gap-1 text-xs">
-            <span class="text-muted-foreground">Weight</span>
-            <Select.Root
-              type="single"
-              value={String(settings.font.weight)}
-              onValueChange={(value) => (settings.font.weight = Number(value))}
+          <div class="flex items-end gap-2">
+            <div class="flex min-w-0 flex-1 flex-col gap-1 text-xs">
+              <span class="text-muted-foreground">Weight</span>
+              <Select.Root
+                type="single"
+                value={String(settings.font.weight)}
+                onValueChange={(value) => (settings.font.weight = Number(value))}
+              >
+                <Select.Trigger class="h-8 w-full">
+                  <span class="min-w-0 flex-1 truncate text-left">
+                    {weightLabel(settings.font.family, settings.font.weight)}
+                  </span>
+                </Select.Trigger>
+                <Select.Content>
+                  {#each weightOptions as weight (weight.value)}
+                    <Select.Item value={String(weight.value)} label={weight.label} />
+                  {/each}
+                </Select.Content>
+              </Select.Root>
+            </div>
+            <Button
+              variant={settings.font.italic ? 'default' : 'outline'}
+              size="sm"
+              class="h-8 shrink-0"
+              disabled={!hasItalic}
+              aria-pressed={settings.font.italic}
+              title="Italic"
+              onclick={() => (settings.font.italic = !settings.font.italic)}
             >
-              <Select.Trigger class="h-8 w-full">{settings.font.weight}</Select.Trigger>
-              <Select.Content>
-                {#each FONT_WEIGHTS as weight (weight)}
-                  <Select.Item value={String(weight)} label={String(weight)} />
-                {/each}
-              </Select.Content>
-            </Select.Root>
+              <ItalicIcon class="size-4" />
+              Italic
+            </Button>
           </div>
         </div>
       </section>

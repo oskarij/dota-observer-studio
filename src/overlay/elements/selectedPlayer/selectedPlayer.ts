@@ -82,6 +82,7 @@ function applySelectedPlayerSettings(root: HTMLElement, settings: ComponentSetti
   root.style.setProperty('--sp-color', settings.color);
   root.style.setProperty('--sp-font-family', settings.font.family);
   root.style.setProperty('--sp-font-weight', String(settings.font.weight));
+  root.style.setProperty('--sp-font-style', settings.font.italic ? 'italic' : 'normal');
   root.style.setProperty('--sp-shadow', shadowValue);
 }
 

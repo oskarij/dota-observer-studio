@@ -4,6 +4,9 @@
 export const SETTINGS_GET_CHANNEL = 'settings:get';
 export const SETTINGS_SET_CHANNEL = 'settings:set';
 
+// Lists the font families installed on the user's machine for the component font picker.
+export const FONTS_LIST_CHANNEL = 'fonts:list';
+
 // App-lifecycle channels for the unsaved-changes guard on window close.
 // Renderer reports its dirty state; main asks the renderer to save (then await its
 // confirmation) before letting the window close.

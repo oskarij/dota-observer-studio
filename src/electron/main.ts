@@ -13,6 +13,7 @@ import {
 import { logError } from '../shared/logger.js';
 import { NETWORK_HOST, NETWORK_PORTS } from '../shared/networkConfig.js';
 
+import { registerFontsIpc } from './ipc/fonts.js';
 import { registerSettingsIpc } from './ipc/settings.js';
 
 app.setName('Observer Studio');
@@ -78,6 +79,7 @@ async function confirmCloseWithUnsavedChanges(window: BrowserWindow): Promise<vo
 
 // Registered after the app is ready (electron-store needs the userData path).
 let unregisterSettingsIpc: (() => void) | null = null;
+let unregisterFontsIpc: (() => void) | null = null;
 
 const unsubscribeGsiLiveness = gsiLiveness.onStatusChange((status) => {
   overlayGsiEventStream.setStatus(status);
@@ -143,6 +145,7 @@ app.whenReady().then(async () => {
 
   await Promise.all([overlayHost.start(), gsiListener.start(), overlayGsiEventStream.start()]);
   unregisterSettingsIpc = registerSettingsIpc(overlayGsiEventStream);
+  unregisterFontsIpc = registerFontsIpc();
   await createMainWindow();
 
   app.on('activate', () => {
@@ -166,6 +169,7 @@ app.on('before-quit', (event) => {
   unsubscribeGsiEventStream();
   unsubscribeGsiLiveness();
   unregisterSettingsIpc?.();
+  unregisterFontsIpc?.();
   gsiLiveness.stop();
 
   void Promise.allSettled([

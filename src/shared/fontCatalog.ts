@@ -1,0 +1,83 @@
+// Fonts bundled with the overlay, the single source of truth for the picker.
+// `family` is the CSS font-family value stored in ComponentSettings.font.family and
+// matched by the @font-face blocks in selectedPlayer.css. `weights` lists the real
+// faces bundled for that family (so the picker only offers weights that exist), and
+// `italic` flags whether italic faces are bundled. The user's installed PC fonts are
+// merged in at runtime via IPC; they fall back to SYSTEM_FONT_WEIGHTS and are assumed
+// to support italic, since the OS resolves the real face.
+export interface FontWeightOption {
+  readonly value: number;
+  readonly label: string;
+}
+
+export interface BundledFontDefinition {
+  readonly id: string;
+  readonly label: string;
+  readonly family: string;
+  readonly weights: FontWeightOption[];
+  readonly defaultWeight: number;
+  readonly italic: boolean;
+}
+
+const WEIGHT_LABELS: Record<number, string> = {
+  200: 'Ultralight',
+  300: 'Light',
+  400: 'Regular',
+  600: 'Semibold',
+  700: 'Bold'
+};
+
+function weights(values: number[]): FontWeightOption[] {
+  return values.map((value) => ({ value, label: WEIGHT_LABELS[value] ?? String(value) }));
+}
+
+// Weights offered for an arbitrary system font, where we can't know which faces exist.
+export const SYSTEM_FONT_WEIGHTS: FontWeightOption[] = weights([400, 700]);
+
+export const BUNDLED_FONTS: BundledFontDefinition[] = [
+  {
+    id: 'radiance',
+    label: 'Radiance',
+    family: 'RadianceOverlay',
+    weights: weights([200, 300, 400, 600, 700]),
+    // Semibold is the weight the overlay shipped with — keep it the default.
+    defaultWeight: 600,
+    italic: true
+  },
+  {
+    id: 'reaver',
+    label: 'Reaver',
+    family: 'ReaverOverlay',
+    weights: weights([300, 400, 600, 700]),
+    defaultWeight: 700,
+    italic: false
+  }
+];
+
+function bundled(family: string): BundledFontDefinition | undefined {
+  return BUNDLED_FONTS.find((font) => font.family === family);
+}
+
+// Bundled fonts carry their own label; a system font is shown by its family name.
+export function fontLabel(family: string): string {
+  return bundled(family)?.label ?? family;
+}
+
+// Weight options for a stored family: a bundled font's real faces, else the generic set.
+export function fontWeights(family: string): FontWeightOption[] {
+  return bundled(family)?.weights ?? SYSTEM_FONT_WEIGHTS;
+}
+
+export function weightLabel(family: string, value: number): string {
+  return fontWeights(family).find((weight) => weight.value === value)?.label ?? String(value);
+}
+
+// Bundled fonts declare whether italic faces exist; system fonts are assumed to.
+export function fontHasItalic(family: string): boolean {
+  return bundled(family)?.italic ?? true;
+}
+
+// Weight to fall back to when switching to a font that lacks the current one.
+export function defaultWeightFor(family: string): number {
+  return bundled(family)?.defaultWeight ?? 400;
+}

@@ -6,7 +6,9 @@ import { OVERLAY_ELEMENT_DEFINITIONS } from './overlayElementCatalog.js';
 export interface ComponentSettings {
   position: { x: number; y: number };
   size: number; // scale percentage
-  font: { family: string; weight: number };
+  // weight is a CSS font-weight, italic toggles font-style; resolved by a bundled
+  // @font-face for the overlay fonts and by the OS for system fonts.
+  font: { family: string; weight: number; italic: boolean };
   color: string;
   shadow: { color: string; blur: number; offsetX: number; offsetY: number };
 }
@@ -17,7 +19,7 @@ export function createDefaultComponentSettings(): ComponentSettings {
     // the 1080px floor); see selectedPlayer.css for the matching fallbacks.
     position: { x: 32, y: 994 },
     size: 100,
-    font: { family: 'RadianceOverlay', weight: 700 },
+    font: { family: 'RadianceOverlay', weight: 600, italic: false },
     color: '#f8fbff',
     shadow: { color: '#000000', blur: 4, offsetX: 2, offsetY: 2 }
   };
