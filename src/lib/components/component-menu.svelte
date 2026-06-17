@@ -18,7 +18,7 @@
   }
 </script>
 
-<div class="flex min-h-0 flex-col overflow-hidden rounded-lg border bg-card shadow-sm">
+<div class="flex min-h-28 flex-col overflow-hidden rounded-lg border bg-card shadow-sm">
   <div class="flex h-12 shrink-0 items-center border-b px-4">
     <span class="text-base font-semibold">Components</span>
   </div>
