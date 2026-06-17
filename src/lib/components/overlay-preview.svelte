@@ -1,6 +1,7 @@
 <script lang="ts">
   import { SAMPLE_GSI_DATA } from '$lib/dev/sampleGsiData.js';
   import { createOverlayStage, type OverlayStage } from '../../overlay/overlayStage.js';
+  import type { ComponentSettings } from '../../shared/componentSettings.js';
   import type { DotaGsiData } from '../../shared/dotaGsiPayload.js';
 
   // The overlay elements are authored against a fixed 1080p canvas.
@@ -9,8 +10,13 @@
 
   let {
     gsiData = SAMPLE_GSI_DATA,
-    enabled
-  }: { gsiData?: DotaGsiData; enabled?: Record<string, boolean> } = $props();
+    enabled,
+    settings
+  }: {
+    gsiData?: DotaGsiData;
+    enabled?: Record<string, boolean>;
+    settings?: Record<string, ComponentSettings>;
+  } = $props();
 
   let root = $state<HTMLElement | null>(null);
   let stageEl = $state<HTMLElement | null>(null);
@@ -41,6 +47,10 @@
     // visibility against the latest enabled state, not just on GSI changes.
     for (const [id, value] of Object.entries(enabled ?? {})) {
       stage.setEnabled(id, value);
+    }
+
+    for (const [id, value] of Object.entries(settings ?? {})) {
+      stage.applySettings(id, value);
     }
 
     stage.update(gsiData);

@@ -1,26 +1,20 @@
 <script lang="ts">
   import SaveIcon from '@lucide/svelte/icons/save';
+  import { onMount } from 'svelte';
 
-  import {
-    createDefaultComponentSettings,
-    type ComponentSettings
-  } from '../shared/componentSettings.js';
   import { OVERLAY_ELEMENT_DEFINITIONS } from '../shared/overlayElementCatalog.js';
   import ComponentMenu from '$lib/components/component-menu.svelte';
   import ComponentSettingsPanel from '$lib/components/component-settings.svelte';
   import GsiStatusIndicator from '$lib/components/gsi-status-indicator.svelte';
   import OverlayPreview from '$lib/components/overlay-preview.svelte';
+  import { OverlayConfigStore } from '$lib/state/overlayConfig.svelte.js';
   import { Button } from '$lib/components/ui/button/index.js';
 
-  let componentEnabled = $state<Record<string, boolean>>(
-    Object.fromEntries(OVERLAY_ELEMENT_DEFINITIONS.map((element) => [element.id, element.enabled]))
-  );
+  const config = new OverlayConfigStore();
 
-  let componentSettings = $state<Record<string, ComponentSettings>>(
-    Object.fromEntries(
-      OVERLAY_ELEMENT_DEFINITIONS.map((element) => [element.id, createDefaultComponentSettings()])
-    )
-  );
+  onMount(() => {
+    void config.load();
+  });
 
   // The selected component drives the settings panel; defaults to the first.
   let selectedId = $state<string | undefined>(OVERLAY_ELEMENT_DEFINITIONS[0]?.id);
@@ -28,6 +22,12 @@
   let selectedName = $derived(
     OVERLAY_ELEMENT_DEFINITIONS.find((element) => element.id === selectedId)?.name
   );
+
+  function resetSelected(): void {
+    if (selectedId !== undefined) {
+      config.resetComponent(selectedId);
+    }
+  }
 </script>
 
 <svelte:head>
@@ -42,7 +42,23 @@
     <div class="flex items-center gap-4">
       <GsiStatusIndicator />
 
-      <Button class="border-primary text-primary" size="lg" variant="outline">
+      {#if config.dirty}
+        <span class="text-sm text-muted-foreground" role="status" aria-live="polite">
+          Unsaved changes
+        </span>
+      {/if}
+
+      <Button size="lg" variant="ghost" disabled={!config.dirty} onclick={() => config.discard()}>
+        Discard
+      </Button>
+
+      <Button
+        class="border-primary text-primary"
+        size="lg"
+        variant="outline"
+        disabled={!config.dirty}
+        onclick={() => config.save()}
+      >
         <SaveIcon />
         Save
       </Button>
@@ -51,11 +67,16 @@
 
   <section class="flex min-h-0 flex-1 gap-3 px-6 pb-6 max-sm:gap-2 max-sm:px-4 max-sm:pb-4">
     <div class="flex w-64 min-h-0 shrink-0 flex-col gap-3">
-      <ComponentMenu enabled={componentEnabled} bind:selectedId />
-      <ComponentSettingsPanel
-        name={selectedName}
-        settings={selectedId === undefined ? undefined : componentSettings[selectedId]}
-      />
+      <ComponentMenu enabled={config.enabled} bind:selectedId />
+      {#if selectedId === undefined}
+        <ComponentSettingsPanel />
+      {:else}
+        <ComponentSettingsPanel
+          name={selectedName}
+          bind:settings={config.settings[selectedId]}
+          onReset={resetSelected}
+        />
+      {/if}
     </div>
 
     <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border bg-card shadow-sm">
@@ -67,7 +88,7 @@
       </div>
 
       <div class="min-h-0 flex-1 p-4">
-        <OverlayPreview enabled={componentEnabled} />
+        <OverlayPreview enabled={config.enabled} settings={config.settings} />
       </div>
     </div>
   </section>

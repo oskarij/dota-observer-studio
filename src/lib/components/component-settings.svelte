@@ -6,10 +6,17 @@
   import * as Select from '$lib/components/ui/select/index.js';
   import { Slider } from '$lib/components/ui/slider/index.js';
 
-  // Mutating settings.* propagates to the parent's $state proxy; no bind: needed for objects,
-  // but the inputs below use bind: for two-way value sync.
-  let { name, settings }: { name?: string | undefined; settings?: ComponentSettings | undefined } =
-    $props();
+  // settings is $bindable so the inputs below can mutate it via bind: with the page as co-owner
+  // (avoids Svelte's ownership_invalid_mutation warning for cross-component prop mutation).
+  let {
+    name,
+    settings = $bindable(),
+    onReset
+  }: {
+    name?: string | undefined;
+    settings?: ComponentSettings | undefined;
+    onReset?: (() => void) | undefined;
+  } = $props();
 
   // Font families offered for now; expand as more overlay fonts are bundled.
   const FONT_FAMILIES = ['RadianceOverlay', 'sans-serif', 'serif', 'monospace'];
@@ -159,5 +166,13 @@
         </div>
       </section>
     </div>
+
+    {#if onReset}
+      <div class="shrink-0 border-t p-3">
+        <Button variant="ghost" size="sm" class="w-full" onclick={() => onReset?.()}>
+          Reset to defaults
+        </Button>
+      </div>
+    {/if}
   {/if}
 </div>
