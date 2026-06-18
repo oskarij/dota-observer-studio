@@ -15,7 +15,9 @@
     settings,
     options
   }: {
-    gsiData?: DotaGsiData;
+    // null = live mode with no fresh feed (render an empty stage + waiting hint); undefined falls
+    // back to the static sample.
+    gsiData?: DotaGsiData | null | undefined;
     enabled?: Record<string, boolean>;
     settings?: Record<string, ComponentSettings>;
     options?: Record<string, ComponentOptions>;
@@ -60,7 +62,12 @@
       stage.applyOptions(id, value);
     }
 
-    stage.update(gsiData);
+    // null = live mode without a fresh feed: clear rather than render stale/sample content.
+    if (gsiData === null) {
+      stage.clear();
+    } else {
+      stage.update(gsiData);
+    }
   });
 
   // Contain the 1080p stage within the available area so it never overflows.
@@ -95,6 +102,16 @@
       class="absolute top-0 left-0 origin-top-left"
       style="width: {STAGE_WIDTH}px; height: {STAGE_HEIGHT}px; transform: scale({scale});"
     ></div>
+
+    {#if gsiData === null}
+      <div class="absolute inset-0 flex items-center justify-center">
+        <span
+          class="rounded-md bg-background/80 px-3 py-1.5 text-sm text-muted-foreground shadow-sm"
+        >
+          Waiting for live game data…
+        </span>
+      </div>
+    {/if}
   </div>
 </div>
 
