@@ -61,7 +61,7 @@
           <div class="flex min-w-0 flex-col gap-0.5">
             <span class="text-sm font-medium">Source</span>
             <span class="text-xs text-muted-foreground">
-              Prefer a known/pro name, or always use the in-game name.
+              Use local list of player names, or pull the current in-game name.
             </span>
           </div>
           <Select.Root
