@@ -30,36 +30,64 @@
        so the rank value is disabled in that mode. -->
   {@const ingame = options.nameSource === 'ingame'}
   <Tooltip.Provider delayDuration={200}>
-    <!-- Name source -->
+    <!-- Name (show + source) -->
     <div class="rounded-lg border bg-card p-4 shadow-sm">
-      <div class="flex items-center justify-between gap-4">
-        <div class="flex min-w-0 flex-col gap-0.5">
-          <span class="text-sm font-medium">Name source</span>
-          <span class="text-xs text-muted-foreground">
-            Prefer a known/pro name, or always use the in-game name.
-          </span>
-        </div>
-        <Select.Root
-          type="single"
-          value={options.nameSource}
-          onValueChange={(value) => {
-            if (options) {
-              options.nameSource = value as PlayerNameSource;
-            }
-          }}
+      <div class="mb-3 flex items-center gap-1.5">
+        <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Name</span
         >
-          <Select.Trigger class="w-40 shrink-0">
-            <span class="min-w-0 flex-1 truncate text-left">
-              {NAME_SOURCE_LABELS[options.nameSource]}
+      </div>
+
+      <div class="flex flex-col divide-y">
+        <!-- Show -->
+        <div class="flex items-center justify-between gap-4 pb-3">
+          <div class="flex min-w-0 flex-col gap-0.5">
+            <span class="text-sm font-medium">Name</span>
+            <span class="text-xs text-muted-foreground">Show the player's name.</span>
+          </div>
+          <Switch
+            class="shrink-0"
+            checked={options.showName}
+            onCheckedChange={(checked) => {
+              if (options) {
+                options.showName = checked;
+              }
+            }}
+          />
+        </div>
+
+        <!-- Source — also drives the medal source in in-game mode, so it stays active even when
+             the name itself is hidden. -->
+        <div class="flex items-center justify-between gap-4 pt-3">
+          <div class="flex min-w-0 flex-col gap-0.5">
+            <span class="text-sm font-medium">Source</span>
+            <span class="text-xs text-muted-foreground">
+              Prefer a known/pro name, or always use the in-game name.
             </span>
-          </Select.Trigger>
-          <Select.Content>
-            <Select.Item value="profile" label={NAME_SOURCE_LABELS.profile}>
-              Known name (fallback to in-game)
-            </Select.Item>
-            <Select.Item value="ingame" label={NAME_SOURCE_LABELS.ingame}>In-game name</Select.Item>
-          </Select.Content>
-        </Select.Root>
+          </div>
+          <Select.Root
+            type="single"
+            value={options.nameSource}
+            onValueChange={(value) => {
+              if (options) {
+                options.nameSource = value as PlayerNameSource;
+              }
+            }}
+          >
+            <Select.Trigger class="w-40 shrink-0">
+              <span class="min-w-0 flex-1 truncate text-left">
+                {NAME_SOURCE_LABELS[options.nameSource]}
+              </span>
+            </Select.Trigger>
+            <Select.Content>
+              <Select.Item value="profile" label={NAME_SOURCE_LABELS.profile}>
+                Known name (fallback to in-game)
+              </Select.Item>
+              <Select.Item value="ingame" label={NAME_SOURCE_LABELS.ingame}
+                >In-game name</Select.Item
+              >
+            </Select.Content>
+          </Select.Root>
+        </div>
       </div>
     </div>
 

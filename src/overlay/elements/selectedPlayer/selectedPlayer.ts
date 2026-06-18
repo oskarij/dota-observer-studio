@@ -145,7 +145,13 @@ function renderSelectedPlayer(view: SelectedPlayerView, options: SelectedPlayerO
   const mmr = view.profile?.mmr ?? null;
   const medal = resolveMedal(view, options);
 
-  view.name.textContent = resolveName(view, options.nameSource);
+  if (options.showName) {
+    view.name.hidden = false;
+    view.name.textContent = resolveName(view, options.nameSource);
+  } else {
+    view.name.hidden = true;
+    view.name.textContent = '';
+  }
 
   // MMR is only known for curated profiles; in-game mode treats the player as live/unknown,
   // where MMR isn't public, so it is never shown regardless of the rank-value setting.
