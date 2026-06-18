@@ -1,6 +1,7 @@
 import type { ComponentOptions } from '../shared/componentOptions.js';
 import type { ComponentSettings } from '../shared/componentSettings.js';
 import type { DotaGsiData } from '../shared/dotaGsiPayload.js';
+import type { PlayerRank } from '../shared/overlayPlayerRankEvent.js';
 
 import { overlayElementRegistry } from './elementRegistry.js';
 import type { OverlayElement } from './overlayElement.js';
@@ -10,6 +11,7 @@ import type { OverlayElement } from './overlayElement.js';
 // `html, body` rules belong only to the standalone overlay page).
 export interface OverlayStage {
   applyOptions(id: string, options: ComponentOptions): void;
+  applyPlayerRank(rank: PlayerRank): void;
   applySettings(id: string, settings: ComponentSettings): void;
   clear(): void;
   destroy(): void;
@@ -31,6 +33,12 @@ export function createOverlayStage(root: HTMLElement): OverlayStage {
         if (overlayElement.id === id) {
           overlayElement.applyOptions?.(options);
         }
+      }
+    },
+    applyPlayerRank(rank) {
+      // Not addressed to a specific element id; every medal-bearing element keys it by account id.
+      for (const overlayElement of elements) {
+        overlayElement.applyPlayerRank?.(rank);
       }
     },
     applySettings(id, settings) {

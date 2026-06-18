@@ -6,7 +6,12 @@ import {
 import type { ComponentSettings } from '../../../shared/componentSettings.js';
 import type { DotaGsiData, SelectedDotaGsiPlayer } from '../../../shared/dotaGsiPayload.js';
 import { getSelectedDotaGsiPlayer } from '../../../shared/dotaGsiPayload.js';
-import { mmrToMedal, type PlayerProfile, type RankMedal } from './playerProfileData.js';
+import {
+  mmrToMedal,
+  rankTierToMedal,
+  type PlayerProfile,
+  type RankMedal
+} from './playerProfileData.js';
 import { getPlayerProfile } from './playerProfiles.js';
 import { formatMedalName, formatMmr } from './selectedPlayerFormat.js';
 
@@ -40,6 +45,9 @@ export function mountSelectedPlayerElement(container: HTMLElement): OverlayEleme
   const mmr = getRequiredChild(root, '[data-selected-player-mmr]');
 
   let options = createDefaultSelectedPlayerOptions();
+  // OpenDota ranks pushed over SSE, keyed by account id. Used for the medal in in-game mode, where
+  // the player is treated as live/unknown and MMR isn't available.
+  const rankTiersByAccountId = new Map<string, number | null>();
 
   container.append(root);
 
@@ -47,6 +55,9 @@ export function mountSelectedPlayerElement(container: HTMLElement): OverlayEleme
     id: 'selected-player',
     applyOptions(nextOptions) {
       options = nextOptions;
+    },
+    applyPlayerRank(rank) {
+      rankTiersByAccountId.set(rank.accountId, rank.rankTier);
     },
     applySettings(settings: ComponentSettings) {
       applySelectedPlayerSettings(root, settings);
@@ -68,12 +79,16 @@ export function mountSelectedPlayerElement(container: HTMLElement): OverlayEleme
         return;
       }
 
+      const accountId = selectedPlayer.player?.accountid;
+
       renderSelectedPlayer(
         {
           medal,
           mmr,
           name,
-          profile: getPlayerProfile(selectedPlayer.player?.accountid),
+          openDotaRankTier:
+            accountId !== undefined ? (rankTiersByAccountId.get(accountId) ?? null) : null,
+          profile: getPlayerProfile(accountId),
           selectedPlayer
         },
         options
@@ -121,13 +136,14 @@ interface SelectedPlayerView {
   readonly medal: HTMLImageElement;
   readonly mmr: HTMLElement;
   readonly name: HTMLElement;
+  readonly openDotaRankTier: number | null;
   readonly profile: PlayerProfile | null;
   readonly selectedPlayer: SelectedDotaGsiPlayer;
 }
 
 function renderSelectedPlayer(view: SelectedPlayerView, options: SelectedPlayerOptions): void {
   const mmr = view.profile?.mmr ?? null;
-  const medal = options.showMedal ? mmrToMedal(mmr) : null;
+  const medal = resolveMedal(view, options);
 
   view.name.textContent = resolveName(view, options.nameSource);
 
@@ -142,6 +158,21 @@ function renderSelectedPlayer(view: SelectedPlayerView, options: SelectedPlayerO
   }
 
   updateMedalImage(view.medal, medal);
+}
+
+// Known-name mode derives the medal from the curated MMR; in-game mode treats the player as live
+// and uses the OpenDota rank pushed over SSE. Either source can be absent (uncached, private, or
+// unranked) — in which case we just show no medal.
+function resolveMedal(view: SelectedPlayerView, options: SelectedPlayerOptions): RankMedal | null {
+  if (!options.showMedal) {
+    return null;
+  }
+
+  if (options.nameSource === 'ingame') {
+    return rankTierToMedal(view.openDotaRankTier);
+  }
+
+  return mmrToMedal(view.profile?.mmr ?? null);
 }
 
 function resolveName(view: SelectedPlayerView, source: PlayerNameSource): string {

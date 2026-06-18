@@ -1,10 +1,12 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron';
 import { join } from 'node:path';
 
+import { createPlayerRankStore } from '../persistence/playerRankStore.js';
 import { createGsiListener } from '../runtime/gsiListener.js';
 import { createGsiLiveness } from '../runtime/gsiLiveness.js';
 import { createOverlayGsiEventStream } from '../runtime/overlayGsiEventStream.js';
 import { createOverlayHost } from '../runtime/overlayHost.js';
+import { createPlayerRankService } from '../runtime/playerRankService.js';
 import {
   APP_DIRTY_CHANGED_CHANNEL,
   APP_QUIT_CONFIRMED_CHANNEL,
@@ -77,9 +79,11 @@ async function confirmCloseWithUnsavedChanges(window: BrowserWindow): Promise<vo
   window.webContents.send(APP_SAVE_AND_QUIT_CHANNEL);
 }
 
-// Registered after the app is ready (electron-store needs the userData path).
+// Registered after the app is ready (electron-store and the rank DB need the userData path).
 let unregisterSettingsIpc: (() => void) | null = null;
 let unregisterFontsIpc: (() => void) | null = null;
+let unsubscribePlayerRank: (() => void) | null = null;
+let closePlayerRankStore: (() => void) | null = null;
 
 const unsubscribeGsiLiveness = gsiLiveness.onStatusChange((status) => {
   overlayGsiEventStream.setStatus(status);
@@ -152,6 +156,19 @@ app.whenReady().then(async () => {
   await Promise.all([overlayHost.start(), gsiListener.start(), overlayGsiEventStream.start()]);
   unregisterSettingsIpc = registerSettingsIpc(overlayGsiEventStream);
   unregisterFontsIpc = registerFontsIpc();
+
+  // Cache OpenDota ranks for selected players and push them to the live overlay (for the in-game
+  // medal). The DB lives in userData, so it persists across runs and survives the free-tier limit.
+  const playerRankStore = createPlayerRankStore(join(app.getPath('userData'), 'player-ranks.db'));
+  const playerRankService = createPlayerRankService({
+    sink: overlayGsiEventStream,
+    store: playerRankStore
+  });
+  closePlayerRankStore = () => playerRankStore.close();
+  unsubscribePlayerRank = gsiListener.onPayload((payload) => {
+    playerRankService.handlePayload(payload);
+  });
+
   await createMainWindow();
 
   app.on('activate', () => {
@@ -174,8 +191,10 @@ app.on('before-quit', (event) => {
 
   unsubscribeGsiEventStream();
   unsubscribeGsiLiveness();
+  unsubscribePlayerRank?.();
   unregisterSettingsIpc?.();
   unregisterFontsIpc?.();
+  closePlayerRankStore?.();
   gsiLiveness.stop();
 
   void Promise.allSettled([

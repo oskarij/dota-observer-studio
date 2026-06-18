@@ -3,6 +3,7 @@ import type { DotaGsiData } from '../shared/dotaGsiPayload.js';
 import { GSI_STATUS_EVENT, type GsiStatus } from '../shared/gsiStatus.js';
 import { logWarning } from '../shared/logger.js';
 import { OVERLAY_REALTIME_EVENTS_URL } from '../shared/overlayEventStreamEndpoint.js';
+import { OVERLAY_PLAYER_RANK_EVENT, type PlayerRank } from '../shared/overlayPlayerRankEvent.js';
 import { OVERLAY_SETTINGS_EVENT } from '../shared/overlaySettingsEvent.js';
 
 import { createOverlayStage } from './overlayStage.js';
@@ -32,6 +33,10 @@ events.addEventListener(GSI_STATUS_EVENT, (event) => {
 
 events.addEventListener(OVERLAY_SETTINGS_EVENT, (event) => {
   applyOverlayConfig((event as MessageEvent<string>).data);
+});
+
+events.addEventListener(OVERLAY_PLAYER_RANK_EVENT, (event) => {
+  applyPlayerRank((event as MessageEvent<string>).data);
 });
 
 events.onopen = () => {
@@ -82,6 +87,26 @@ function applyOverlayConfig(data: string): void {
   // next GSI payload — which streams continuously during a live game.
   for (const [id, options] of Object.entries(config.options)) {
     stage.applyOptions(id, options);
+  }
+}
+
+function applyPlayerRank(data: string): void {
+  const rank = parsePlayerRank(data);
+
+  if (rank === null) {
+    return;
+  }
+
+  // The medal is keyed by account id and applied on the next GSI payload for that player.
+  stage.applyPlayerRank(rank);
+}
+
+function parsePlayerRank(data: string): PlayerRank | null {
+  try {
+    return JSON.parse(data) as PlayerRank;
+  } catch (error) {
+    logWarning('Discarded malformed player rank payload', error);
+    return null;
   }
 }
 

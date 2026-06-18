@@ -77,8 +77,8 @@
               <InfoIcon class="size-3.5" />
             </Tooltip.Trigger>
             <Tooltip.Content>
-              In-game mode pulls the medal from OpenDota and it may be out of date, or unavailable if
-              the player's profile is private. MMR isn't public, so it can't be shown.
+              In-game mode pulls the medal from OpenDota and it may be out of date, or unavailable
+              if the player's profile is private. MMR isn't public, so it can't be shown.
             </Tooltip.Content>
           </Tooltip.Root>
         {/if}
