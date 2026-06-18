@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { asset } from '$app/paths';
   import { SAMPLE_GSI_DATA } from '$lib/dev/sampleGsiData.js';
   import { createOverlayStage, type OverlayStage } from '../../overlay/overlayStage.js';
   import type { ComponentOptions } from '../../shared/componentOptions.js';
@@ -21,7 +22,8 @@
     knownPlayers = [],
     enabled,
     settings,
-    options
+    options,
+    background = 'checkerboard'
   }: {
     // null = live mode with no fresh feed (render an empty stage + waiting hint); undefined falls
     // back to the static sample.
@@ -31,6 +33,8 @@
     enabled?: Record<string, boolean>;
     settings?: Record<string, ComponentSettings>;
     options?: Record<string, ComponentOptions>;
+    // Backdrop behind the (transparent) overlay: transparency checkerboard or an in-game frame.
+    background?: 'checkerboard' | 'ingame';
   } = $props();
 
   let root = $state<HTMLElement | null>(null);
@@ -120,8 +124,10 @@
 <div bind:this={root} class="flex h-full w-full items-center justify-center">
   <!-- Largest 16:9 frame that fits the available area, centered. -->
   <div
-    class="checkerboard relative overflow-hidden border"
-    style="width: {STAGE_WIDTH * scale}px; height: {STAGE_HEIGHT * scale}px;"
+    class="relative overflow-hidden border {background === 'checkerboard' ? 'checkerboard' : ''}"
+    style="width: {STAGE_WIDTH * scale}px; height: {STAGE_HEIGHT * scale}px;{background === 'ingame'
+      ? ` background-image: url('${asset('/preview-bg-ingame.png')}'); background-size: cover; background-position: center;`
+      : ''}"
   >
     <div
       bind:this={stageEl}

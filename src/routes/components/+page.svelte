@@ -24,7 +24,7 @@
   <!-- The component selector doubles as the page title. -->
   <div class="flex flex-col gap-1">
     <span class="text-sm font-medium text-muted-foreground">Components</span>
-    <Select.Root type="single" value={selectedId} onValueChange={(value) => (selectedId = value)}>
+    <Select.Root type="single" value={selectedId ?? ''} onValueChange={(value) => (selectedId = value)}>
       <Select.Trigger class="w-64">
         <span class="min-w-0 flex-1 truncate text-left font-semibold">
           {selected?.name ?? 'Select a component'}

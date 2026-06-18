@@ -1,6 +1,7 @@
 <script lang="ts">
   import { asset, resolve } from '$app/paths';
   import { page } from '$app/state';
+  import type { Pathname } from '$app/types';
   import LayoutGridIcon from '@lucide/svelte/icons/layout-grid';
   import LayersIcon from '@lucide/svelte/icons/layers';
   import MoonIcon from '@lucide/svelte/icons/moon';
@@ -8,19 +9,23 @@
   import SunIcon from '@lucide/svelte/icons/sun';
   import { toggleMode } from 'mode-watcher';
 
-  const navigation = [
+  const navigation: { href: Pathname; label: string; icon: typeof LayersIcon }[] = [
     { href: '/', label: 'Overlay', icon: LayersIcon },
     { href: '/components', label: 'Components', icon: LayoutGridIcon }
   ];
 
-  const settings = { href: '/settings', label: 'Settings', icon: SettingsIcon };
+  const settings: { href: Pathname; label: string; icon: typeof LayersIcon } = {
+    href: '/settings',
+    label: 'Settings',
+    icon: SettingsIcon
+  };
 
   function isActive(href: string) {
     return page.url.pathname === href;
   }
 </script>
 
-{#snippet navItem(item: { href: string; label: string; icon: typeof LayersIcon })}
+{#snippet navItem(item: { href: Pathname; label: string; icon: typeof LayersIcon })}
   {@const active = isActive(item.href)}
   <a
     aria-current={active ? 'page' : undefined}

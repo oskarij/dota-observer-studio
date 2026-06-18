@@ -5,9 +5,12 @@
   import ComponentMenu from '$lib/components/component-menu.svelte';
   import ComponentSettingsPanel from '$lib/components/component-settings.svelte';
   import OverlayPreview from '$lib/components/overlay-preview.svelte';
+  import { Checkbox } from '$lib/components/ui/checkbox/index.js';
+  import { Label } from '$lib/components/ui/label/index.js';
   import { GsiFeed } from '$lib/gsiFeed.svelte.js';
   import { knownPlayers } from '$lib/state/knownPlayers.svelte.js';
   import { overlayConfig } from '$lib/state/overlayConfig.svelte.js';
+  import { previewBackground } from '$lib/state/previewBackground.svelte.js';
   import { previewSource } from '$lib/state/previewSource.svelte.js';
 
   // The selected component drives the settings panel; defaults to the first.
@@ -57,32 +60,42 @@
     <div class="flex h-12 shrink-0 items-center justify-between gap-4 border-b px-4">
       <span class="text-base font-semibold">Preview</span>
 
-      <!-- Source selector: static sample vs. live game feed. -->
-      <div
-        class="inline-flex items-center gap-0.5 rounded-lg border bg-muted p-0.5 text-sm"
-        role="group"
-        aria-label="Preview source"
-      >
-        <button
-          type="button"
-          class="rounded-md px-3 py-1 font-medium transition-colors {!previewSource.live
-            ? 'bg-background text-foreground shadow-sm'
-            : 'text-muted-foreground hover:text-foreground'}"
-          aria-pressed={!previewSource.live}
-          onclick={() => (previewSource.live = false)}
+      <div class="flex items-center gap-3">
+        <!-- Backdrop toggle: transparency checkerboard (off) vs. an in-game frame (on). -->
+        <div class="inline-flex items-center rounded-lg border bg-muted p-0.5 text-sm">
+          <Label class="gap-2 px-3 py-1 font-medium leading-5 text-muted-foreground">
+            <Checkbox bind:checked={previewBackground.inGame} />
+            In-game background
+          </Label>
+        </div>
+
+        <!-- Source selector: static sample vs. live game feed. -->
+        <div
+          class="inline-flex items-center gap-0.5 rounded-lg border bg-muted p-0.5 text-sm"
+          role="group"
+          aria-label="Preview source"
         >
-          Sample
-        </button>
-        <button
-          type="button"
-          class="rounded-md px-3 py-1 font-medium transition-colors {previewSource.live
-            ? 'bg-background text-foreground shadow-sm'
-            : 'text-muted-foreground hover:text-foreground'}"
-          aria-pressed={previewSource.live}
-          onclick={() => (previewSource.live = true)}
-        >
-          Live
-        </button>
+          <button
+            type="button"
+            class="rounded-md px-3 py-1 font-medium transition-colors {!previewSource.live
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'}"
+            aria-pressed={!previewSource.live}
+            onclick={() => (previewSource.live = false)}
+          >
+            Sample
+          </button>
+          <button
+            type="button"
+            class="rounded-md px-3 py-1 font-medium transition-colors {previewSource.live
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'}"
+            aria-pressed={previewSource.live}
+            onclick={() => (previewSource.live = true)}
+          >
+            Live
+          </button>
+        </div>
       </div>
     </div>
 
@@ -94,6 +107,7 @@
         enabled={overlayConfig.enabled}
         settings={overlayConfig.settings}
         options={overlayConfig.options}
+        background={previewBackground.inGame ? 'ingame' : 'checkerboard'}
       />
     </div>
   </div>
