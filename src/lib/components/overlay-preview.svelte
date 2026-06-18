@@ -3,14 +3,20 @@
   import { createOverlayStage, type OverlayStage } from '../../overlay/overlayStage.js';
   import type { ComponentOptions } from '../../shared/componentOptions.js';
   import type { ComponentSettings } from '../../shared/componentSettings.js';
-  import type { DotaGsiData } from '../../shared/dotaGsiPayload.js';
+  import { getSelectedDotaGsiPlayer, type DotaGsiData } from '../../shared/dotaGsiPayload.js';
+  import type { PlayerRank } from '../../shared/overlayPlayerRankEvent.js';
 
   // The overlay elements are authored against a fixed 1080p canvas.
   const STAGE_WIDTH = 1920;
   const STAGE_HEIGHT = 1080;
 
+  // In-game name mode derives its medal from OpenDota ranks. Live mode receives them over SSE (via
+  // the `ranks` prop); the static sample has no feed, so we synthesize one for its selected player.
+  const SAMPLE_RANK_TIER = 74; // Divine
+
   let {
     gsiData = SAMPLE_GSI_DATA,
+    ranks = [],
     enabled,
     settings,
     options
@@ -18,6 +24,7 @@
     // null = live mode with no fresh feed (render an empty stage + waiting hint); undefined falls
     // back to the static sample.
     gsiData?: DotaGsiData | null | undefined;
+    ranks?: PlayerRank[];
     enabled?: Record<string, boolean>;
     settings?: Record<string, ComponentSettings>;
     options?: Record<string, ComponentOptions>;
@@ -66,6 +73,19 @@
     if (gsiData === null) {
       stage.clear();
     } else {
+      // Feed ranks before update so the medal resolves on this render. Live ranks arrive via the
+      // prop; the sample snapshot synthesizes one for its selected player.
+      if (gsiData === SAMPLE_GSI_DATA) {
+        const accountId = getSelectedDotaGsiPlayer(gsiData)?.player?.accountid;
+        if (accountId !== undefined) {
+          stage.applyPlayerRank({ accountId, rankTier: SAMPLE_RANK_TIER });
+        }
+      } else {
+        for (const rank of ranks) {
+          stage.applyPlayerRank(rank);
+        }
+      }
+
       stage.update(gsiData);
     }
   });

@@ -1,14 +1,16 @@
 import type { DotaGsiData } from '../shared/dotaGsiPayload.js';
-import { GSI_STATUS_EVENT } from '../shared/gsiStatus.js';
-import { logWarning } from '../shared/logger.js';
-import { OVERLAY_REALTIME_EVENTS_URL } from '../shared/overlayEventStreamEndpoint.js';
+import { connectOverlayRealtime } from '../overlay/overlayRealtimeClient.js';
+import type { PlayerRank } from '../shared/overlayPlayerRankEvent.js';
 
-// Latest live GSI payload from the realtime stream, for the studio preview's "Live" mode.
-// Mirrors the standalone overlay's subscription (overlay.ts) but keeps the payload as reactive
-// state instead of pushing it straight into a stage.
+// Latest live GSI payload + ranks from the realtime stream, for the studio preview's "Live" mode.
+// Decodes the stream through the shared realtime client (the same one the standalone overlay uses,
+// so the two can't drift) but keeps the data as reactive state instead of pushing it into a stage.
 export class GsiFeed {
   #data = $state<DotaGsiData | null>(null);
   #live = $state(false);
+  // OpenDota ranks pushed over SSE, latest per account id — the preview feeds these to the stage
+  // so in-game name mode shows a medal, mirroring the standalone overlay (overlay.ts).
+  #ranks = $state<PlayerRank[]>([]);
 
   // Latest payload while the feed is live, or null when the stream is stale/disconnected.
   get data(): DotaGsiData | null {
@@ -19,47 +21,33 @@ export class GsiFeed {
     return this.#live;
   }
 
+  get ranks(): PlayerRank[] {
+    return this.#ranks;
+  }
+
   start(): () => void {
-    // EventSource is unavailable during SSR / prerender.
-    if (typeof EventSource === 'undefined') {
-      return () => {};
-    }
-
-    const events = new EventSource(OVERLAY_REALTIME_EVENTS_URL);
-
-    events.onmessage = (event) => {
-      const gsiData = parseGsiPayload(event.data);
-
-      if (gsiData !== null) {
+    return connectOverlayRealtime({
+      onGsiData: (gsiData) => {
         this.#data = gsiData;
-      }
-    };
+      },
+      onStatus: (status) => {
+        this.#live = status === 'live';
 
-    events.addEventListener(GSI_STATUS_EVENT, (event) => {
-      this.#live = (event as MessageEvent<string>).data === 'live';
-
-      // Stale feed: drop the payload so the preview clears instead of freezing on old state.
-      if (!this.#live) {
-        this.#data = null;
+        // Stale feed: drop the payload so the preview clears instead of freezing on old state.
+        if (!this.#live) {
+          this.#data = null;
+        }
+      },
+      onPlayerRank: (rank) => {
+        // Replace any prior rank for this account; new array so the preview's effect re-runs.
+        this.#ranks = [...this.#ranks.filter((r) => r.accountId !== rank.accountId), rank];
+      },
+      onConnectionChange: (state) => {
+        if (state === 'disconnected') {
+          this.#live = false;
+          this.#data = null;
+        }
       }
     });
-
-    events.onerror = () => {
-      this.#live = false;
-      this.#data = null;
-    };
-
-    return () => {
-      events.close();
-    };
-  }
-}
-
-function parseGsiPayload(data: string): DotaGsiData | null {
-  try {
-    return JSON.parse(data) as DotaGsiData;
-  } catch (error) {
-    logWarning('Discarded malformed GSI payload', error);
-    return null;
   }
 }

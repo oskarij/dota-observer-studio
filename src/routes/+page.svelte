@@ -19,6 +19,8 @@
   onMount(() => feed.start());
 
   let previewData = $derived(previewSource.live ? feed.data : undefined);
+  // Ranks only apply in live mode; the sample snapshot supplies its own inside OverlayPreview.
+  let previewRanks = $derived(previewSource.live ? feed.ranks : []);
 
   let selectedName = $derived(
     OVERLAY_ELEMENT_DEFINITIONS.find((element) => element.id === selectedId)?.name
@@ -86,6 +88,7 @@
     <div class="min-h-0 flex-1 p-4">
       <OverlayPreview
         gsiData={previewData}
+        ranks={previewRanks}
         enabled={overlayConfig.enabled}
         settings={overlayConfig.settings}
         options={overlayConfig.options}

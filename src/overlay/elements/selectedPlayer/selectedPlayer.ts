@@ -154,8 +154,12 @@ function renderSelectedPlayer(view: SelectedPlayerView, options: SelectedPlayerO
   }
 
   // MMR is only known for curated profiles; in-game mode treats the player as live/unknown,
-  // where MMR isn't public, so it is never shown regardless of the rank-value setting.
-  if (options.rankValue === 'hidden' || options.nameSource === 'ingame') {
+  // where MMR isn't public, so it is never shown regardless of the rank-value setting. When the
+  // known-name mode falls back to the in-game name (no curated profile), there's no MMR to show
+  // either — leave it blank rather than rendering a placeholder beside the bare name.
+  const usingFallbackName = options.nameSource === 'profile' && view.profile === null;
+
+  if (options.rankValue === 'hidden' || options.nameSource === 'ingame' || usingFallbackName) {
     view.mmr.hidden = true;
     view.mmr.textContent = '';
   } else {

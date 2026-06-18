@@ -135,6 +135,7 @@
   align-items: center;
   display: flex;
   gap: 12px;
+  min-height: 54px;
 }
 
 .selected-player__name,
