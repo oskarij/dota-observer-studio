@@ -1,8 +1,10 @@
 import type { OverlayConfig } from '../shared/componentSettings.js';
 import type { DotaGsiData } from '../shared/dotaGsiPayload.js';
 import { GSI_STATUS_EVENT, type GsiStatus } from '../shared/gsiStatus.js';
+import type { KnownPlayer } from '../shared/knownPlayer.js';
 import { logWarning } from '../shared/logger.js';
 import { OVERLAY_REALTIME_EVENTS_URL } from '../shared/overlayEventStreamEndpoint.js';
+import { OVERLAY_KNOWN_PLAYERS_EVENT } from '../shared/overlayKnownPlayersEvent.js';
 import { OVERLAY_PLAYER_RANK_EVENT, type PlayerRank } from '../shared/overlayPlayerRankEvent.js';
 import { OVERLAY_SETTINGS_EVENT } from '../shared/overlaySettingsEvent.js';
 
@@ -17,6 +19,7 @@ export interface OverlayRealtimeHandlers {
   onGsiData?(data: DotaGsiData): void;
   onStatus?(status: GsiStatus): void;
   onSettings?(config: OverlayConfig): void;
+  onKnownPlayers?(players: KnownPlayer[]): void;
   onPlayerRank?(rank: PlayerRank): void;
   onConnectionChange?(state: RealtimeConnectionState): void;
 }
@@ -48,6 +51,14 @@ export function connectOverlayRealtime(handlers: OverlayRealtimeHandlers): () =>
 
     if (config !== null) {
       handlers.onSettings?.(config);
+    }
+  });
+
+  events.addEventListener(OVERLAY_KNOWN_PLAYERS_EVENT, (event) => {
+    const players = parse<KnownPlayer[]>(event.data, 'known players');
+
+    if (players !== null) {
+      handlers.onKnownPlayers?.(players);
     }
   });
 

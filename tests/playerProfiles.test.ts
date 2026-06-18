@@ -1,35 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import {
-  mmrToMedal,
-  parsePlayerProfilesYaml
-} from '../src/overlay/elements/selectedPlayer/playerProfileData.js';
-
-test('parses player profiles keyed by account id', () => {
-  const profiles = parsePlayerProfilesYaml(`
-900000101:
-  name: Nova
-  mmr: 11500
-
-900000102:
-  name: Ember
-  mmr: 7400
-`);
-
-  assert.deepEqual(profiles, [
-    {
-      accountId: '900000101',
-      mmr: 11500,
-      name: 'Nova'
-    },
-    {
-      accountId: '900000102',
-      mmr: 7400,
-      name: 'Ember'
-    }
-  ]);
-});
+import { mmrToMedal } from '../src/overlay/elements/selectedPlayer/playerProfileData.js';
 
 test('maps mmr to rank medals', () => {
   assert.equal(mmrToMedal(null), null);

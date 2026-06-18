@@ -7,6 +7,11 @@ export const SETTINGS_SET_CHANNEL = 'settings:set';
 // Lists the font families installed on the user's machine for the component font picker.
 export const FONTS_LIST_CHANNEL = 'fonts:list';
 
+// Known-players list: the renderer reads it and writes the whole list back on every edit (immediate
+// persistence, no Save bar), and main re-broadcasts to the live overlay over SSE.
+export const KNOWN_PLAYERS_GET_CHANNEL = 'known-players:get';
+export const KNOWN_PLAYERS_SET_CHANNEL = 'known-players:set';
+
 // App-lifecycle channels for the unsaved-changes guard on window close.
 // Renderer reports its dirty state; main asks the renderer to save (then await its
 // confirmation) before letting the window close.

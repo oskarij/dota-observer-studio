@@ -6,13 +6,8 @@ import {
 import type { ComponentSettings } from '../../../shared/componentSettings.js';
 import type { DotaGsiData, SelectedDotaGsiPlayer } from '../../../shared/dotaGsiPayload.js';
 import { getSelectedDotaGsiPlayer } from '../../../shared/dotaGsiPayload.js';
-import {
-  mmrToMedal,
-  rankTierToMedal,
-  type PlayerProfile,
-  type RankMedal
-} from './playerProfileData.js';
-import { getPlayerProfile } from './playerProfiles.js';
+import type { KnownPlayer } from '../../../shared/knownPlayer.js';
+import { mmrToMedal, rankTierToMedal, type RankMedal } from './playerProfileData.js';
 import { formatMedalName, formatMmr } from './selectedPlayerFormat.js';
 
 import type { OverlayElement } from '../../overlayElement.js';
@@ -48,11 +43,17 @@ export function mountSelectedPlayerElement(container: HTMLElement): OverlayEleme
   // OpenDota ranks pushed over SSE, keyed by account id. Used for the medal in in-game mode, where
   // the player is treated as live/unknown and MMR isn't available.
   const rankTiersByAccountId = new Map<string, number | null>();
+  // Curated name + MMR keyed by account id, pushed from the studio (SSE for the live overlay, the
+  // IPC bridge for the preview). Drives "Known name" mode; empty until the first list arrives.
+  let knownPlayersByAccountId = new Map<string, KnownPlayer>();
 
   container.append(root);
 
   return {
     id: 'selected-player',
+    applyKnownPlayers(players) {
+      knownPlayersByAccountId = new Map(players.map((player) => [player.accountId, player]));
+    },
     applyOptions(nextOptions) {
       options = nextOptions;
     },
@@ -88,7 +89,8 @@ export function mountSelectedPlayerElement(container: HTMLElement): OverlayEleme
           name,
           openDotaRankTier:
             accountId !== undefined ? (rankTiersByAccountId.get(accountId) ?? null) : null,
-          profile: getPlayerProfile(accountId),
+          profile:
+            accountId !== undefined ? (knownPlayersByAccountId.get(accountId) ?? null) : null,
           selectedPlayer
         },
         options
@@ -137,7 +139,7 @@ interface SelectedPlayerView {
   readonly mmr: HTMLElement;
   readonly name: HTMLElement;
   readonly openDotaRankTier: number | null;
-  readonly profile: PlayerProfile | null;
+  readonly profile: KnownPlayer | null;
   readonly selectedPlayer: SelectedDotaGsiPlayer;
 }
 

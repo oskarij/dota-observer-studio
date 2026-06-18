@@ -1,6 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron';
 import { join } from 'node:path';
 
+import { createKnownPlayersStore } from '../persistence/knownPlayersStore.js';
 import { createPlayerRankStore } from '../persistence/playerRankStore.js';
 import { createGsiListener } from '../runtime/gsiListener.js';
 import { createGsiLiveness } from '../runtime/gsiLiveness.js';
@@ -16,6 +17,7 @@ import { logError } from '../shared/logger.js';
 import { NETWORK_HOST, NETWORK_PORTS } from '../shared/networkConfig.js';
 
 import { registerFontsIpc } from './ipc/fonts.js';
+import { registerKnownPlayersIpc } from './ipc/knownPlayers.js';
 import { registerSettingsIpc } from './ipc/settings.js';
 
 app.setName('Observer Studio');
@@ -82,8 +84,10 @@ async function confirmCloseWithUnsavedChanges(window: BrowserWindow): Promise<vo
 // Registered after the app is ready (electron-store and the rank DB need the userData path).
 let unregisterSettingsIpc: (() => void) | null = null;
 let unregisterFontsIpc: (() => void) | null = null;
+let unregisterKnownPlayersIpc: (() => void) | null = null;
 let unsubscribePlayerRank: (() => void) | null = null;
 let closePlayerRankStore: (() => void) | null = null;
+let closeKnownPlayersStore: (() => void) | null = null;
 
 const unsubscribeGsiLiveness = gsiLiveness.onStatusChange((status) => {
   overlayGsiEventStream.setStatus(status);
@@ -157,6 +161,14 @@ app.whenReady().then(async () => {
   unregisterSettingsIpc = registerSettingsIpc(overlayGsiEventStream);
   unregisterFontsIpc = registerFontsIpc();
 
+  // Curated player list (name + MMR keyed by account id). Lives in userData so it persists across
+  // runs; seeded once from the bundled defaults, then edited in the studio and pushed to the overlay.
+  const knownPlayersStore = createKnownPlayersStore(
+    join(app.getPath('userData'), 'known-players.db')
+  );
+  closeKnownPlayersStore = () => knownPlayersStore.close();
+  unregisterKnownPlayersIpc = registerKnownPlayersIpc(knownPlayersStore, overlayGsiEventStream);
+
   // Cache OpenDota ranks for selected players and push them to the live overlay (for the in-game
   // medal). The DB lives in userData, so it persists across runs and survives the free-tier limit.
   const playerRankStore = createPlayerRankStore(join(app.getPath('userData'), 'player-ranks.db'));
@@ -194,7 +206,9 @@ app.on('before-quit', (event) => {
   unsubscribePlayerRank?.();
   unregisterSettingsIpc?.();
   unregisterFontsIpc?.();
+  unregisterKnownPlayersIpc?.();
   closePlayerRankStore?.();
+  closeKnownPlayersStore?.();
   gsiLiveness.stop();
 
   void Promise.allSettled([

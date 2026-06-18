@@ -1,6 +1,7 @@
 <script lang="ts">
   import { page } from '$app/state';
 
+  import KnownPlayers from '$lib/components/known-players.svelte';
   import SelectedPlayerOptionsForm from '$lib/components/selected-player-options.svelte';
   import * as Select from '$lib/components/ui/select/index.js';
   import { overlayConfig } from '$lib/state/overlayConfig.svelte.js';
@@ -37,16 +38,24 @@
     </Select.Root>
   </div>
 
-  <!-- One box per setting. -->
-  <div class="flex min-h-0 w-full max-w-2xl flex-1 flex-col gap-3 overflow-y-auto">
+  <!-- Settings layout: most components are a single column of setting boxes; Selected Player splits
+       into options (left) and the known-players manager (right), each scrolling independently. -->
+  <div class="flex min-h-0 w-full flex-1 flex-col">
     {#if selected === undefined}
-      <div class="rounded-lg border bg-card p-4 text-sm text-muted-foreground shadow-sm">
+      <div class="max-w-2xl rounded-lg border bg-card p-4 text-sm text-muted-foreground shadow-sm">
         Select a component to edit its settings.
       </div>
     {:else if selectedId === SELECTED_PLAYER_ID}
-      <SelectedPlayerOptionsForm bind:options={overlayConfig.options[selectedId]} />
+      <div class="flex min-h-0 flex-1 gap-4 max-lg:flex-col max-lg:overflow-y-auto">
+        <div class="flex min-h-0 flex-1 flex-col gap-3 lg:overflow-y-auto">
+          <SelectedPlayerOptionsForm bind:options={overlayConfig.options[selectedId]} />
+        </div>
+        <div class="flex min-h-0 flex-1 flex-col">
+          <KnownPlayers />
+        </div>
+      </div>
     {:else}
-      <div class="rounded-lg border bg-card p-4 text-sm text-muted-foreground shadow-sm">
+      <div class="max-w-2xl rounded-lg border bg-card p-4 text-sm text-muted-foreground shadow-sm">
         This component has no settings yet.
       </div>
     {/if}

@@ -1,6 +1,7 @@
 import type { ComponentOptions } from '../shared/componentOptions.js';
 import type { ComponentSettings } from '../shared/componentSettings.js';
 import type { DotaGsiData } from '../shared/dotaGsiPayload.js';
+import type { KnownPlayer } from '../shared/knownPlayer.js';
 import type { PlayerRank } from '../shared/overlayPlayerRankEvent.js';
 
 import { overlayElementRegistry } from './elementRegistry.js';
@@ -10,6 +11,7 @@ import type { OverlayElement } from './overlayElement.js';
 // exact same elements. Intentionally does NOT import overlay.css (its transparent
 // `html, body` rules belong only to the standalone overlay page).
 export interface OverlayStage {
+  applyKnownPlayers(players: readonly KnownPlayer[]): void;
   applyOptions(id: string, options: ComponentOptions): void;
   applyPlayerRank(rank: PlayerRank): void;
   applySettings(id: string, settings: ComponentSettings): void;
@@ -28,6 +30,12 @@ export function createOverlayStage(root: HTMLElement): OverlayStage {
   });
 
   return {
+    applyKnownPlayers(players) {
+      // Not addressed to a specific element id; every element that resolves names keys it itself.
+      for (const overlayElement of elements) {
+        overlayElement.applyKnownPlayers?.(players);
+      }
+    },
     applyOptions(id, options) {
       for (const overlayElement of elements) {
         if (overlayElement.id === id) {

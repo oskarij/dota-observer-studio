@@ -4,6 +4,7 @@
 
   import AppHeader from '$lib/components/app-header.svelte';
   import AppSidebar from '$lib/components/app-sidebar.svelte';
+  import { knownPlayers } from '$lib/state/knownPlayers.svelte.js';
   import { overlayConfig } from '$lib/state/overlayConfig.svelte.js';
 
   import '../styles/app.css';
@@ -14,6 +15,8 @@
   // load once, and keep the close-guard wired no matter which route is active.
   onMount(() => {
     void overlayConfig.load();
+    // Curated player list — edits persist immediately, so it's outside the Save/Discard flow.
+    void knownPlayers.load();
 
     // When the close-guard chooses "Save", persist then let main proceed with the quit.
     return globalThis.window?.dotaSpectatorTools?.app?.onSaveAndQuit(async () => {

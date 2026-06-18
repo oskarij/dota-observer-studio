@@ -2,6 +2,8 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 
 import type { OverlayConfig } from '../shared/componentSettings.js';
 import { GSI_STATUS_EVENT, type GsiStatus } from '../shared/gsiStatus.js';
+import type { KnownPlayer } from '../shared/knownPlayer.js';
+import { OVERLAY_KNOWN_PLAYERS_EVENT } from '../shared/overlayKnownPlayersEvent.js';
 import { OVERLAY_PLAYER_RANK_EVENT, type PlayerRank } from '../shared/overlayPlayerRankEvent.js';
 import { OVERLAY_SETTINGS_EVENT } from '../shared/overlaySettingsEvent.js';
 import type { GsiPayload } from './gsiListener.js';
@@ -21,6 +23,8 @@ export interface OverlayGsiEventStream {
   onClientCountChange(listener: (clientCount: number) => void): () => void;
   /** Push a player's OpenDota rank to every client. Replayed to clients that connect later. */
   setPlayerRank(rank: PlayerRank): void;
+  /** Push the known-players list to every client. Replayed to clients that connect later. */
+  setKnownPlayers(players: readonly KnownPlayer[]): void;
   /** Push overlay settings to every client. Replayed to clients that connect later. */
   setSettings(config: OverlayConfig): void;
   /** Push the GSI feed liveness to every client. Replayed to clients that connect later. */
@@ -41,6 +45,7 @@ export function createOverlayGsiEventStream(
 
   let currentStatus: GsiStatus = 'stale';
   let currentSettings: OverlayConfig | null = null;
+  let currentKnownPlayers: readonly KnownPlayer[] | null = null;
   // Every rank pushed this session, replayed to clients that connect after it was sent.
   const playerRanks = new Map<string, PlayerRank>();
   let heartbeatTimer: NodeJS.Timeout | null = null;
@@ -104,6 +109,9 @@ export function createOverlayGsiEventStream(
     if (currentSettings !== null) {
       response.write(formatSettingsEvent(currentSettings));
     }
+    if (currentKnownPlayers !== null) {
+      response.write(formatKnownPlayersEvent(currentKnownPlayers));
+    }
     for (const rank of playerRanks.values()) {
       response.write(formatPlayerRankEvent(rank));
     }
@@ -124,6 +132,11 @@ export function createOverlayGsiEventStream(
   function setPlayerRank(rank: PlayerRank): void {
     playerRanks.set(rank.accountId, rank);
     writeToClients(formatPlayerRankEvent(rank));
+  }
+
+  function setKnownPlayers(players: readonly KnownPlayer[]): void {
+    currentKnownPlayers = players;
+    writeToClients(formatKnownPlayersEvent(players));
   }
 
   function setSettings(settings: OverlayConfig): void {
@@ -188,6 +201,7 @@ export function createOverlayGsiEventStream(
       return clients.size;
     },
     onClientCountChange: clientCountObservers.add,
+    setKnownPlayers,
     setPlayerRank,
     setSettings,
     setStatus,
@@ -202,6 +216,10 @@ function formatStatusEvent(status: GsiStatus): string {
 
 function formatSettingsEvent(config: OverlayConfig): string {
   return `event: ${OVERLAY_SETTINGS_EVENT}\ndata: ${JSON.stringify(config)}\n\n`;
+}
+
+function formatKnownPlayersEvent(players: readonly KnownPlayer[]): string {
+  return `event: ${OVERLAY_KNOWN_PLAYERS_EVENT}\ndata: ${JSON.stringify(players)}\n\n`;
 }
 
 function formatPlayerRankEvent(rank: PlayerRank): string {

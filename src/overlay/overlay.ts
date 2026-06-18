@@ -1,9 +1,6 @@
 import type { OverlayConfig } from '../shared/componentSettings.js';
 import type { GsiStatus } from '../shared/gsiStatus.js';
-import {
-  connectOverlayRealtime,
-  type RealtimeConnectionState
-} from './overlayRealtimeClient.js';
+import { connectOverlayRealtime, type RealtimeConnectionState } from './overlayRealtimeClient.js';
 
 import { createOverlayStage } from './overlayStage.js';
 
@@ -18,6 +15,10 @@ const disconnect = connectOverlayRealtime({
   },
   onStatus: applyGsiStatus,
   onSettings: applyOverlayConfig,
+  onKnownPlayers(players) {
+    // Drives "Known name" mode; applied to the next GSI payload for the selected player.
+    stage.applyKnownPlayers(players);
+  },
   onPlayerRank(rank) {
     // The medal is keyed by account id and applied on the next GSI payload for that player.
     stage.applyPlayerRank(rank);

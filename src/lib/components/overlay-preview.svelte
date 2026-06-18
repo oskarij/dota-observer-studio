@@ -4,6 +4,7 @@
   import type { ComponentOptions } from '../../shared/componentOptions.js';
   import type { ComponentSettings } from '../../shared/componentSettings.js';
   import { getSelectedDotaGsiPlayer, type DotaGsiData } from '../../shared/dotaGsiPayload.js';
+  import type { KnownPlayer } from '../../shared/knownPlayer.js';
   import type { PlayerRank } from '../../shared/overlayPlayerRankEvent.js';
 
   // The overlay elements are authored against a fixed 1080p canvas.
@@ -17,6 +18,7 @@
   let {
     gsiData = SAMPLE_GSI_DATA,
     ranks = [],
+    knownPlayers = [],
     enabled,
     settings,
     options
@@ -25,6 +27,7 @@
     // back to the static sample.
     gsiData?: DotaGsiData | null | undefined;
     ranks?: PlayerRank[];
+    knownPlayers?: KnownPlayer[];
     enabled?: Record<string, boolean>;
     settings?: Record<string, ComponentSettings>;
     options?: Record<string, ComponentOptions>;
@@ -68,6 +71,9 @@
     for (const [id, value] of Object.entries(options ?? {})) {
       stage.applyOptions(id, value);
     }
+
+    // Curated names/MMR for "Known name" mode; applied before update so this render resolves them.
+    stage.applyKnownPlayers(knownPlayers);
 
     // null = live mode without a fresh feed: clear rather than render stale/sample content.
     if (gsiData === null) {

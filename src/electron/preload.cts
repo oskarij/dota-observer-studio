@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 import type { OverlayConfig } from '../shared/componentSettings.js';
+import type { KnownPlayer } from '../shared/knownPlayer.js';
 
 // CommonJS (.cts) and self-contained so Electron's sandboxed preload can load it:
 // a sandboxed preload cannot use ESM or require local modules. Channel names are
@@ -8,6 +9,8 @@ import type { OverlayConfig } from '../shared/componentSettings.js';
 const SETTINGS_GET_CHANNEL = 'settings:get';
 const SETTINGS_SET_CHANNEL = 'settings:set';
 const FONTS_LIST_CHANNEL = 'fonts:list';
+const KNOWN_PLAYERS_GET_CHANNEL = 'known-players:get';
+const KNOWN_PLAYERS_SET_CHANNEL = 'known-players:set';
 const APP_DIRTY_CHANGED_CHANNEL = 'app:dirty-changed';
 const APP_SAVE_AND_QUIT_CHANNEL = 'app:save-and-quit';
 const APP_QUIT_CONFIRMED_CHANNEL = 'app:quit-confirmed';
@@ -20,6 +23,11 @@ const api = {
   },
   fonts: {
     list: (): Promise<string[]> => ipcRenderer.invoke(FONTS_LIST_CHANNEL)
+  },
+  knownPlayers: {
+    get: (): Promise<KnownPlayer[]> => ipcRenderer.invoke(KNOWN_PLAYERS_GET_CHANNEL),
+    set: (players: KnownPlayer[]): Promise<void> =>
+      ipcRenderer.invoke(KNOWN_PLAYERS_SET_CHANNEL, players)
   },
   app: {
     // Keep main informed of unsaved changes so it can guard the window close.

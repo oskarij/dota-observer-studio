@@ -6,6 +6,7 @@
   import ComponentSettingsPanel from '$lib/components/component-settings.svelte';
   import OverlayPreview from '$lib/components/overlay-preview.svelte';
   import { GsiFeed } from '$lib/gsiFeed.svelte.js';
+  import { knownPlayers } from '$lib/state/knownPlayers.svelte.js';
   import { overlayConfig } from '$lib/state/overlayConfig.svelte.js';
   import { previewSource } from '$lib/state/previewSource.svelte.js';
 
@@ -89,6 +90,7 @@
       <OverlayPreview
         gsiData={previewData}
         ranks={previewRanks}
+        knownPlayers={knownPlayers.players}
         enabled={overlayConfig.enabled}
         settings={overlayConfig.settings}
         options={overlayConfig.options}

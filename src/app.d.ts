@@ -1,4 +1,5 @@
 import type { OverlayConfig } from './shared/componentSettings.js';
+import type { KnownPlayer } from './shared/knownPlayer.js';
 
 declare global {
   namespace App {
@@ -18,6 +19,10 @@ declare global {
       };
       fonts?: {
         list(): Promise<string[]>;
+      };
+      knownPlayers?: {
+        get(): Promise<KnownPlayer[]>;
+        set(players: KnownPlayer[]): Promise<void>;
       };
       app?: {
         setDirty(dirty: boolean): void;

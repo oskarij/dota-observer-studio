@@ -7,8 +7,6 @@ export type RankValueDisplay = 'mmr' | 'hidden';
 
 export interface SelectedPlayerOptions {
   showName: boolean;
-  // 'profile' prefers a known/pro name and falls back to the in-game name; 'ingame' always
-  // shows the in-game name. Also acts as the live/unknown mode that drives the medal source.
   nameSource: PlayerNameSource;
   showMedal: boolean;
   rankValue: RankValueDisplay;
