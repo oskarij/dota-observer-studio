@@ -8,6 +8,7 @@ import { createGsiLiveness } from '../runtime/gsiLiveness.js';
 import { createOverlayGsiEventStream } from '../runtime/overlayGsiEventStream.js';
 import { createOverlayHost } from '../runtime/overlayHost.js';
 import { createPlayerRankService } from '../runtime/playerRankService.js';
+import { createWebHost } from '../runtime/webHost.js';
 import {
   APP_DIRTY_CHANGED_CHANNEL,
   APP_QUIT_CONFIRMED_CHANNEL,
@@ -31,6 +32,7 @@ app.setName('Observer Studio');
 // module scope so the before-quit handler can tear them down and the live port-rebind can swap them.
 let gsiListener: ReturnType<typeof createGsiListener> | null = null;
 let overlayHost: ReturnType<typeof createOverlayHost> | null = null;
+let webHost: ReturnType<typeof createWebHost> | null = null;
 let overlayGsiEventStream: ReturnType<typeof createOverlayGsiEventStream> | null = null;
 let unwireGsiListener: (() => void) | null = null;
 const gsiLiveness = createGsiLiveness();
@@ -133,7 +135,15 @@ async function createMainWindow(): Promise<void> {
   });
 
   if (app.isPackaged) {
-    await window.loadFile(join(app.getAppPath(), 'build/web/index.html'));
+    // Served over loopback HTTP (not loadFile) so the build's absolute asset URLs and the client
+    // router work — file:// breaks both. The host is started (on an OS-assigned port) in whenReady
+    // before the window opens, so its port is always available here.
+    const webHostPort = webHost?.port();
+    if (webHostPort === null || webHostPort === undefined) {
+      throw new Error('Web host is not running; cannot load the studio UI.');
+    }
+
+    await window.loadURL(`http://${NETWORK_HOST}:${webHostPort}/`);
     return;
   }
 
@@ -264,6 +274,19 @@ app.whenReady().then(async () => {
   unregisterKnownPlayersIpc = registerKnownPlayersIpc(knownPlayersStore, overlayGsiEventStream);
   unregisterPlayerRanksIpc = registerPlayerRanksIpc(playerRankStore);
 
+  // Packaged builds serve the studio UI to the main window over loopback HTTP (see createMainWindow);
+  // dev loads it from the Vite server instead, so the web host is only needed when packaged. Bind an
+  // OS-assigned port (0) — started after the user-configurable servers so it can never claim their
+  // ports — and read the real one back when loading the window.
+  if (app.isPackaged) {
+    webHost = createWebHost({
+      assetRoot: join(app.getAppPath(), 'build/web'),
+      host: NETWORK_HOST,
+      port: 0
+    });
+    await webHost.start();
+  }
+
   await createMainWindow();
 
   app.on('activate', () => {
@@ -304,6 +327,7 @@ app.on('before-quit', (event) => {
   void Promise.allSettled([
     gsiListener?.stop() ?? Promise.resolve(),
     overlayHost?.stop() ?? Promise.resolve(),
+    webHost?.stop() ?? Promise.resolve(),
     overlayGsiEventStream?.stop() ?? Promise.resolve()
   ]).finally(() => {
     app.quit();
