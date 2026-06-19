@@ -1,6 +1,6 @@
 <script lang="ts">
   import { asset } from '$app/paths';
-  import { SAMPLE_GSI_DATA } from '$lib/dev/sampleGsiData.js';
+  import { SAMPLE_GSI_DATA, SAMPLE_KNOWN_PLAYERS } from '$lib/dev/sampleGsiData.js';
   import { createOverlayStage, type OverlayStage } from '../../overlay/overlayStage.js';
   import type { ComponentOptions } from '../../shared/componentOptions.js';
   import type { ComponentSettings } from '../../shared/componentSettings.js';
@@ -77,7 +77,11 @@
     }
 
     // Curated names/MMR for "Known name" mode; applied before update so this render resolves them.
-    stage.applyKnownPlayers(knownPlayers);
+    // The sample snapshot supplies its own profiles (the fake account ids match no real list entry),
+    // so "Known name" mode still shows a name + MMR-derived medal.
+    stage.applyKnownPlayers(
+      gsiData === SAMPLE_GSI_DATA ? [...SAMPLE_KNOWN_PLAYERS, ...knownPlayers] : knownPlayers
+    );
 
     // null = live mode without a fresh feed: clear rather than render stale/sample content.
     if (gsiData === null) {

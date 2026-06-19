@@ -108,8 +108,8 @@ export default tseslint.config(
     }
   },
   {
-    // Test fixtures mirror Dota's snake_case GSI payload shape verbatim.
-    files: ['tests/**/*.ts'],
+    // Test fixtures and the preview sample mirror Dota's snake_case GSI payload shape verbatim.
+    files: ['tests/**/*.ts', 'src/lib/dev/sampleGsiData.ts'],
     rules: {
       camelcase: ['error', { properties: 'never' }]
     }
