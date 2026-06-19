@@ -1,14 +1,17 @@
 <script lang="ts">
   import CheckIcon from '@lucide/svelte/icons/check';
+  import DownloadIcon from '@lucide/svelte/icons/download';
   import PencilIcon from '@lucide/svelte/icons/pencil';
   import PlusIcon from '@lucide/svelte/icons/plus';
   import TrashIcon from '@lucide/svelte/icons/trash-2';
+  import UploadIcon from '@lucide/svelte/icons/upload';
   import XIcon from '@lucide/svelte/icons/x';
 
   import { Button } from '$lib/components/ui/button/index.js';
   import { Input } from '$lib/components/ui/input/index.js';
   import { knownPlayers } from '$lib/state/knownPlayers.svelte.js';
   import type { KnownPlayer } from '../../shared/knownPlayer.js';
+  import { parseKnownPlayersCsv, serializeKnownPlayersCsv } from '../../shared/knownPlayersCsv.js';
 
   // Editable draft fields are strings (raw input); committed to a KnownPlayer on add/save.
   interface PlayerDraft {
@@ -98,6 +101,55 @@
     knownPlayers.update(editingId, toPlayer(editDraft));
     editingId = null;
   }
+
+  // Transient status line for the CSV import/export actions.
+  let csvStatus = $state<string | null>(null);
+  let busy = $state(false);
+
+  async function exportCsv(): Promise<void> {
+    const api = globalThis.window?.dotaSpectatorTools?.knownPlayers;
+    if (api === undefined || busy) {
+      return;
+    }
+
+    busy = true;
+    csvStatus = null;
+    try {
+      const result = await api.exportCsv(serializeKnownPlayersCsv(knownPlayers.players));
+      csvStatus = result.ok
+        ? `Exported ${knownPlayers.players.length} players.`
+        : (result.reason ?? null);
+    } finally {
+      busy = false;
+    }
+  }
+
+  // Import replaces the whole list (it's a backup/restore, not a merge); rows that fail validation
+  // are skipped and reported.
+  async function importCsv(): Promise<void> {
+    const api = globalThis.window?.dotaSpectatorTools?.knownPlayers;
+    if (api === undefined || busy) {
+      return;
+    }
+
+    busy = true;
+    csvStatus = null;
+    try {
+      const result = await api.importCsv();
+      if (!result.ok || result.text === undefined) {
+        csvStatus = result.reason ?? null;
+        return;
+      }
+
+      const { players, skipped } = parseKnownPlayersCsv(result.text);
+      knownPlayers.replaceAll(players);
+      csvStatus =
+        `Imported ${players.length} player${players.length === 1 ? '' : 's'}` +
+        (skipped > 0 ? ` (${skipped} row${skipped === 1 ? '' : 's'} skipped).` : '.');
+    } finally {
+      busy = false;
+    }
+  }
 </script>
 
 <div class="flex h-full min-h-0 flex-col rounded-lg border bg-card p-4 shadow-sm">
@@ -105,8 +157,34 @@
     <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
       Known players
     </span>
-    <span class="text-xs text-muted-foreground">{knownPlayers.players.length}</span>
+    <div class="flex items-center gap-1">
+      <span class="mr-1 text-xs text-muted-foreground">{knownPlayers.players.length}</span>
+      <Button
+        size="sm"
+        variant="ghost"
+        onclick={importCsv}
+        disabled={busy}
+        aria-label="Import known players from CSV"
+      >
+        <DownloadIcon />
+        Import
+      </Button>
+      <Button
+        size="sm"
+        variant="ghost"
+        onclick={exportCsv}
+        disabled={busy || knownPlayers.players.length === 0}
+        aria-label="Export known players to CSV"
+      >
+        <UploadIcon />
+        Export
+      </Button>
+    </div>
   </div>
+
+  {#if csvStatus !== null}
+    <p class="mb-2 text-xs text-muted-foreground">{csvStatus}</p>
+  {/if}
 
   <!-- Add row -->
   <form

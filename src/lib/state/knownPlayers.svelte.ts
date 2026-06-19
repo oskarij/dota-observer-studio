@@ -44,6 +44,11 @@ export class KnownPlayersStore {
     void this.#persist(this.#players.filter((player) => player.accountId !== accountId));
   }
 
+  // Replaces the whole list in one write — used by CSV import, which has already validated + deduped.
+  replaceAll(players: KnownPlayer[]): void {
+    void this.#persist(players);
+  }
+
   get #api() {
     return globalThis.window?.dotaSpectatorTools?.knownPlayers;
   }

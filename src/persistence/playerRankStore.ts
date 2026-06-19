@@ -14,6 +14,7 @@ export interface PlayerRankRecord {
 export interface PlayerRankStore {
   get(accountId: string): PlayerRankRecord | null;
   set(accountId: string, rankTier: number | null, fetchedAt: number): void;
+  deleteAll(): void;
   close(): void;
 }
 
@@ -32,6 +33,7 @@ function createNoopPlayerRankStore(): PlayerRankStore {
   return {
     get: () => null,
     set: () => {},
+    deleteAll: () => {},
     close: () => {}
   };
 }
@@ -71,6 +73,9 @@ function openPlayerRankStore(filePath: string): PlayerRankStore {
     },
     set(accountId, rankTier, fetchedAt) {
       writeStmt.run(accountId, rankTier, fetchedAt);
+    },
+    deleteAll() {
+      db.exec('DELETE FROM player_ranks');
     },
     close() {
       db.close();
