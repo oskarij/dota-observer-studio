@@ -94,7 +94,7 @@ async function createMainWindow(): Promise<void> {
     : join(app.getAppPath(), 'static/icon.ico');
 
   const window = new BrowserWindow({
-    height: 900,
+    height: 860,
     icon: iconPath,
     minHeight: 720,
     minWidth: 1024,
@@ -105,7 +105,7 @@ async function createMainWindow(): Promise<void> {
       nodeIntegration: false,
       preload: join(app.getAppPath(), 'build/electron/electron/preload.cjs')
     },
-    width: 1280
+    width: 1635
   });
 
   window.once('ready-to-show', () => {
