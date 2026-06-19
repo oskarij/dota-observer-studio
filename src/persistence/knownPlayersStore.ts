@@ -6,8 +6,8 @@ import { logWarning } from '../shared/logger.js';
 
 // Persistent, user-editable list of curated players keyed by account id. node:sqlite (built into
 // Electron's Node) is used to match the rest of the persistence layer; see playerRankStore for why
-// not better-sqlite3. The whole list is read and written at once — it's small and the UI edits it
-// as a single working set — so writes go through replaceAll() in a transaction.
+// not better-sqlite3. The whole list is read and written at once (it's small and the UI edits it
+// as a single working set), so writes go through replaceAll() in a transaction.
 export interface KnownPlayersStore {
   list(): KnownPlayer[];
   replaceAll(players: readonly KnownPlayer[]): void;

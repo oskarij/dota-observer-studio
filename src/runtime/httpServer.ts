@@ -3,17 +3,17 @@ import type { AddressInfo } from 'node:net';
 
 export interface ManagedHttpServerConfig {
   readonly host: string;
-  /** Port to bind. Pass 0 to let the OS assign a free ephemeral port; read it back via address(). */
+  // Port to bind. Pass 0 to let the OS assign a free ephemeral port; read it back via address().
   readonly port: number;
   readonly onRequest: (request: IncomingMessage, response: ServerResponse) => void;
-  /** Synchronous cleanup run before the socket closes, even if the server never started. */
+  // Synchronous cleanup run before the socket closes, even if the server never started.
   readonly onBeforeClose?: () => void;
 }
 
 export interface ManagedHttpServer {
   start(): Promise<void>;
   stop(): Promise<void>;
-  /** The bound address once started (notably the real port when port 0 was requested), else null. */
+  // The bound address once started (notably the real port when port 0 was requested), else null.
   address(): AddressInfo | null;
 }
 

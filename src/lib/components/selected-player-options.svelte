@@ -30,7 +30,6 @@
        so the rank value is disabled in that mode. -->
   {@const ingame = options.nameSource === 'ingame'}
   <Tooltip.Provider delayDuration={200}>
-    <!-- Name (show + source) -->
     <div class="rounded-lg border bg-card p-4 shadow-sm">
       <div class="mb-3 flex items-center gap-1.5">
         <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Name</span
@@ -38,7 +37,6 @@
       </div>
 
       <div class="flex flex-col divide-y">
-        <!-- Show -->
         <div class="flex items-center justify-between gap-4 pb-3">
           <div class="flex min-w-0 flex-col gap-0.5">
             <span class="text-sm font-medium">Name</span>
@@ -55,7 +53,7 @@
           />
         </div>
 
-        <!-- Source — also drives the medal source in in-game mode, so it stays active even when
+        <!-- Source: also drives the medal source in in-game mode, so it stays active even when
              the name itself is hidden. -->
         <div class="flex items-center justify-between gap-4 pt-3">
           <div class="flex min-w-0 flex-col gap-0.5">
@@ -91,7 +89,6 @@
       </div>
     </div>
 
-    <!-- Rank (medal + value) -->
     <div class="rounded-lg border bg-card p-4 shadow-sm">
       <div class="mb-3 flex items-center gap-1.5">
         <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Rank</span
@@ -113,7 +110,6 @@
       </div>
 
       <div class="flex flex-col divide-y">
-        <!-- Medal -->
         <div class="flex items-center justify-between gap-4 pb-3">
           <div class="flex min-w-0 flex-col gap-0.5">
             <span class="text-sm font-medium">Medal</span>
@@ -130,7 +126,6 @@
           />
         </div>
 
-        <!-- Value -->
         <div class="flex items-center justify-between gap-4 pt-3 {ingame ? 'opacity-60' : ''}">
           <div class="flex min-w-0 flex-col gap-0.5">
             <span class="text-sm font-medium">Value</span>

@@ -1,10 +1,7 @@
-// Fonts bundled with the overlay, the single source of truth for the picker.
-// `family` is the CSS font-family value stored in ComponentSettings.font.family and
-// matched by the @font-face blocks in selectedPlayer.css. `weights` lists the real
-// faces bundled for that family (so the picker only offers weights that exist), and
-// `italic` flags whether italic faces are bundled. The user's installed PC fonts are
-// merged in at runtime via IPC; they fall back to SYSTEM_FONT_WEIGHTS and are assumed
-// to support italic, since the OS resolves the real face.
+// Bundled overlay fonts, the single source of truth for the picker. `family` must match the
+// @font-face blocks in selectedPlayer.css; `weights` lists only faces that actually exist so
+// the picker can't offer a missing one. System fonts merged in via IPC fall back to
+// SYSTEM_FONT_WEIGHTS and are assumed to support italic (the OS resolves the real face).
 export interface FontWeightOption {
   readonly value: number;
   readonly label: string;
@@ -40,7 +37,7 @@ export const BUNDLED_FONTS: BundledFontDefinition[] = [
     label: 'Radiance',
     family: 'RadianceOverlay',
     weights: weights([200, 300, 400, 600, 700]),
-    // Semibold is the weight the overlay shipped with — keep it the default.
+    // Semibold is the weight the overlay shipped with; keep it the default.
     defaultWeight: 600,
     italic: true
   },
@@ -63,7 +60,7 @@ export function fontLabel(family: string): string {
   return bundled(family)?.label ?? family;
 }
 
-// Weight options for a stored family: a bundled font's real faces, else the generic set.
+// A bundled font's real faces, else the generic system set.
 export function fontWeights(family: string): FontWeightOption[] {
   return bundled(family)?.weights ?? SYSTEM_FONT_WEIGHTS;
 }

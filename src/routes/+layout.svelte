@@ -15,7 +15,7 @@
   // load once, and keep the close-guard wired no matter which route is active.
   onMount(() => {
     void overlayConfig.load();
-    // Curated player list — edits persist immediately, so it's outside the Save/Discard flow.
+    // Curated player list: edits persist immediately, so it's outside the Save/Discard flow.
     void knownPlayers.load();
 
     // When the close-guard chooses "Save", persist then let main proceed with the quit.

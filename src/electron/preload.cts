@@ -6,7 +6,7 @@ import type { ConfigurablePorts, NetworkInfo } from '../shared/networkConfig.js'
 
 // CommonJS (.cts) and self-contained so Electron's sandboxed preload can load it:
 // a sandboxed preload cannot use ESM or require local modules. Channel names are
-// inlined for that reason — keep in sync with src/shared/ipcChannels.ts.
+// inlined for that reason. Keep in sync with src/shared/ipcChannels.ts.
 const SETTINGS_GET_CHANNEL = 'settings:get';
 const SETTINGS_SET_CHANNEL = 'settings:set';
 const SETTINGS_EXPORT_CHANNEL = 'settings:export';
@@ -67,7 +67,7 @@ const api = {
   app: {
     // Keep main informed of unsaved changes so it can guard the window close.
     setDirty: (dirty: boolean): void => ipcRenderer.send(APP_DIRTY_CHANGED_CHANNEL, dirty),
-    // Main asks the renderer to persist before quitting; returns an unsubscribe.
+    // Main asks the renderer to persist before quitting.
     onSaveAndQuit: (handler: () => void): (() => void) => {
       const listener = (): void => handler();
       ipcRenderer.on(APP_SAVE_AND_QUIT_CHANNEL, listener);

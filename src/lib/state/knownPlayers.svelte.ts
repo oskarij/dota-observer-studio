@@ -2,7 +2,7 @@ import type { KnownPlayer } from '../../shared/knownPlayer.js';
 import { logWarning } from '../../shared/logger.js';
 
 const BRIDGE_UNAVAILABLE =
-  'Known-players bridge unavailable (window.dotaSpectatorTools.knownPlayers missing) — edits will not persist. Expected the Electron preload to expose it.';
+  'Known-players bridge unavailable (window.dotaSpectatorTools.knownPlayers missing). Edits will not persist. Expected the Electron preload to expose it.';
 
 // Reactive working copy of the curated known-players list, shared app-wide so the Components page
 // editor and the Overlay page preview read one source. Unlike the overlay config, edits persist
@@ -24,8 +24,7 @@ export class KnownPlayersStore {
     this.#players = await this.#api.get();
   }
 
-  // True when an account id already exists; the editor uses this to block duplicate keys (the
-  // store would otherwise silently drop one on the SQLite primary-key swap).
+  // Editor uses this to block duplicate keys; otherwise the SQLite primary-key swap silently drops one.
   has(accountId: string): boolean {
     return this.#players.some((player) => player.accountId === accountId);
   }
@@ -44,7 +43,7 @@ export class KnownPlayersStore {
     void this.#persist(this.#players.filter((player) => player.accountId !== accountId));
   }
 
-  // Replaces the whole list in one write — used by CSV import, which has already validated + deduped.
+  // Replaces the whole list in one write; used by CSV import, which has already validated + deduped.
   replaceAll(players: KnownPlayer[]): void {
     void this.#persist(players);
   }
@@ -54,8 +53,7 @@ export class KnownPlayersStore {
   }
 
   async #persist(next: KnownPlayer[]): Promise<void> {
-    // Update the reactive copy first so the UI + preview react immediately; the write is the
-    // durable copy and the overlay broadcast.
+    // Update reactive copy first so UI + preview react immediately; the write is durable + the overlay broadcast.
     this.#players = next;
 
     if (this.#api === undefined) {

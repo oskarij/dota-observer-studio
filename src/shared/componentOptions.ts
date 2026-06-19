@@ -1,5 +1,5 @@
 // Per-component behavioral (non-styling) options. Unlike ComponentSettings, which is the same
-// shape for every element, each component type defines its own option shape — keyed by component
+// shape for every element, each component type defines its own option shape, keyed by component
 // id in OverlayConfig. Only components that have behavioral settings get an entry.
 
 export type PlayerNameSource = 'profile' | 'ingame';

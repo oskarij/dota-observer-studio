@@ -13,7 +13,6 @@
   import { previewBackground } from '$lib/state/previewBackground.svelte.js';
   import { previewSource } from '$lib/state/previewSource.svelte.js';
 
-  // The selected component drives the settings panel; defaults to the first.
   let selectedId = $state<string | undefined>(OVERLAY_ELEMENT_DEFINITIONS[0]?.id);
 
   // Sample (static, always available) vs. live game feed. In live mode the preview shows the
@@ -61,7 +60,6 @@
       <span class="text-base font-semibold">Preview</span>
 
       <div class="flex items-center gap-3">
-        <!-- Backdrop toggle: transparency checkerboard (off) vs. an in-game frame (on). -->
         <div class="inline-flex items-center rounded-lg border bg-muted p-0.5 text-sm">
           <Label class="gap-2 px-3 py-1 font-medium leading-5 text-muted-foreground">
             <Checkbox bind:checked={previewBackground.inGame} />
@@ -69,7 +67,6 @@
           </Label>
         </div>
 
-        <!-- Source selector: static sample vs. live game feed. -->
         <div
           class="inline-flex items-center gap-0.5 rounded-lg border bg-muted p-0.5 text-sm"
           role="group"

@@ -30,10 +30,8 @@ export async function resolveDotaCfgDir(): Promise<string | null> {
   return null;
 }
 
-// Writes the cfg into `<cfgDir>/gamestate_integration/`, pointed at the configured GSI port.
-// Returns the written file path. Tolerates the user pointing the folder picker straight at the
-// `gamestate_integration` folder (a natural pick) instead of its `cfg` parent, so we don't nest a
-// second one inside it.
+// Writes the cfg into `<cfgDir>/gamestate_integration/`. Tolerates the user picking the
+// `gamestate_integration` folder itself (a natural mistake) so we don't nest a second one inside it.
 export async function writeGsiConfig(cfgDir: string, gsiPort: number): Promise<string> {
   const targetDir =
     basename(cfgDir).toLowerCase() === 'gamestate_integration'
@@ -100,7 +98,7 @@ async function steamLibraryPaths(steamRoot: string): Promise<string[]> {
       }
     }
   } catch {
-    // No library file (or unreadable) — the Steam root alone still covers default installs.
+    // No library file (or unreadable). The Steam root alone still covers default installs.
   }
 
   return [...paths];

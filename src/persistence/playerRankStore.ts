@@ -19,7 +19,7 @@ export interface PlayerRankStore {
 }
 
 export function createPlayerRankStore(filePath: string): PlayerRankStore {
-  // The rank cache is a nice-to-have, not load-bearing — a corrupt or locked DB file must not block
+  // The rank cache is a nice-to-have, not load-bearing; a corrupt or locked DB file must not block
   // app startup. On failure we degrade to a no-op store so the medal path just refetches each run.
   try {
     return openPlayerRankStore(filePath);

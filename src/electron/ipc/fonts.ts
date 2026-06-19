@@ -5,7 +5,7 @@ import { logWarning } from '../../shared/logger.js';
 import { FONTS_LIST_CHANNEL } from '../../shared/ipcChannels.js';
 
 // Exposes the machine's installed font families to the renderer's font picker. The
-// overlay renders in the same Chromium, so a family name is enough — no file loading.
+// overlay renders in the same Chromium, so a family name is enough; no file loading.
 export function registerFontsIpc(): () => void {
   ipcMain.handle(FONTS_LIST_CHANNEL, async (): Promise<string[]> => {
     try {

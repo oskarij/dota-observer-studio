@@ -158,7 +158,7 @@ function renderSelectedPlayer(view: SelectedPlayerView, options: SelectedPlayerO
   // MMR is only known for curated profiles; in-game mode treats the player as live/unknown,
   // where MMR isn't public, so it is never shown regardless of the rank-value setting. When the
   // known-name mode falls back to the in-game name (no curated profile), there's no MMR to show
-  // either — leave it blank rather than rendering a placeholder beside the bare name.
+  // either, so leave it blank rather than rendering a placeholder beside the bare name.
   const usingFallbackName = options.nameSource === 'profile' && view.profile === null;
 
   if (options.rankValue === 'hidden' || options.nameSource === 'ingame' || usingFallbackName) {
@@ -174,7 +174,7 @@ function renderSelectedPlayer(view: SelectedPlayerView, options: SelectedPlayerO
 
 // Known-name mode derives the medal from the curated MMR; in-game mode treats the player as live
 // and uses the OpenDota rank pushed over SSE. Either source can be absent (uncached, private, or
-// unranked) — in which case we just show no medal.
+// unranked), in which case we just show no medal.
 function resolveMedal(view: SelectedPlayerView, options: SelectedPlayerOptions): RankMedal | null {
   if (!options.showMedal) {
     return null;

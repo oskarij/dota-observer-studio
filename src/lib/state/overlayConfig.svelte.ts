@@ -8,7 +8,7 @@ import {
 import { logWarning } from '../../shared/logger.js';
 
 const BRIDGE_UNAVAILABLE =
-  'Settings bridge unavailable (window.dotaSpectatorTools.settings missing) — changes will not persist. Expected the Electron preload to expose it.';
+  'Settings bridge unavailable (window.dotaSpectatorTools.settings missing). Changes will not persist. Expected the Electron preload to expose it.';
 
 // Single source of truth for per-component visibility + settings. Edits mutate a working copy
 // that the studio preview reads reactively (immediate), while persistence + the live-overlay

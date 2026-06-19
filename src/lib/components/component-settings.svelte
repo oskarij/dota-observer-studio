@@ -39,7 +39,6 @@
     }
   });
 
-  // The weights the selected font ships, and whether it has italic faces.
   let weightOptions = $derived(settings ? fontWeights(settings.font.family) : []);
   let hasItalic = $derived(settings ? fontHasItalic(settings.font.family) : false);
 
@@ -59,7 +58,7 @@
     }
   }
 
-  // Reset swaps the trigger out for an inline confirm/cancel pair instead of a modal.
+  // Inline confirm/cancel instead of a modal.
   let confirmingReset = $state(false);
 
   // Drop the pending confirmation when the user switches to a different component.
@@ -85,7 +84,6 @@
     </div>
   {:else}
     <div class="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
-      <!-- Position -->
       <section class="flex flex-col gap-2">
         <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Position
@@ -102,7 +100,6 @@
         </div>
       </section>
 
-      <!-- Size -->
       <section class="flex flex-col gap-2">
         <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Size
@@ -113,7 +110,6 @@
         </div>
       </section>
 
-      <!-- Font -->
       <section class="flex flex-col gap-2">
         <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Font
@@ -189,7 +185,6 @@
         </div>
       </section>
 
-      <!-- Color & Shadow -->
       <section class="flex flex-col gap-2">
         <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Color & Shadow
@@ -217,8 +212,7 @@
                 </Button>
               {/snippet}
             </Popover.Trigger>
-            <!-- collisionPadding keeps an 8px gap from the window edges so the popover
-                 shifts up with breathing room instead of sitting flush against the bottom. -->
+            <!-- collisionPadding keeps an 8px gap from window edges so the popover never sits flush against the bottom. -->
             <Popover.Content
               side="right"
               align="start"

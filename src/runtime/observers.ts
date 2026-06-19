@@ -5,8 +5,7 @@ export interface Observers<T> {
   emit(value: T): void;
 }
 
-// A tiny pub/sub primitive: a listener Set, subscription returning its own unsubscribe,
-// and emission that isolates listener failures so one bad observer cannot stall the producer.
+// Pub/sub primitive; emission isolates listener failures so one bad observer cannot stall the producer.
 export function createObservers<T>(label: string): Observers<T> {
   const listeners = new Set<(value: T) => void>();
 

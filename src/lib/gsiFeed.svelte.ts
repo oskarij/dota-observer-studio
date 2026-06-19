@@ -8,11 +8,11 @@ import type { PlayerRank } from '../shared/overlayPlayerRankEvent.js';
 export class GsiFeed {
   #data = $state<DotaGsiData | null>(null);
   #live = $state(false);
-  // OpenDota ranks pushed over SSE, latest per account id — the preview feeds these to the stage
+  // OpenDota ranks pushed over SSE, latest per account id; the preview feeds these to the stage
   // so in-game name mode shows a medal, mirroring the standalone overlay (overlay.ts).
   #ranks = $state<PlayerRank[]>([]);
 
-  // Latest payload while the feed is live, or null when the stream is stale/disconnected.
+  // null when the stream is stale/disconnected.
   get data(): DotaGsiData | null {
     return this.#data;
   }
