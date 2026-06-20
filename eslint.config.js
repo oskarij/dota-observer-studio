@@ -73,7 +73,7 @@ const projectRules = {
 
 export default tseslint.config(
   {
-    ignores: ['.svelte-kit/**', 'build/**', 'dist/**', 'node_modules/**']
+    ignores: ['.svelte-kit/**', 'build/**', 'dist/**', 'node_modules/**', 'scripts/**']
   },
   js.configs.recommended,
   ...tseslint.configs.strictTypeChecked,
