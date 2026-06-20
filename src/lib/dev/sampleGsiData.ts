@@ -160,3 +160,15 @@ export const SAMPLE_GSI_DATA: DotaGsiData = {
 export const SAMPLE_KNOWN_PLAYERS: readonly KnownPlayer[] = [
   { accountId: '900000008', name: 'MarkoDota', mmr: 5200 }
 ];
+
+// Draft-phase snapshot for previewing the fearless-draft overlay. Only game_state matters to that
+// element (it reads the ban pool from SAMPLE_BANNED_HERO_IDS, not the GSI hero blocks).
+export const SAMPLE_DRAFT_GSI_DATA: DotaGsiData = {
+  map: { game_state: 'DOTA_GAMERULES_STATE_HERO_SELECTION', matchid: '0' }
+};
+
+// A stand-in fearless ban pool (~16 heroes, as if two prior games of a series were played) so the
+// draft grid has something to render while the operator authors its position/size.
+export const SAMPLE_BANNED_HERO_IDS: readonly number[] = [
+  1, 8, 11, 14, 19, 22, 25, 31, 35, 41, 44, 47, 53, 74, 86, 114
+];

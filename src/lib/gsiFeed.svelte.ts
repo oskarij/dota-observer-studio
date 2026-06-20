@@ -11,6 +11,9 @@ export class GsiFeed {
   // OpenDota ranks pushed over SSE, latest per account id; the preview feeds these to the stage
   // so in-game name mode shows a medal, mirroring the standalone overlay (overlay.ts).
   #ranks = $state<PlayerRank[]>([]);
+  // Latest fearless ban pool pushed over SSE, fed to the stage so the live preview shows the same
+  // draft grid as the standalone overlay.
+  #fearlessBannedHeroIds = $state<number[]>([]);
 
   // null when the stream is stale/disconnected.
   get data(): DotaGsiData | null {
@@ -23,6 +26,10 @@ export class GsiFeed {
 
   get ranks(): PlayerRank[] {
     return this.#ranks;
+  }
+
+  get fearlessBannedHeroIds(): number[] {
+    return this.#fearlessBannedHeroIds;
   }
 
   start(): () => void {
@@ -41,6 +48,9 @@ export class GsiFeed {
       onPlayerRank: (rank) => {
         // Replace any prior rank for this account; new array so the preview's effect re-runs.
         this.#ranks = [...this.#ranks.filter((r) => r.accountId !== rank.accountId), rank];
+      },
+      onFearlessSeries: (payload) => {
+        this.#fearlessBannedHeroIds = payload.bannedHeroIds;
       },
       onConnectionChange: (state) => {
         if (state === 'disconnected') {

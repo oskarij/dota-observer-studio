@@ -24,6 +24,7 @@
     gsiData = SAMPLE_GSI_DATA,
     ranks = [],
     knownPlayers = [],
+    fearlessBannedHeroIds = [],
     enabled,
     settings,
     options,
@@ -34,6 +35,8 @@
     gsiData?: DotaGsiData | null | undefined;
     ranks?: PlayerRank[];
     knownPlayers?: KnownPlayer[];
+    // Fearless ban pool for the draft grid (sample pool in Sample mode, SSE-fed pool in Live mode).
+    fearlessBannedHeroIds?: number[];
     enabled?: Record<string, boolean>;
     settings?: Record<string, ComponentSettings>;
     options?: Record<string, ComponentOptions>;
@@ -76,6 +79,9 @@
     stage.applyKnownPlayers(
       gsiData === SAMPLE_GSI_DATA ? [...SAMPLE_KNOWN_PLAYERS, ...knownPlayers] : knownPlayers
     );
+
+    // Fearless ban pool for the draft grid; applied before update so it renders this pass.
+    stage.applyFearlessSeries({ bannedHeroIds: fearlessBannedHeroIds });
 
     // null = live mode without a fresh feed: clear rather than render stale/sample content.
     if (gsiData === null) {

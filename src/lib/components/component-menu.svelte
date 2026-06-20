@@ -8,10 +8,17 @@
 
   // Mutating enabled[id] propagates to the parent's $state proxy; no bind: needed.
   // selectedId is owned by the page so the settings panel can read the selection.
+  // onSelect fires only on an explicit click (so the page can react, e.g. switch the preview to the
+  // game state the component lives in) without disturbing the persisted choice on mount.
   let {
     enabled,
-    selectedId = $bindable()
-  }: { enabled: Record<string, boolean>; selectedId?: string | undefined } = $props();
+    selectedId = $bindable(),
+    onSelect
+  }: {
+    enabled: Record<string, boolean>;
+    selectedId?: string | undefined;
+    onSelect?: (id: string) => void;
+  } = $props();
 
   function toggleVisibility(id: string) {
     enabled[id] = !(enabled[id] ?? false);
@@ -37,7 +44,10 @@
         <button
           type="button"
           class="flex min-w-0 flex-1 cursor-pointer items-center px-4 py-3.5 text-left before:absolute before:inset-0 before:content-['']"
-          onclick={() => (selectedId = definition.id)}
+          onclick={() => {
+            selectedId = definition.id;
+            onSelect?.(definition.id);
+          }}
         >
           <span
             class="truncate text-sm leading-none transition-opacity {isEnabled ? '' : 'opacity-50'}"
