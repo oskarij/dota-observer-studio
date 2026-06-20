@@ -1,7 +1,11 @@
 <script lang="ts">
   import { asset } from '$app/paths';
   import { SAMPLE_GSI_DATA, SAMPLE_KNOWN_PLAYERS } from '$lib/dev/sampleGsiData.js';
-  import { createOverlayStage, type OverlayStage } from '../../overlay/overlayStage.js';
+  import {
+    applyOverlayConfigToStage,
+    createOverlayStage,
+    type OverlayStage
+  } from '../../overlay/overlayStage.js';
   import type { ComponentOptions } from '../../shared/componentOptions.js';
   import type { ComponentSettings } from '../../shared/componentSettings.js';
   import { getSelectedDotaGsiPlayer, type DotaGsiData } from '../../shared/dotaGsiPayload.js';
@@ -33,7 +37,7 @@
     enabled?: Record<string, boolean>;
     settings?: Record<string, ComponentSettings>;
     options?: Record<string, ComponentOptions>;
-    // Backdrop behind the (transparent) overlay: transparency checkerboard or an in-game frame.
+    // Backdrop behind the transparent overlay (checkerboard or in-game frame).
     background?: 'checkerboard' | 'ingame';
   } = $props();
 
@@ -42,7 +46,7 @@
   let stage = $state<OverlayStage | null>(null);
   let scale = $state(0);
 
-  // Mount the real overlay elements into our stage once its node exists.
+  // Mount the real overlay elements once the stage node exists.
   $effect(() => {
     if (stageEl === null) {
       return;
@@ -62,19 +66,9 @@
       return;
     }
 
-    // Apply the menu's toggles before updating so each element re-evaluates its
-    // visibility against the latest enabled state, not just on GSI changes.
-    for (const [id, value] of Object.entries(enabled ?? {})) {
-      stage.setEnabled(id, value);
-    }
-
-    for (const [id, value] of Object.entries(settings ?? {})) {
-      stage.applySettings(id, value);
-    }
-
-    for (const [id, value] of Object.entries(options ?? {})) {
-      stage.applyOptions(id, value);
-    }
+    // Apply toggles + settings + options before updating so each element re-evaluates against the
+    // latest config, not just on GSI changes.
+    applyOverlayConfigToStage(stage, { enabled, settings, options });
 
     // Curated names/MMR for "Known name" mode; applied before update so this render resolves them.
     // The sample snapshot supplies its own profiles (the fake account ids match no real list entry),
@@ -87,8 +81,7 @@
     if (gsiData === null) {
       stage.clear();
     } else {
-      // Feed ranks before update so the medal resolves on this render. Live ranks arrive via the
-      // prop; the sample snapshot synthesizes one for its selected player.
+      // Feed ranks before update so the medal resolves this render (sample synthesizes one; live arrives via prop).
       if (gsiData === SAMPLE_GSI_DATA) {
         const accountId = getSelectedDotaGsiPlayer(gsiData)?.player?.accountid;
         if (accountId !== undefined) {
@@ -104,7 +97,7 @@
     }
   });
 
-  // Contain the 1080p stage within the available area so it never overflows.
+  // Scale the 1080p stage to fit the available area without overflow.
   $effect(() => {
     if (root === null) {
       return;
@@ -152,8 +145,7 @@
 </div>
 
 <style>
-  /* Photoshop-style transparency checkerboard — the overlay itself is transparent,
-     so only the elements drawn on the stage are opaque. */
+  /* Transparency checkerboard; the overlay is transparent, so only stage elements are opaque. */
   .checkerboard {
     background-color: #ffffff;
     background-image:

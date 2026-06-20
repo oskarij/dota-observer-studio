@@ -80,3 +80,26 @@ export function createOverlayStage(root: HTMLElement): OverlayStage {
     }
   };
 }
+
+// Apply config in a fixed order (visibility, settings, options); shared by overlay and preview so
+// they can't drift. Options only change content, so they take effect on the next GSI payload.
+export function applyOverlayConfigToStage(
+  stage: OverlayStage,
+  config: {
+    enabled?: Record<string, boolean>;
+    settings?: Record<string, ComponentSettings>;
+    options?: Record<string, ComponentOptions>;
+  }
+): void {
+  for (const [id, enabled] of Object.entries(config.enabled ?? {})) {
+    stage.setEnabled(id, enabled);
+  }
+
+  for (const [id, settings] of Object.entries(config.settings ?? {})) {
+    stage.applySettings(id, settings);
+  }
+
+  for (const [id, options] of Object.entries(config.options ?? {})) {
+    stage.applyOptions(id, options);
+  }
+}

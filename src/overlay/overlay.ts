@@ -2,7 +2,7 @@ import type { OverlayConfig } from '../shared/componentSettings.js';
 import type { GsiStatus } from '../shared/gsiStatus.js';
 import { connectOverlayRealtime, type RealtimeConnectionState } from './overlayRealtimeClient.js';
 
-import { createOverlayStage } from './overlayStage.js';
+import { applyOverlayConfigToStage, createOverlayStage } from './overlayStage.js';
 
 import './overlay.css';
 
@@ -52,19 +52,7 @@ function setRealtimeConnectionState(state: RealtimeConnectionState): void {
 }
 
 function applyOverlayConfig(config: OverlayConfig): void {
-  for (const [id, enabled] of Object.entries(config.enabled)) {
-    stage.setEnabled(id, enabled);
-  }
-
-  for (const [id, settings] of Object.entries(config.settings)) {
-    stage.applySettings(id, settings);
-  }
-
-  // Options change content (name source, medal/MMR visibility), so they take effect on the
-  // next GSI payload — which streams continuously during a live game.
-  for (const [id, options] of Object.entries(config.options)) {
-    stage.applyOptions(id, options);
-  }
+  applyOverlayConfigToStage(stage, config);
 }
 
 function getRequiredElement(id: string): HTMLElement {
