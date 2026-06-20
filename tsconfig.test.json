@@ -8,6 +8,7 @@
   "include": [
     "src/overlay/elements/selectedPlayer/playerProfileData.ts",
     "src/overlay/elements/selectedPlayer/selectedPlayerFormat.ts",
+    "src/runtime/fearlessCapture.ts",
     "src/runtime/httpServer.ts",
     "src/runtime/observers.ts",
     "src/shared/**/*.ts",
