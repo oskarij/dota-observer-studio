@@ -67,7 +67,7 @@ export class OverlayConfigStore {
   }
 
   resetComponent(id: string): void {
-    this.#settings[id] = createDefaultComponentSettings();
+    this.#settings[id] = createDefaultComponentSettings(id);
   }
 
   get #api() {

@@ -19,6 +19,10 @@ const disconnect = connectOverlayRealtime({
     // Drives "Known name" mode; applied to the next GSI payload for the selected player.
     stage.applyKnownPlayers(players);
   },
+  onFearlessSeries(payload) {
+    // The ban pool for the fearless-draft grid; rendered on the next HERO_SELECTION payload.
+    stage.applyFearlessSeries(payload);
+  },
   onPlayerRank(rank) {
     // The medal is keyed by account id and applied on the next GSI payload for that player.
     stage.applyPlayerRank(rank);

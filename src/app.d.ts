@@ -1,4 +1,5 @@
 import type { OverlayConfig } from './shared/componentSettings.js';
+import type { SeriesGame, WatchedGame } from './shared/fearlessDraft.js';
 import type { KnownPlayer } from './shared/knownPlayer.js';
 import type { NetworkInfo, NetworkSettings } from './shared/networkConfig.js';
 
@@ -39,6 +40,13 @@ declare global {
         set(players: KnownPlayer[]): Promise<void>;
         exportCsv(csv: string): Promise<{ ok: boolean; path?: string; reason?: string }>;
         importCsv(): Promise<{ ok: boolean; text?: string; reason?: string }>;
+      };
+      fearless?: {
+        getWatchedGames(): Promise<WatchedGame[]>;
+        onWatchedGamesChanged(handler: () => void): () => void;
+        getSeries(): Promise<SeriesGame[]>;
+        setSeries(series: SeriesGame[]): Promise<void>;
+        fetchMatch(matchId: string): Promise<{ ok: boolean; game?: WatchedGame; reason?: string }>;
       };
       app?: {
         setDirty(dirty: boolean): void;

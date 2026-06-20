@@ -1,6 +1,7 @@
 import type { ComponentOptions } from '../shared/componentOptions.js';
 import type { ComponentSettings } from '../shared/componentSettings.js';
 import type { DotaGsiData } from '../shared/dotaGsiPayload.js';
+import type { FearlessSeriesPayload } from '../shared/fearlessDraft.js';
 import type { KnownPlayer } from '../shared/knownPlayer.js';
 import type { PlayerRank } from '../shared/overlayPlayerRankEvent.js';
 
@@ -8,6 +9,8 @@ export interface OverlayElement {
   readonly id: string;
   // Optional: only elements that resolve names/MMR implement it.
   applyKnownPlayers?(players: readonly KnownPlayer[]): void;
+  // Fearless ban pool pushed over SSE. Optional: only the fearless-draft element uses it.
+  applyFearlessSeries?(payload: FearlessSeriesPayload): void;
   // Optional: only elements with non-styling settings implement it.
   applyOptions?(options: ComponentOptions): void;
   // OpenDota rank pushed over SSE. Optional: only elements that show a medal use it.

@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 import type { OverlayConfig } from '../shared/componentSettings.js';
+import type { SeriesGame, WatchedGame } from '../shared/fearlessDraft.js';
 import type { KnownPlayer } from '../shared/knownPlayer.js';
 import type { NetworkInfo, NetworkSettings } from '../shared/networkConfig.js';
 
@@ -21,6 +22,11 @@ const KNOWN_PLAYERS_GET_CHANNEL = 'known-players:get';
 const KNOWN_PLAYERS_SET_CHANNEL = 'known-players:set';
 const KNOWN_PLAYERS_EXPORT_CSV_CHANNEL = 'known-players:export-csv';
 const KNOWN_PLAYERS_IMPORT_CSV_CHANNEL = 'known-players:import-csv';
+const WATCHED_GAMES_GET_CHANNEL = 'watched-games:get';
+const WATCHED_GAMES_CHANGED_CHANNEL = 'watched-games:changed';
+const FEARLESS_SERIES_GET_CHANNEL = 'fearless-series:get';
+const FEARLESS_SERIES_SET_CHANNEL = 'fearless-series:set';
+const FEARLESS_FETCH_MATCH_CHANNEL = 'fearless:fetch-match';
 const APP_DIRTY_CHANGED_CHANNEL = 'app:dirty-changed';
 const APP_SAVE_AND_QUIT_CHANNEL = 'app:save-and-quit';
 const APP_QUIT_CONFIRMED_CHANNEL = 'app:quit-confirmed';
@@ -65,6 +71,20 @@ const api = {
       ipcRenderer.invoke(KNOWN_PLAYERS_EXPORT_CSV_CHANNEL, csv),
     importCsv: (): Promise<OkResult & { text?: string }> =>
       ipcRenderer.invoke(KNOWN_PLAYERS_IMPORT_CSV_CHANNEL)
+  },
+  fearless: {
+    getWatchedGames: (): Promise<WatchedGame[]> => ipcRenderer.invoke(WATCHED_GAMES_GET_CHANNEL),
+    // Fires when the live GSI capture or an OpenDota fetch adds a watched game.
+    onWatchedGamesChanged: (handler: () => void): (() => void) => {
+      const listener = (): void => handler();
+      ipcRenderer.on(WATCHED_GAMES_CHANGED_CHANNEL, listener);
+      return () => ipcRenderer.removeListener(WATCHED_GAMES_CHANGED_CHANNEL, listener);
+    },
+    getSeries: (): Promise<SeriesGame[]> => ipcRenderer.invoke(FEARLESS_SERIES_GET_CHANNEL),
+    setSeries: (series: SeriesGame[]): Promise<void> =>
+      ipcRenderer.invoke(FEARLESS_SERIES_SET_CHANNEL, series),
+    fetchMatch: (matchId: string): Promise<OkResult & { game?: WatchedGame }> =>
+      ipcRenderer.invoke(FEARLESS_FETCH_MATCH_CHANNEL, matchId)
   },
   app: {
     // Keep main informed of unsaved changes so it can guard the window close.

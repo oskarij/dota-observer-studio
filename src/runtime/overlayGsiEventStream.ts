@@ -1,8 +1,10 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
 import type { OverlayConfig } from '../shared/componentSettings.js';
+import type { FearlessSeriesPayload } from '../shared/fearlessDraft.js';
 import { GSI_STATUS_EVENT, type GsiStatus } from '../shared/gsiStatus.js';
 import type { KnownPlayer } from '../shared/knownPlayer.js';
+import { OVERLAY_FEARLESS_EVENT } from '../shared/overlayFearlessEvent.js';
 import { OVERLAY_KNOWN_PLAYERS_EVENT } from '../shared/overlayKnownPlayersEvent.js';
 import { OVERLAY_PLAYER_RANK_EVENT, type PlayerRank } from '../shared/overlayPlayerRankEvent.js';
 import { OVERLAY_SETTINGS_EVENT } from '../shared/overlaySettingsEvent.js';
@@ -22,6 +24,7 @@ export interface OverlayGsiEventStream {
   // The latest value pushed through each setter is replayed to clients that connect later.
   setPlayerRank(rank: PlayerRank): void;
   setKnownPlayers(players: readonly KnownPlayer[]): void;
+  setFearlessSeries(payload: FearlessSeriesPayload): void;
   setSettings(config: OverlayConfig): void;
   setStatus(status: GsiStatus): void;
   start(): void;
@@ -37,6 +40,7 @@ export function createOverlayGsiEventStream(): OverlayGsiEventStream {
   let currentStatus: GsiStatus = 'stale';
   let currentSettings: OverlayConfig | null = null;
   let currentKnownPlayers: readonly KnownPlayer[] | null = null;
+  let currentFearlessSeries: FearlessSeriesPayload | null = null;
   // Every rank pushed this session, replayed to clients that connect after it was sent.
   const playerRanks = new Map<string, PlayerRank>();
   let heartbeatTimer: NodeJS.Timeout | null = null;
@@ -55,6 +59,9 @@ export function createOverlayGsiEventStream(): OverlayGsiEventStream {
     }
     if (currentKnownPlayers !== null) {
       response.write(formatKnownPlayersEvent(currentKnownPlayers));
+    }
+    if (currentFearlessSeries !== null) {
+      response.write(formatFearlessEvent(currentFearlessSeries));
     }
     for (const rank of playerRanks.values()) {
       response.write(formatPlayerRankEvent(rank));
@@ -81,6 +88,11 @@ export function createOverlayGsiEventStream(): OverlayGsiEventStream {
   function setKnownPlayers(players: readonly KnownPlayer[]): void {
     currentKnownPlayers = players;
     writeToClients(formatKnownPlayersEvent(players));
+  }
+
+  function setFearlessSeries(payload: FearlessSeriesPayload): void {
+    currentFearlessSeries = payload;
+    writeToClients(formatFearlessEvent(payload));
   }
 
   function setSettings(settings: OverlayConfig): void {
@@ -147,6 +159,7 @@ export function createOverlayGsiEventStream(): OverlayGsiEventStream {
     },
     onClientCountChange: clientCountObservers.add,
     setKnownPlayers,
+    setFearlessSeries,
     setPlayerRank,
     setSettings,
     setStatus,
@@ -173,6 +186,10 @@ function formatSettingsEvent(config: OverlayConfig): string {
 
 function formatKnownPlayersEvent(players: readonly KnownPlayer[]): string {
   return `event: ${OVERLAY_KNOWN_PLAYERS_EVENT}\ndata: ${JSON.stringify(players)}\n\n`;
+}
+
+function formatFearlessEvent(payload: FearlessSeriesPayload): string {
+  return `event: ${OVERLAY_FEARLESS_EVENT}\ndata: ${JSON.stringify(payload)}\n\n`;
 }
 
 function formatPlayerRankEvent(rank: PlayerRank): string {

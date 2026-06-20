@@ -13,8 +13,15 @@ export interface ComponentSettings {
   shadow: { color: string; blur: number; offsetX: number; offsetY: number };
 }
 
-export function createDefaultComponentSettings(): ComponentSettings {
-  return {
+// Per-element starting position overrides. The shared default suits a single bottom-left readout
+// (selected-player); other elements want a different anchor (the fearless grid sits near the top so
+// it can grow downward), so they override just the bits that differ.
+const COMPONENT_SETTINGS_OVERRIDES: Record<string, Partial<ComponentSettings>> = {
+  'fearless-draft': { position: { x: 510, y: 140 } }
+};
+
+export function createDefaultComponentSettings(id?: string): ComponentSettings {
+  const base: ComponentSettings = {
     // Top-left offset that reproduces the original bottom-left placement (~32px above
     // the 1080px floor); see selectedPlayer.css for the matching fallbacks.
     position: { x: 32, y: 994 },
@@ -23,6 +30,9 @@ export function createDefaultComponentSettings(): ComponentSettings {
     color: '#f8fbff',
     shadow: { color: '#000000', blur: 4, offsetX: 2, offsetY: 2 }
   };
+
+  const override = id === undefined ? undefined : COMPONENT_SETTINGS_OVERRIDES[id];
+  return override === undefined ? base : { ...base, ...override };
 }
 
 // Per-component visibility + styling + behavioral options, persisted and broadcast as one unit.
@@ -38,7 +48,10 @@ export function createDefaultOverlayConfig(): OverlayConfig {
       OVERLAY_ELEMENT_DEFINITIONS.map((element) => [element.id, element.enabled])
     ),
     settings: Object.fromEntries(
-      OVERLAY_ELEMENT_DEFINITIONS.map((element) => [element.id, createDefaultComponentSettings()])
+      OVERLAY_ELEMENT_DEFINITIONS.map((element) => [
+        element.id,
+        createDefaultComponentSettings(element.id)
+      ])
     ),
     options: createDefaultComponentOptions()
   };

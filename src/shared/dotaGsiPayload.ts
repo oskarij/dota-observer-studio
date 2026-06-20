@@ -19,6 +19,8 @@ export interface DotaGsiData {
 
 export interface DotaGsiMap {
   readonly game_state?: DotaGameState;
+  // The spectated match's id. Present whenever a match is assigned; '0' (or absent) before then.
+  readonly matchid?: string;
 }
 
 export type DotaGsiHeroTeam = Partial<Record<DotaGsiPlayerKey, DotaGsiHero>>;
@@ -82,4 +84,46 @@ export function getSelectedDotaGsiPlayer(gsiData: DotaGsiData): SelectedDotaGsiP
   }
 
   return null;
+}
+
+// The spectated match id, or null before a match is assigned. GSI sends '0' in menus/between games.
+export function getDotaGsiMatchId(gsiData: DotaGsiData): string | null {
+  const matchId = gsiData.map?.matchid;
+
+  if (matchId === undefined || matchId === '' || matchId === '0') {
+    return null;
+  }
+
+  return matchId;
+}
+
+// Every picked hero id across both teams (the fearless ban set for a captured game). Empty/locked
+// slots report id 0, so they're skipped; the caller checks for a full 10-hero lineup.
+export function getPickedHeroIds(gsiData: DotaGsiData): number[] {
+  return getPickedHeroes(gsiData).map((entry) => entry.heroId);
+}
+
+// Picked heroes paired with the in-game player name in the matching slot (null when the player block
+// is absent), so a captured game can be labelled by who played what.
+export function getPickedHeroes(
+  gsiData: DotaGsiData
+): { heroId: number; playerName: string | null }[] {
+  const picked: { heroId: number; playerName: string | null }[] = [];
+
+  for (const teamKey of DOTA_GSI_TEAM_KEYS) {
+    const heroTeam = gsiData.hero?.[teamKey];
+
+    if (heroTeam === undefined) {
+      continue;
+    }
+
+    for (const [playerKey, hero] of Object.entries(heroTeam)) {
+      if (typeof hero?.id === 'number' && hero.id > 0) {
+        const playerName = gsiData.player?.[teamKey]?.[playerKey as DotaGsiPlayerKey]?.name ?? null;
+        picked.push({ heroId: hero.id, playerName });
+      }
+    }
+  }
+
+  return picked;
 }

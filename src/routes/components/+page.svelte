@@ -1,12 +1,16 @@
 <script lang="ts">
   import { page } from '$app/state';
 
+  import FearlessDraftManager from '$lib/components/fearless-draft-manager.svelte';
   import KnownPlayers from '$lib/components/known-players.svelte';
   import SelectedPlayerOptionsForm from '$lib/components/selected-player-options.svelte';
   import * as Select from '$lib/components/ui/select/index.js';
   import { overlayConfig } from '$lib/state/overlayConfig.svelte.js';
   import { SELECTED_PLAYER_ID } from '../../shared/componentOptions.js';
-  import { OVERLAY_ELEMENT_DEFINITIONS } from '../../shared/overlayElementCatalog.js';
+  import {
+    FEARLESS_DRAFT_ID,
+    OVERLAY_ELEMENT_DEFINITIONS
+  } from '../../shared/overlayElementCatalog.js';
 
   // Seeded from the URL's ?id= (set by the overlay page's gear); the dropdown then drives it locally.
   let selectedId = $state(page.url.searchParams.get('id') ?? OVERLAY_ELEMENT_DEFINITIONS[0]?.id);
@@ -55,6 +59,8 @@
           <KnownPlayers />
         </div>
       </div>
+    {:else if selectedId === FEARLESS_DRAFT_ID}
+      <FearlessDraftManager />
     {:else}
       <div class="max-w-2xl rounded-lg border bg-card p-4 text-sm text-muted-foreground shadow-sm">
         This component has no settings yet.

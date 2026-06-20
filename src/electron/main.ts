@@ -3,6 +3,7 @@ import { join } from 'node:path';
 
 import { createKnownPlayersStore } from '../persistence/knownPlayersStore.js';
 import { createPlayerRankStore } from '../persistence/playerRankStore.js';
+import { createFearlessCapture } from '../runtime/fearlessCapture.js';
 import { createGsiListener } from '../runtime/gsiListener.js';
 import { createGsiLiveness } from '../runtime/gsiLiveness.js';
 import { createOverlayGsiEventStream } from '../runtime/overlayGsiEventStream.js';
@@ -12,11 +13,14 @@ import { createWebHost } from '../runtime/webHost.js';
 import {
   APP_DIRTY_CHANGED_CHANNEL,
   APP_QUIT_CONFIRMED_CHANNEL,
-  APP_SAVE_AND_QUIT_CHANNEL
+  APP_SAVE_AND_QUIT_CHANNEL,
+  WATCHED_GAMES_CHANGED_CHANNEL
 } from '../shared/ipcChannels.js';
 import { logError } from '../shared/logger.js';
 import { type ConfigurablePorts, LAN_BIND_HOST, NETWORK_HOST } from '../shared/networkConfig.js';
 
+import { createFearlessStore } from './fearlessStore.js';
+import { registerFearlessDraftIpc } from './ipc/fearlessDraft.js';
 import { registerFontsIpc } from './ipc/fonts.js';
 import { registerGsiIpc } from './ipc/gsi.js';
 import { registerKnownPlayersIpc } from './ipc/knownPlayers.js';
@@ -90,6 +94,7 @@ async function confirmCloseWithUnsavedChanges(window: BrowserWindow): Promise<vo
 let unregisterSettingsIpc: (() => void) | null = null;
 let unregisterFontsIpc: (() => void) | null = null;
 let unregisterKnownPlayersIpc: (() => void) | null = null;
+let unregisterFearlessDraftIpc: (() => void) | null = null;
 let unregisterNetworkIpc: (() => void) | null = null;
 let unregisterGsiIpc: (() => void) | null = null;
 let unregisterPlayerRanksIpc: (() => void) | null = null;
@@ -228,8 +233,24 @@ app
     });
     closePlayerRankStore = () => playerRankStore.close();
 
-    // Both payload consumers (liveness + broadcast, and the rank service) re-subscribe whenever the
-    // GSI listener is rebound to a new port, so this is a function rather than a one-shot wiring.
+    // Auto-captured watched games + the current fearless series (electron-store, restart-safe). The
+    // GSI capture records each spectated game's locked lineup; the operator later builds a series.
+    const fearlessStore = createFearlessStore();
+    const notifyWatchedGamesChanged = (): void => {
+      for (const window of BrowserWindow.getAllWindows()) {
+        window.webContents.send(WATCHED_GAMES_CHANGED_CHANNEL);
+      }
+    };
+    const fearlessCapture = createFearlessCapture({
+      upsert: (game) => {
+        fearlessStore.upsertWatchedGame(game);
+        notifyWatchedGamesChanged();
+      }
+    });
+
+    // Both payload consumers (liveness + broadcast, the rank service, and the fearless capture)
+    // re-subscribe whenever the GSI listener is rebound to a new port, so this is a function rather
+    // than a one-shot wiring.
     const wireGsiListener = (listener: ReturnType<typeof createGsiListener>): (() => void) => {
       const unsubscribeBroadcast = listener.onPayload((payload) => {
         // Mark alive before broadcasting so a resuming feed sends `live` ahead of the payload.
@@ -239,10 +260,14 @@ app
       const unsubscribeRank = listener.onPayload((payload) => {
         playerRankService.handlePayload(payload);
       });
+      const unsubscribeFearless = listener.onPayload((payload) => {
+        fearlessCapture.handlePayload(payload);
+      });
 
       return () => {
         unsubscribeBroadcast();
         unsubscribeRank();
+        unsubscribeFearless();
       };
     };
 
@@ -329,6 +354,11 @@ app
     );
     unregisterGsiIpc = registerGsiIpc(networkSettingsStore, lanActive);
     unregisterKnownPlayersIpc = registerKnownPlayersIpc(knownPlayersStore, eventStream);
+    unregisterFearlessDraftIpc = registerFearlessDraftIpc(
+      fearlessStore,
+      eventStream,
+      notifyWatchedGamesChanged
+    );
     unregisterPlayerRanksIpc = registerPlayerRanksIpc(playerRankStore);
 
     // Packaged builds serve the studio UI to the main window over loopback HTTP (see createMainWindow);
@@ -397,6 +427,7 @@ app.on('before-quit', (event) => {
   unregisterSettingsIpc?.();
   unregisterFontsIpc?.();
   unregisterKnownPlayersIpc?.();
+  unregisterFearlessDraftIpc?.();
   unregisterNetworkIpc?.();
   unregisterGsiIpc?.();
   unregisterPlayerRanksIpc?.();

@@ -1,6 +1,7 @@
 import type { ComponentOptions } from '../shared/componentOptions.js';
 import type { ComponentSettings } from '../shared/componentSettings.js';
 import type { DotaGsiData } from '../shared/dotaGsiPayload.js';
+import type { FearlessSeriesPayload } from '../shared/fearlessDraft.js';
 import type { KnownPlayer } from '../shared/knownPlayer.js';
 import type { PlayerRank } from '../shared/overlayPlayerRankEvent.js';
 
@@ -11,6 +12,7 @@ import type { OverlayElement } from './overlayElement.js';
 // exact same elements. Intentionally does NOT import overlay.css (its transparent
 // `html, body` rules belong only to the standalone overlay page).
 export interface OverlayStage {
+  applyFearlessSeries(payload: FearlessSeriesPayload): void;
   applyKnownPlayers(players: readonly KnownPlayer[]): void;
   applyOptions(id: string, options: ComponentOptions): void;
   applyPlayerRank(rank: PlayerRank): void;
@@ -30,6 +32,12 @@ export function createOverlayStage(root: HTMLElement): OverlayStage {
   });
 
   return {
+    applyFearlessSeries(payload) {
+      // Not addressed to a specific element id; only the fearless-draft element consumes it.
+      for (const overlayElement of elements) {
+        overlayElement.applyFearlessSeries?.(payload);
+      }
+    },
     applyKnownPlayers(players) {
       // Not addressed to a specific element id; every element that resolves names keys it itself.
       for (const overlayElement of elements) {

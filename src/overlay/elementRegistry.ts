@@ -1,5 +1,6 @@
 import { OVERLAY_ELEMENT_DEFINITIONS } from '../shared/overlayElementCatalog.js';
 
+import { mountFearlessDraftElement } from './elements/fearlessDraft/fearlessDraft.js';
 import { mountSelectedPlayerElement } from './elements/selectedPlayer/selectedPlayer.js';
 import type { OverlayElement } from './overlayElement.js';
 
@@ -14,6 +15,10 @@ export const overlayElementRegistry: OverlayElementRegistration[] = [
   {
     ...getElementDefinition('selected-player'),
     mount: mountSelectedPlayerElement
+  },
+  {
+    ...getElementDefinition('fearless-draft'),
+    mount: mountFearlessDraftElement
   }
 ];
 

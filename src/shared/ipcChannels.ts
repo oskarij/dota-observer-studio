@@ -35,6 +35,17 @@ export const KNOWN_PLAYERS_SET_CHANNEL = 'known-players:set';
 export const KNOWN_PLAYERS_EXPORT_CSV_CHANNEL = 'known-players:export-csv';
 export const KNOWN_PLAYERS_IMPORT_CSV_CHANNEL = 'known-players:import-csv';
 
+// Fearless draft: the renderer reads the auto-captured watched games and the current series, and
+// writes the series back on every edit (immediate persistence). Main re-broadcasts the resulting
+// ban pool to the live overlay over SSE. fetch-match pulls an un-spectated game's heroes from
+// OpenDota into the watched list; watched-games:changed notifies the renderer when capture/fetch
+// adds a game so its list refreshes live.
+export const WATCHED_GAMES_GET_CHANNEL = 'watched-games:get';
+export const WATCHED_GAMES_CHANGED_CHANNEL = 'watched-games:changed';
+export const FEARLESS_SERIES_GET_CHANNEL = 'fearless-series:get';
+export const FEARLESS_SERIES_SET_CHANNEL = 'fearless-series:set';
+export const FEARLESS_FETCH_MATCH_CHANNEL = 'fearless:fetch-match';
+
 // App-lifecycle channels for the unsaved-changes guard on window close.
 // Renderer reports its dirty state; main asks the renderer to save (then await its
 // confirmation) before letting the window close.

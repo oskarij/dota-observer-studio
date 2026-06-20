@@ -1,9 +1,11 @@
 import { isOverlayConfigShape, type OverlayConfig } from '../shared/componentSettings.js';
 import type { DotaGsiData } from '../shared/dotaGsiPayload.js';
+import type { FearlessSeriesPayload } from '../shared/fearlessDraft.js';
 import { GSI_STATUS_EVENT, type GsiStatus } from '../shared/gsiStatus.js';
 import type { KnownPlayer } from '../shared/knownPlayer.js';
 import { logWarning } from '../shared/logger.js';
 import { OVERLAY_EVENTS_PATH } from '../shared/networkConfig.js';
+import { OVERLAY_FEARLESS_EVENT } from '../shared/overlayFearlessEvent.js';
 import { OVERLAY_KNOWN_PLAYERS_EVENT } from '../shared/overlayKnownPlayersEvent.js';
 import { OVERLAY_PLAYER_RANK_EVENT, type PlayerRank } from '../shared/overlayPlayerRankEvent.js';
 import { OVERLAY_SETTINGS_EVENT } from '../shared/overlaySettingsEvent.js';
@@ -17,6 +19,7 @@ export interface OverlayRealtimeHandlers {
   onStatus?(status: GsiStatus): void;
   onSettings?(config: OverlayConfig): void;
   onKnownPlayers?(players: KnownPlayer[]): void;
+  onFearlessSeries?(payload: FearlessSeriesPayload): void;
   onPlayerRank?(rank: PlayerRank): void;
   onConnectionChange?(state: RealtimeConnectionState): void;
 }
@@ -57,6 +60,14 @@ export function connectOverlayRealtime(handlers: OverlayRealtimeHandlers): () =>
 
     if (Array.isArray(players)) {
       handlers.onKnownPlayers?.(players);
+    }
+  });
+
+  events.addEventListener(OVERLAY_FEARLESS_EVENT, (event) => {
+    const payload = parse<FearlessSeriesPayload>(event.data, 'fearless series');
+
+    if (payload !== null && Array.isArray(payload.bannedHeroIds)) {
+      handlers.onFearlessSeries?.(payload);
     }
   });
 
