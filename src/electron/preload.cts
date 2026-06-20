@@ -2,7 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 
 import type { OverlayConfig } from '../shared/componentSettings.js';
 import type { KnownPlayer } from '../shared/knownPlayer.js';
-import type { ConfigurablePorts, NetworkInfo } from '../shared/networkConfig.js';
+import type { NetworkInfo, NetworkSettings } from '../shared/networkConfig.js';
 
 // CommonJS (.cts) and self-contained so Electron's sandboxed preload can load it:
 // a sandboxed preload cannot use ESM or require local modules. Channel names are
@@ -14,6 +14,7 @@ const SETTINGS_IMPORT_CHANNEL = 'settings:import';
 const NETWORK_GET_CHANNEL = 'network:get';
 const NETWORK_SET_CHANNEL = 'network:set';
 const GSI_INSTALL_CHANNEL = 'gsi:install';
+const GSI_EXPORT_CHANNEL = 'gsi:export';
 const PLAYER_RANKS_CLEAR_CHANNEL = 'player-ranks:clear';
 const FONTS_LIST_CHANNEL = 'fonts:list';
 const KNOWN_PLAYERS_GET_CHANNEL = 'known-players:get';
@@ -43,11 +44,12 @@ const api = {
   },
   network: {
     get: (): Promise<NetworkInfo> => ipcRenderer.invoke(NETWORK_GET_CHANNEL),
-    set: (ports: ConfigurablePorts): Promise<OkResult> =>
-      ipcRenderer.invoke(NETWORK_SET_CHANNEL, ports)
+    set: (settings: NetworkSettings): Promise<OkResult> =>
+      ipcRenderer.invoke(NETWORK_SET_CHANNEL, settings)
   },
   gsi: {
-    install: (): Promise<OkResult & { path?: string }> => ipcRenderer.invoke(GSI_INSTALL_CHANNEL)
+    install: (): Promise<OkResult & { path?: string }> => ipcRenderer.invoke(GSI_INSTALL_CHANNEL),
+    export: (): Promise<OkResult & { path?: string }> => ipcRenderer.invoke(GSI_EXPORT_CHANNEL)
   },
   playerRanks: {
     clear: (): Promise<void> => ipcRenderer.invoke(PLAYER_RANKS_CLEAR_CHANNEL)

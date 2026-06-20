@@ -1,6 +1,6 @@
 import type { OverlayConfig } from './shared/componentSettings.js';
 import type { KnownPlayer } from './shared/knownPlayer.js';
-import type { ConfigurablePorts, NetworkInfo } from './shared/networkConfig.js';
+import type { NetworkInfo, NetworkSettings } from './shared/networkConfig.js';
 
 declare global {
   namespace App {
@@ -22,10 +22,11 @@ declare global {
       };
       network?: {
         get(): Promise<NetworkInfo>;
-        set(ports: ConfigurablePorts): Promise<{ ok: boolean; reason?: string }>;
+        set(settings: NetworkSettings): Promise<{ ok: boolean; reason?: string }>;
       };
       gsi?: {
         install(): Promise<{ ok: boolean; path?: string; reason?: string }>;
+        export(): Promise<{ ok: boolean; path?: string; reason?: string }>;
       };
       playerRanks?: {
         clear(): Promise<void>;

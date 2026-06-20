@@ -10,7 +10,7 @@ import { NETWORK_HOST } from '../shared/networkConfig.js';
 const execFileAsync = promisify(execFile);
 
 // Observer Studio's own cfg file, named so it won't collide with other GSI tools' configs.
-const CONFIG_FILE_NAME = 'gamestate_integration_observer_studio.cfg';
+export const CONFIG_FILE_NAME = 'gamestate_integration_observer_studio.cfg';
 
 // The tail from a Steam library root to the folder Dota reads GSI configs from.
 const DOTA_CFG_RELATIVE = join('steamapps', 'common', 'dota 2 beta', 'game', 'dota', 'cfg');
@@ -40,7 +40,7 @@ export async function writeGsiConfig(cfgDir: string, gsiPort: number): Promise<s
   await mkdir(targetDir, { recursive: true });
 
   const filePath = join(targetDir, CONFIG_FILE_NAME);
-  await writeFile(filePath, gsiConfigContents(gsiPort), 'utf8');
+  await writeFile(filePath, buildGsiConfig(NETWORK_HOST, gsiPort), 'utf8');
   return filePath;
 }
 
@@ -104,14 +104,16 @@ async function steamLibraryPaths(steamRoot: string): Promise<string[]> {
   return [...paths];
 }
 
-function gsiConfigContents(gsiPort: number): string {
+// host is the address Dota POSTs to: loopback for a local install, or the app's LAN IP for an
+// exported config used by Dota on another PC.
+export function buildGsiConfig(host: string, gsiPort: number): string {
   // Valve KeyValues (VDF). Only the blocks the overlay actually reads are enabled (see
   // dotaGsiPayload.ts: map.game_state, the hero block, and the per-team player block); the rest are
-  // listed but off so the payloads stay small. 127.0.0.1 (not localhost) to match the IPv4-only
-  // listener and avoid an IPv6 (::1) resolution miss.
+  // listed but off so the payloads stay small. An IP literal (not localhost) matches the IPv4-only
+  // listener and avoids an IPv6 (::1) resolution miss.
   return `"Observer Studio Integration"
 {
-    "uri"           "http://${NETWORK_HOST}:${gsiPort}/gsi"
+    "uri"           "http://${host}:${gsiPort}/gsi"
     "timeout"       "5.0"
     "buffer"        "0.1"
     "throttle"      "0.1"

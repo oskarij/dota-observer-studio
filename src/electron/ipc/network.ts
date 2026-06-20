@@ -4,9 +4,13 @@ import { NETWORK_GET_CHANNEL, NETWORK_SET_CHANNEL } from '../../shared/ipcChanne
 import {
   buildNetworkInfo,
   type ConfigurablePorts,
+  NETWORK_HOST,
   type NetworkInfo,
+  type NetworkSettings,
+  type PortConflicts,
   validatePorts
 } from '../../shared/networkConfig.js';
+import { getLanIpv4 } from '../lanAddress.js';
 import type { NetworkSettingsStore } from '../networkSettingsStore.js';
 
 export interface NetworkSetResult {
@@ -18,25 +22,34 @@ export interface NetworkSetResult {
 // server instances); resolves ok:false if a port can't be bound, leaving the old servers running.
 export type ApplyPorts = (ports: ConfigurablePorts) => Promise<NetworkSetResult>;
 
-// Ports are applied live: SET re-validates (not trusting the renderer), rebinds the servers, and
-// only persists once the rebind succeeds so the stored ports always match what's actually bound.
+// Ports apply live (SET rebinds the servers); the LAN toggle is persisted and applies on the next
+// launch, so lanActive (what's bound now) drives the advertised host and the restart-pending flag.
+// SET re-validates ports rather than trusting the renderer.
 export function registerNetworkIpc(
   store: NetworkSettingsStore,
-  applyPorts: ApplyPorts
+  applyPorts: ApplyPorts,
+  lanActive: boolean,
+  portConflicts: PortConflicts
 ): () => void {
-  ipcMain.handle(NETWORK_GET_CHANNEL, (): NetworkInfo => buildNetworkInfo(store.get()));
+  function info(): NetworkInfo {
+    const advertisedHost = lanActive ? (getLanIpv4() ?? NETWORK_HOST) : NETWORK_HOST;
+    return buildNetworkInfo(store.get(), advertisedHost, lanActive, portConflicts);
+  }
+
+  ipcMain.handle(NETWORK_GET_CHANNEL, info);
 
   ipcMain.handle(
     NETWORK_SET_CHANNEL,
-    async (_event, ports: ConfigurablePorts): Promise<NetworkSetResult> => {
-      const error = validatePorts(ports);
+    async (_event, settings: NetworkSettings): Promise<NetworkSetResult> => {
+      const error = validatePorts(settings.ports);
       if (error !== null) {
         return { ok: false, reason: error.message };
       }
 
-      const result = await applyPorts(ports);
+      const result = await applyPorts(settings.ports);
       if (result.ok) {
-        store.set(ports);
+        store.setPorts(settings.ports);
+        store.setLanAccess(settings.allowLanAccess);
       }
       return result;
     }

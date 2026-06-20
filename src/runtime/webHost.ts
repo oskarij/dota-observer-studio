@@ -1,6 +1,7 @@
 import { extname } from 'node:path';
 
 import { createManagedHttpServer } from './httpServer.js';
+import type { OverlayGsiEventStream } from './overlayGsiEventStream.js';
 import { createStaticFileHandler } from './staticFiles.js';
 
 export interface WebHostConfig {
@@ -8,6 +9,8 @@ export interface WebHostConfig {
   readonly host: string;
   // Pass 0 to bind an OS-assigned free port (collision-proof); read the real one back via port().
   readonly port: number;
+  // Serves the realtime SSE feed on /events so the studio preview connects on its own origin.
+  readonly eventStream: OverlayGsiEventStream;
 }
 
 export interface WebHost {
@@ -33,6 +36,7 @@ export function createWebHost(config: WebHostConfig): WebHost {
     // A missing route with no file extension is an SPA navigation; hand it index.html and let the
     // client router take over. A missing hashed asset (has an extension) is a real 404.
     fallbackOnMissing: (requestPath) => (extname(requestPath) === '' ? 'index.html' : null),
+    connectEvents: config.eventStream.connect,
     notFoundMessage: 'Studio route not found',
     readErrorMessage: 'Unable to read studio asset'
   });

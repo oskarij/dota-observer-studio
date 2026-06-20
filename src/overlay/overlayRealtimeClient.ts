@@ -1,20 +1,17 @@
-import type { OverlayConfig } from '../shared/componentSettings.js';
+import { isOverlayConfigShape, type OverlayConfig } from '../shared/componentSettings.js';
 import type { DotaGsiData } from '../shared/dotaGsiPayload.js';
 import { GSI_STATUS_EVENT, type GsiStatus } from '../shared/gsiStatus.js';
 import type { KnownPlayer } from '../shared/knownPlayer.js';
 import { logWarning } from '../shared/logger.js';
-import { OVERLAY_REALTIME_EVENTS_URL } from '../shared/overlayEventStreamEndpoint.js';
+import { OVERLAY_EVENTS_PATH } from '../shared/networkConfig.js';
 import { OVERLAY_KNOWN_PLAYERS_EVENT } from '../shared/overlayKnownPlayersEvent.js';
 import { OVERLAY_PLAYER_RANK_EVENT, type PlayerRank } from '../shared/overlayPlayerRankEvent.js';
 import { OVERLAY_SETTINGS_EVENT } from '../shared/overlaySettingsEvent.js';
 
 export type RealtimeConnectionState = 'connected' | 'disconnected';
 
-// One place that decodes the overlay's realtime SSE stream into typed callbacks. Both the
-// standalone overlay (overlay.ts) and the studio preview feed (gsiFeed.svelte.ts) subscribe
-// through this, so a new event type is wired here once instead of drifting between consumers.
-// Each handler is optional; what a consumer does with the data (push to a stage, hold reactive
-// state, …) stays its own concern.
+// Single SSE decoder shared by overlay.ts and the studio preview (gsiFeed.svelte.ts), so a new
+// event type is wired here once instead of drifting between consumers. Handlers are optional.
 export interface OverlayRealtimeHandlers {
   onGsiData?(data: DotaGsiData): void;
   onStatus?(status: GsiStatus): void;
@@ -24,14 +21,15 @@ export interface OverlayRealtimeHandlers {
   onConnectionChange?(state: RealtimeConnectionState): void;
 }
 
-/** Subscribe to the realtime stream. Returns a disposer that closes the connection. */
 export function connectOverlayRealtime(handlers: OverlayRealtimeHandlers): () => void {
   // EventSource is unavailable during SSR / prerender.
   if (typeof EventSource === 'undefined') {
     return () => {};
   }
 
-  const events = new EventSource(OVERLAY_REALTIME_EVENTS_URL);
+  // The /events SSE route is served on the same origin that served this page (the overlay host, or
+  // the web host for the studio preview), so it works over loopback or a LAN address with no CORS.
+  const events = new EventSource(`${window.location.origin}${OVERLAY_EVENTS_PATH}`);
 
   events.onmessage = (event) => {
     const gsiData = parse<DotaGsiData>(event.data, 'GSI payload');
@@ -47,9 +45,9 @@ export function connectOverlayRealtime(handlers: OverlayRealtimeHandlers): () =>
   });
 
   events.addEventListener(OVERLAY_SETTINGS_EVENT, (event) => {
-    const config = parse<OverlayConfig>(event.data, 'overlay settings');
+    const config = parse<unknown>(event.data, 'overlay settings');
 
-    if (config !== null) {
+    if (isOverlayConfigShape(config)) {
       handlers.onSettings?.(config);
     }
   });
@@ -57,7 +55,7 @@ export function connectOverlayRealtime(handlers: OverlayRealtimeHandlers): () =>
   events.addEventListener(OVERLAY_KNOWN_PLAYERS_EVENT, (event) => {
     const players = parse<KnownPlayer[]>(event.data, 'known players');
 
-    if (players !== null) {
+    if (Array.isArray(players)) {
       handlers.onKnownPlayers?.(players);
     }
   });

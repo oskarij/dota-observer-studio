@@ -1,11 +1,19 @@
 import { ipcMain, type OpenDialogOptions } from 'electron';
+import { writeFile } from 'node:fs/promises';
 
-import { GSI_INSTALL_CHANNEL } from '../../shared/ipcChannels.js';
+import { GSI_EXPORT_CHANNEL, GSI_INSTALL_CHANNEL } from '../../shared/ipcChannels.js';
 import { logError } from '../../shared/logger.js';
-import { resolveDotaCfgDir, writeGsiConfig } from '../gsiConfig.js';
+import { NETWORK_HOST } from '../../shared/networkConfig.js';
+import {
+  buildGsiConfig,
+  CONFIG_FILE_NAME,
+  resolveDotaCfgDir,
+  writeGsiConfig
+} from '../gsiConfig.js';
+import { getLanIpv4 } from '../lanAddress.js';
 import type { NetworkSettingsStore } from '../networkSettingsStore.js';
 
-import { showOpenDialog } from './dialogs.js';
+import { showOpenDialog, showSaveDialog } from './dialogs.js';
 
 export interface GsiInstallResult {
   ok: boolean;
@@ -14,9 +22,10 @@ export interface GsiInstallResult {
   reason?: string;
 }
 
-// Auto-detects the Dota cfg folder and writes the GSI config there; falls back to a folder picker
-// when Dota can't be located. Uses the currently-stored GSI port (changes apply on relaunch).
-export function registerGsiIpc(networkStore: NetworkSettingsStore): () => void {
+// Auto-detects the Dota cfg folder, falling back to a folder picker when Dota can't be located.
+// Uses the currently-stored GSI port (changes apply on relaunch). Export writes the same cfg with
+// the LAN address to a chosen file, for Dota on another PC.
+export function registerGsiIpc(networkStore: NetworkSettingsStore, lanActive: boolean): () => void {
   ipcMain.handle(GSI_INSTALL_CHANNEL, async (): Promise<GsiInstallResult> => {
     try {
       let cfgDir = await resolveDotaCfgDir();
@@ -29,7 +38,7 @@ export function registerGsiIpc(networkStore: NetworkSettingsStore): () => void {
         cfgDir = picked;
       }
 
-      const gsiPort = networkStore.get().gsiListener;
+      const gsiPort = networkStore.get().ports.gsiListener;
       const path = await writeGsiConfig(cfgDir, gsiPort);
       return { ok: true, path };
     } catch (error) {
@@ -41,8 +50,31 @@ export function registerGsiIpc(networkStore: NetworkSettingsStore): () => void {
     }
   });
 
+  ipcMain.handle(GSI_EXPORT_CHANNEL, async (): Promise<GsiInstallResult> => {
+    try {
+      const host = lanActive ? (getLanIpv4() ?? NETWORK_HOST) : NETWORK_HOST;
+      const gsiPort = networkStore.get().ports.gsiListener;
+      const result = await showSaveDialog({
+        title: 'Export GSI config',
+        defaultPath: CONFIG_FILE_NAME,
+        filters: [{ name: 'Dota GSI config', extensions: ['cfg'] }]
+      });
+
+      if (result.canceled || result.filePath === undefined) {
+        return { ok: false, reason: 'Export canceled.' };
+      }
+
+      await writeFile(result.filePath, buildGsiConfig(host, gsiPort), 'utf8');
+      return { ok: true, path: result.filePath };
+    } catch (error) {
+      logError('Failed to export the GSI config', error);
+      return { ok: false, reason: 'Could not write the GSI config file.' };
+    }
+  });
+
   return () => {
     ipcMain.removeHandler(GSI_INSTALL_CHANNEL);
+    ipcMain.removeHandler(GSI_EXPORT_CHANNEL);
   };
 }
 
@@ -51,7 +83,7 @@ async function promptForCfgDir(): Promise<string | null> {
     title: 'Select your dota 2 beta/game/dota/cfg folder',
     properties: ['openDirectory'],
     buttonLabel: 'Install here',
-    message: "Select …/dota 2 beta/game/dota/cfg."
+    message: 'Select …/dota 2 beta/game/dota/cfg.'
   };
 
   const result = await showOpenDialog(options);

@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { extname, isAbsolute, join, relative } from 'node:path';
 
+import { OVERLAY_EVENTS_PATH } from '../shared/networkConfig.js';
 import { getRequestPath, type HttpServerAddress, writeJson } from './httpUtils.js';
 
 export interface StaticFileHandlerConfig {
@@ -12,6 +13,9 @@ export interface StaticFileHandlerConfig {
   cacheControl(assetPath: string): string;
   // Optional fallback asset when the resolved file is missing (e.g. an SPA index). Null = 404.
   fallbackOnMissing?(requestPath: string): string | null;
+  // If set, a GET to OVERLAY_EVENTS_PATH is handed here instead of the files, so a host can serve
+  // the realtime SSE stream on its own origin alongside its assets.
+  connectEvents?(request: IncomingMessage, response: ServerResponse): void;
   readonly notFoundMessage: string;
   readonly readErrorMessage: string;
 }
@@ -32,6 +36,11 @@ export function createStaticFileHandler(config: StaticFileHandlerConfig): Static
     }
 
     const requestPath = getRequestPath(request, config.address);
+    if (config.connectEvents !== undefined && requestPath === OVERLAY_EVENTS_PATH) {
+      config.connectEvents(request, response);
+      return;
+    }
+
     const assetPath = config.resolveAssetPath(requestPath);
     if (assetPath === null) {
       writeNotFound(response, config.notFoundMessage);

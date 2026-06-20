@@ -4,38 +4,46 @@ import { logWarning } from '../shared/logger.js';
 import {
   type ConfigurablePorts,
   DEFAULT_CONFIGURABLE_PORTS,
+  type NetworkSettings,
   validatePorts
 } from '../shared/networkConfig.js';
 
-const STORE_KEY = 'networkPorts';
+const PORTS_KEY = 'networkPorts';
+const LAN_ACCESS_KEY = 'allowLanAccess';
 
 export interface NetworkSettingsStore {
-  get(): ConfigurablePorts;
-  set(ports: ConfigurablePorts): void;
+  get(): NetworkSettings;
+  setPorts(ports: ConfigurablePorts): void;
+  setLanAccess(allow: boolean): void;
 }
 
 export function createNetworkSettingsStore(): NetworkSettingsStore {
-  const store = new Store<{ networkPorts: ConfigurablePorts }>({
-    defaults: { networkPorts: { ...DEFAULT_CONFIGURABLE_PORTS } }
+  const store = new Store<{ networkPorts: ConfigurablePorts; allowLanAccess: boolean }>({
+    defaults: { networkPorts: { ...DEFAULT_CONFIGURABLE_PORTS }, allowLanAccess: false }
   });
 
   return {
     get() {
       // Merge over defaults so a config saved before a field existed still gets a value.
-      const merged: ConfigurablePorts = { ...DEFAULT_CONFIGURABLE_PORTS, ...store.get(STORE_KEY) };
+      const merged: ConfigurablePorts = { ...DEFAULT_CONFIGURABLE_PORTS, ...store.get(PORTS_KEY) };
 
       // Defensive: a hand-edited file (or a future reserved-port change) must never brick startup
       // by binding to a reserved/duplicate/out-of-range port. Fall back to the defaults instead.
       const error = validatePorts(merged);
       if (error !== null) {
         logWarning(`Stored network ports are invalid (${error.message}); falling back to defaults`);
-        return { ...DEFAULT_CONFIGURABLE_PORTS };
       }
 
-      return merged;
+      return {
+        ports: error !== null ? { ...DEFAULT_CONFIGURABLE_PORTS } : merged,
+        allowLanAccess: store.get(LAN_ACCESS_KEY) === true
+      };
     },
-    set(ports) {
-      store.set(STORE_KEY, ports);
+    setPorts(ports) {
+      store.set(PORTS_KEY, ports);
+    },
+    setLanAccess(allow) {
+      store.set(LAN_ACCESS_KEY, allow);
     }
   };
 }

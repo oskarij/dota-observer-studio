@@ -1,10 +1,13 @@
 import { createManagedHttpServer } from './httpServer.js';
+import type { OverlayGsiEventStream } from './overlayGsiEventStream.js';
 import { createStaticFileHandler } from './staticFiles.js';
 
 export interface OverlayHostConfig {
   readonly assetRoot: string;
   readonly host: string;
   readonly port: number;
+  // Serves the realtime SSE feed on /events alongside the overlay assets, same-origin.
+  readonly eventStream: OverlayGsiEventStream;
 }
 
 export interface OverlayHost {
@@ -20,6 +23,7 @@ export function createOverlayHost(config: OverlayHostConfig): OverlayHost {
     resolveAssetPath: resolveOverlayAssetPath,
     cacheControl: (assetPath) =>
       assetPath.startsWith('assets/') ? 'public, max-age=31536000, immutable' : 'no-cache',
+    connectEvents: config.eventStream.connect,
     notFoundMessage: 'Overlay route not found',
     readErrorMessage: 'Unable to read overlay asset'
   });

@@ -16,6 +16,9 @@ export const NETWORK_SET_CHANNEL = 'network:set';
 // Writes the gamestate_integration cfg into the Dota 2 cfg folder, pointed at the GSI port.
 export const GSI_INSTALL_CHANNEL = 'gsi:install';
 
+// Saves the GSI cfg (pointed at the LAN address) to a chosen file, for Dota on another PC.
+export const GSI_EXPORT_CHANNEL = 'gsi:export';
+
 // Clears the persisted OpenDota rank cache so the in-game medal refetches.
 export const PLAYER_RANKS_CLEAR_CHANNEL = 'player-ranks:clear';
 

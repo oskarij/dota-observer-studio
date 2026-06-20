@@ -1,12 +1,19 @@
-// Single source of truth for the loopback host + ports the runtime servers bind to (main,
-// event-stream endpoint, control UI).
+// Single source of truth for the host + ports the runtime servers bind to (main, event-stream
+// endpoint, control UI).
 export const NETWORK_HOST = '127.0.0.1';
+
+// Bind address that accepts connections on every interface (loopback + LAN), used when LAN access
+// is enabled. Advertised URLs still use the detected LAN IP, since 0.0.0.0 isn't connectable.
+export const LAN_BIND_HOST = '0.0.0.0';
 
 export const NETWORK_PORTS = {
   overlayHost: 3333,
-  gsiListener: 3334,
-  overlayEventStream: 3335
+  gsiListener: 3334
 } as const;
+
+// The SSE route the overlay host (and the packaged web host) expose for the realtime feed; served
+// on the page's own origin, so a client connects to `${location.origin}${OVERLAY_EVENTS_PATH}`.
+export const OVERLAY_EVENTS_PATH = '/events';
 
 // The user-configurable ports. The event-stream port is intentionally absent: it is internal
 // plumbing baked into the overlay bundle that the user never types anywhere, so it stays fixed.
@@ -20,27 +27,59 @@ export const DEFAULT_CONFIGURABLE_PORTS: ConfigurablePorts = {
   gsiListener: NETWORK_PORTS.gsiListener
 };
 
-// What NETWORK_GET_CHANNEL returns: the effective ports plus the URLs derived from them, so the
-// renderer doesn't have to reconstruct them (and the OBS/GSI URLs stay defined in one place).
-export interface NetworkInfo {
+// Persisted network settings: the configurable ports plus whether the overlay host and GSI listener
+// are exposed to the LAN (default off = loopback only, for an OBS or observer PC separate from the
+// app). The web host that serves the studio UI always stays on loopback.
+export interface NetworkSettings {
   ports: ConfigurablePorts;
-  overlayUrl: string;
-  gsiUrl: string;
+  allowLanAccess: boolean;
 }
 
-export function buildNetworkInfo(ports: ConfigurablePorts): NetworkInfo {
+export const DEFAULT_NETWORK_SETTINGS: NetworkSettings = {
+  ports: { ...DEFAULT_CONFIGURABLE_PORTS },
+  allowLanAccess: false
+};
+
+// Which integration servers couldn't bind their port at startup (port busy). Non-fatal: the app
+// still opens, and the UI surfaces it so the user can change the port.
+export interface PortConflicts {
+  overlayHost: boolean;
+  gsiListener: boolean;
+}
+
+// What NETWORK_GET_CHANNEL returns: the ports, the LAN toggle, whether a changed toggle needs a
+// restart to take effect, the overlay/GSI URLs built from the advertised host, and any port that
+// could not be bound.
+export interface NetworkInfo {
+  ports: ConfigurablePorts;
+  allowLanAccess: boolean;
+  restartRequired: boolean;
+  overlayUrl: string;
+  gsiUrl: string;
+  portConflicts: PortConflicts;
+}
+
+// advertisedHost is the address clients connect to: loopback, or the machine's LAN IP when LAN
+// access is active. lanActive is what's bound right now, so a just-changed toggle reads as a
+// pending restart rather than an immediate change.
+export function buildNetworkInfo(
+  settings: NetworkSettings,
+  advertisedHost: string,
+  lanActive: boolean,
+  portConflicts: PortConflicts
+): NetworkInfo {
   return {
-    ports,
-    overlayUrl: `http://${NETWORK_HOST}:${ports.overlayHost}/overlay/`,
-    gsiUrl: `http://${NETWORK_HOST}:${ports.gsiListener}/gsi`
+    ports: settings.ports,
+    allowLanAccess: settings.allowLanAccess,
+    restartRequired: settings.allowLanAccess !== lanActive,
+    overlayUrl: `http://${advertisedHost}:${settings.ports.overlayHost}/overlay/`,
+    gsiUrl: `http://${advertisedHost}:${settings.ports.gsiListener}/gsi`,
+    portConflicts
   };
 }
 
 const MIN_PORT = 1024;
 const MAX_PORT = 65535;
-
-// Derived (not hardcoded) so the reserved set stays correct if NETWORK_PORTS changes.
-const RESERVED_PORTS = [NETWORK_PORTS.overlayEventStream] as const;
 
 export interface PortValidationError {
   field: keyof ConfigurablePorts;
@@ -62,13 +101,6 @@ export function validatePorts(ports: ConfigurablePorts): PortValidationError | n
       return {
         field,
         message: `${label} must be a whole number between ${MIN_PORT} and ${MAX_PORT}.`
-      };
-    }
-
-    if ((RESERVED_PORTS as readonly number[]).includes(value)) {
-      return {
-        field,
-        message: `Port ${value} is reserved by Observer Studio's internal event stream.`
       };
     }
   }
