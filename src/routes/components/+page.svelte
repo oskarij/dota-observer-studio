@@ -8,8 +8,7 @@
   import { SELECTED_PLAYER_ID } from '../../shared/componentOptions.js';
   import { OVERLAY_ELEMENT_DEFINITIONS } from '../../shared/overlayElementCatalog.js';
 
-  // Seeded from the URL's ?id= (set by the overlay page's gear); the dropdown then drives it
-  // locally. Falls back to the first component so the page is never empty.
+  // Seeded from the URL's ?id= (set by the overlay page's gear); the dropdown then drives it locally.
   let selectedId = $state(page.url.searchParams.get('id') ?? OVERLAY_ELEMENT_DEFINITIONS[0]?.id);
 
   let selected = $derived(OVERLAY_ELEMENT_DEFINITIONS.find((element) => element.id === selectedId));
@@ -24,7 +23,11 @@
   <!-- The component selector doubles as the page title. -->
   <div class="flex flex-col gap-1">
     <span class="text-sm font-medium text-muted-foreground">Components</span>
-    <Select.Root type="single" value={selectedId ?? ''} onValueChange={(value) => (selectedId = value)}>
+    <Select.Root
+      type="single"
+      value={selectedId ?? ''}
+      onValueChange={(value) => (selectedId = value)}
+    >
       <Select.Trigger class="w-64">
         <span class="min-w-0 flex-1 truncate text-left font-semibold">
           {selected?.name ?? 'Select a component'}
@@ -38,8 +41,6 @@
     </Select.Root>
   </div>
 
-  <!-- Settings layout: most components are a single column of setting boxes; Selected Player splits
-       into options (left) and the known-players manager (right), each scrolling independently. -->
   <div class="flex min-h-0 w-full flex-1 flex-col">
     {#if selected === undefined}
       <div class="max-w-2xl rounded-lg border bg-card p-4 text-sm text-muted-foreground shadow-sm">
