@@ -19,6 +19,9 @@ export interface GsiListener {
 }
 
 const DEFAULT_GSI_PATH = '/gsi';
+// GSI payloads are small (gsiConfig trims the data blocks), so a tight cap avoids a localhost OOM
+// from an oversized POST to the unauthenticated listener.
+const MAX_GSI_BODY_BYTES = 256 * 1024;
 
 class HttpError extends Error {
   constructor(
@@ -38,6 +41,11 @@ export function createGsiListener(config: GsiListenerConfig): GsiListener {
     port: config.port,
     onRequest(request, response) {
       void handleRequest(request, response).catch((error: unknown) => {
+        // The request may have been aborted mid-body; only respond if the socket is still writable.
+        if (!response.writable) {
+          return;
+        }
+
         const statusCode = error instanceof HttpError ? error.statusCode : 500;
         const message = error instanceof Error ? error.message : 'Unexpected GSI listener error';
 
@@ -79,6 +87,7 @@ export function createGsiListener(config: GsiListenerConfig): GsiListener {
 async function readJsonBody(request: IncomingMessage): Promise<unknown> {
   return await new Promise<unknown>((resolve, reject) => {
     const chunks: Buffer[] = [];
+    let total = 0;
     let settled = false;
 
     function resolveOnce(value: unknown): void {
@@ -101,6 +110,13 @@ async function readJsonBody(request: IncomingMessage): Promise<unknown> {
 
     request.on('data', (chunk: Buffer | string) => {
       const buffer = typeof chunk === 'string' ? Buffer.from(chunk) : chunk;
+      total += buffer.length;
+
+      if (total > MAX_GSI_BODY_BYTES) {
+        rejectOnce(new HttpError(413, 'GSI payload too large'));
+        request.destroy();
+        return;
+      }
 
       chunks.push(buffer);
     });
@@ -122,6 +138,12 @@ async function readJsonBody(request: IncomingMessage): Promise<unknown> {
 
     request.once('error', (error) => {
       rejectOnce(error);
+    });
+
+    // A client that drops the connection mid-body never emits 'end'; settle so the buffered chunks
+    // are released instead of being retained until the socket is eventually reaped.
+    request.once('close', () => {
+      rejectOnce(new HttpError(400, 'GSI request closed before the body finished'));
     });
   });
 }

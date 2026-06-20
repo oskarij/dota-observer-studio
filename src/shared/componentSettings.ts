@@ -1,9 +1,8 @@
 import { createDefaultComponentOptions, type ComponentOptions } from './componentOptions.js';
 import { OVERLAY_ELEMENT_DEFINITIONS } from './overlayElementCatalog.js';
 
-// General per-component overlay settings. Kept framework-agnostic so the overlay
-// elements consume the same type in the studio preview and the live overlay.
-// `position` is the top-left offset in stage (1920x1080) coordinates.
+// Per-component overlay settings; framework-agnostic so the studio preview and live overlay
+// share the type. `position` is the top-left offset in stage (1920x1080) coordinates.
 export interface ComponentSettings {
   position: { x: number; y: number };
   size: number; // scale percentage
@@ -26,8 +25,7 @@ export function createDefaultComponentSettings(): ComponentSettings {
   };
 }
 
-// Per-component visibility + styling + behavioral options, persisted and broadcast to the live
-// overlay as one unit.
+// Per-component visibility + styling + behavioral options, persisted and broadcast as one unit.
 export interface OverlayConfig {
   enabled: Record<string, boolean>;
   settings: Record<string, ComponentSettings>;
@@ -44,4 +42,23 @@ export function createDefaultOverlayConfig(): OverlayConfig {
     ),
     options: createDefaultComponentOptions()
   };
+}
+
+// Minimal structural check for a config crossing a trust/process boundary (an imported file or an
+// SSE payload). The field-level merge over defaults fills in anything missing afterward.
+export function isOverlayConfigShape(value: unknown): value is OverlayConfig {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  return (
+    isPlainObject(candidate.enabled) &&
+    isPlainObject(candidate.settings) &&
+    isPlainObject(candidate.options)
+  );
+}
+
+function isPlainObject(value: unknown): boolean {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

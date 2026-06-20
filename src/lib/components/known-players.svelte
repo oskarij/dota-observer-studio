@@ -10,8 +10,13 @@
   import { Button } from '$lib/components/ui/button/index.js';
   import { Input } from '$lib/components/ui/input/index.js';
   import { knownPlayers } from '$lib/state/knownPlayers.svelte.js';
+  import { isValidAccountId } from '../../shared/accountId.js';
   import type { KnownPlayer } from '../../shared/knownPlayer.js';
-  import { parseKnownPlayersCsv, serializeKnownPlayersCsv } from '../../shared/knownPlayersCsv.js';
+  import {
+    parseKnownPlayersCsv,
+    parseMmr,
+    serializeKnownPlayersCsv
+  } from '../../shared/knownPlayersCsv.js';
 
   // Editable draft fields are strings (raw input); committed to a KnownPlayer on add/save.
   interface PlayerDraft {
@@ -24,8 +29,7 @@
 
   let search = $state('');
   let addDraft = $state<PlayerDraft>({ ...EMPTY_DRAFT });
-  // Account id of the row being edited, or null when none. The account id itself is the primary key
-  // and isn't editable inline — change it by removing and re-adding.
+  // Account id of the row being edited (null when none). It's the primary key, so it's not editable inline; change it by removing and re-adding.
   let editingId = $state<string | null>(null);
   let editDraft = $state<PlayerDraft>({ ...EMPTY_DRAFT });
 
@@ -41,21 +45,6 @@
       (player) => player.name.toLowerCase().includes(query) || player.accountId.includes(query)
     );
   });
-
-  // Account ids are numeric Steam32 ids; reject anything else so the SQLite key stays clean.
-  function isValidAccountId(accountId: string): boolean {
-    return /^[0-9]+$/u.test(accountId.trim());
-  }
-
-  function parseMmr(raw: string): number | null {
-    const trimmed = raw.trim();
-    if (trimmed === '') {
-      return null;
-    }
-
-    const mmr = Number(trimmed);
-    return Number.isFinite(mmr) ? Math.round(mmr) : null;
-  }
 
   function toPlayer(draft: PlayerDraft): KnownPlayer {
     return {
@@ -102,7 +91,6 @@
     editingId = null;
   }
 
-  // Transient status line for the CSV import/export actions.
   let csvStatus = $state<string | null>(null);
   let busy = $state(false);
 
@@ -186,7 +174,6 @@
     <p class="mb-2 text-xs text-muted-foreground">{csvStatus}</p>
   {/if}
 
-  <!-- Add row -->
   <form
     class="mb-3 flex items-end gap-2"
     onsubmit={(event) => {
@@ -211,10 +198,8 @@
     </Button>
   </form>
 
-  <!-- Search -->
   <Input class="mb-2" bind:value={search} placeholder="Search by name or account ID" />
 
-  <!-- List -->
   <div class="flex min-h-0 flex-1 flex-col divide-y overflow-y-auto rounded-md border">
     {#if filtered.length === 0}
       <div class="px-3 py-6 text-center text-sm text-muted-foreground">

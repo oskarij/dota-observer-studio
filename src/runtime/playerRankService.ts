@@ -1,11 +1,12 @@
 import type { PlayerRankStore } from '../persistence/playerRankStore.js';
+import { isValidAccountId } from '../shared/accountId.js';
 import { getSelectedDotaGsiPlayer } from '../shared/dotaGsiPayload.js';
 import type { PlayerRank } from '../shared/overlayPlayerRankEvent.js';
 import type { GsiPayload } from './gsiListener.js';
 import { fetchPlayerRankTier } from './openDotaClient.js';
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
-// OpenDota's per-minute window with a little headroom — used to back off after a transient failure.
+// OpenDota's per-minute window with a little headroom, used to back off after a transient failure.
 const TRANSIENT_BACKOFF_MS = 70_000;
 
 export interface PlayerRankSink {
@@ -15,12 +16,12 @@ export interface PlayerRankSink {
 export interface PlayerRankServiceConfig {
   readonly store: PlayerRankStore;
   readonly sink: PlayerRankSink;
-  /** Injectable for tests; defaults to Date.now. */
+  // Injectable for tests.
   readonly now?: () => number;
 }
 
 export interface PlayerRankService {
-  /** Inspect a GSI payload for the selected player and ensure its rank is cached + pushed. */
+  // Inspect a GSI payload for the selected player and ensure its rank is cached + pushed.
   handlePayload(payload: GsiPayload): void;
 }
 
@@ -82,7 +83,9 @@ export function createPlayerRankService(config: PlayerRankServiceConfig): Player
       const selected = getSelectedDotaGsiPlayer(payload);
       const accountId = selected?.player?.accountid;
 
-      if (accountId === undefined) {
+      // A non-numeric id can only come from a malformed or forged GSI payload; drop it before it
+      // becomes a cache key or an OpenDota URL segment.
+      if (accountId === undefined || !isValidAccountId(accountId)) {
         return;
       }
 

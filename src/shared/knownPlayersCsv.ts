@@ -1,3 +1,4 @@
+import { isValidAccountId } from './accountId.js';
 import type { KnownPlayer } from './knownPlayer.js';
 
 // CSV backup format for the known-players list. Pure string code (no DOM/Node APIs) so the renderer
@@ -8,7 +9,7 @@ const HEADER = ['accountId', 'name', 'mmr'] as const;
 
 export interface ParseResult {
   players: KnownPlayer[];
-  // Rows dropped for being invalid (bad account id, blank name) or duplicate, so the UI can report it.
+  // Rows dropped as invalid or duplicate, so the UI can report a count.
   skipped: number;
 }
 
@@ -45,7 +46,7 @@ export function parseKnownPlayersCsv(text: string): ParseResult {
     }
 
     const accountId = (row[0] ?? '').trim();
-    const name = (row[1] ?? '').trim();
+    const name = unguardFormulaField((row[1] ?? '').trim());
 
     if (!isValidAccountId(accountId) || name === '' || seen.has(accountId)) {
       skipped += 1;
@@ -59,11 +60,7 @@ export function parseKnownPlayersCsv(text: string): ParseResult {
   return { players, skipped };
 }
 
-function isValidAccountId(accountId: string): boolean {
-  return /^[0-9]+$/u.test(accountId);
-}
-
-function parseMmr(raw: string): number | null {
+export function parseMmr(raw: string): number | null {
   const trimmed = raw.trim();
   if (trimmed === '') {
     return null;
@@ -73,12 +70,24 @@ function parseMmr(raw: string): number | null {
   return Number.isFinite(mmr) ? Math.round(mmr) : null;
 }
 
+// A leading =, +, -, or @ makes spreadsheet apps treat a cell as a formula.
+const FORMULA_LEAD = /^[=+\-@]/u;
+
 function escapeField(value: string): string {
-  // Quote per RFC 4180 when the field contains a comma, quote, or newline.
-  if (/[",\r\n]/u.test(value)) {
-    return `"${value.replace(/"/g, '""')}"`;
+  // Neutralize spreadsheet formula injection by prefixing a risky lead character with an apostrophe
+  // (reversed on import), then quote per RFC 4180 when the field contains a comma, quote, or newline.
+  const guarded = FORMULA_LEAD.test(value) ? `'${value}` : value;
+
+  if (/[",\r\n]/u.test(guarded)) {
+    return `"${guarded.replace(/"/g, '""')}"`;
   }
-  return value;
+  return guarded;
+}
+
+// Reverse the export-side formula guard: drop a leading apostrophe only when it shields a formula
+// character, so a name that legitimately starts with an apostrophe is left intact.
+function unguardFormulaField(value: string): string {
+  return value.startsWith("'") && FORMULA_LEAD.test(value.slice(1)) ? value.slice(1) : value;
 }
 
 // Minimal RFC 4180 reader: handles quoted fields, escaped quotes ("") and quoted newlines.

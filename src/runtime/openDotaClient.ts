@@ -5,7 +5,7 @@ import { logWarning } from '../shared/logger.js';
 const OPEN_DOTA_PLAYERS_URL = 'https://api.opendota.com/api/players';
 
 // 'resolved' is a definitive answer worth persisting: a 200 (rank_tier present or null) or a 404
-// (account OpenDota has never indexed -> no medal). 'transient' is 429/5xx/network — don't persist,
+// (account OpenDota has never indexed -> no medal). 'transient' is 429/5xx/network; don't persist,
 // retry after a short backoff.
 export type RankFetchResult =
   | { readonly outcome: 'resolved'; readonly rankTier: number | null }
@@ -13,7 +13,7 @@ export type RankFetchResult =
 
 export async function fetchPlayerRankTier(accountId: string): Promise<RankFetchResult> {
   try {
-    const response = await fetch(`${OPEN_DOTA_PLAYERS_URL}/${accountId}`);
+    const response = await fetch(`${OPEN_DOTA_PLAYERS_URL}/${encodeURIComponent(accountId)}`);
 
     // Unknown account: a definitive "no data", cached as null so we don't re-ask for 7 days.
     if (response.status === 404) {

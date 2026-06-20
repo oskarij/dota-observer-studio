@@ -2,7 +2,7 @@ import { ipcMain, type OpenDialogOptions, type SaveDialogOptions } from 'electro
 import { readFile, writeFile } from 'node:fs/promises';
 
 import type { OverlayGsiEventStream } from '../../runtime/overlayGsiEventStream.js';
-import type { OverlayConfig } from '../../shared/componentSettings.js';
+import { isOverlayConfigShape, type OverlayConfig } from '../../shared/componentSettings.js';
 import {
   SETTINGS_EXPORT_CHANNEL,
   SETTINGS_GET_CHANNEL,
@@ -100,22 +100,4 @@ export function registerSettingsIpc(eventStream: OverlayGsiEventStream): () => v
     ipcMain.removeHandler(SETTINGS_EXPORT_CHANNEL);
     ipcMain.removeHandler(SETTINGS_IMPORT_CHANNEL);
   };
-}
-
-// Minimal structural check; settingsStore.get() handles the field-level merge over defaults.
-function isOverlayConfigShape(value: unknown): value is OverlayConfig {
-  if (typeof value !== 'object' || value === null) {
-    return false;
-  }
-
-  const candidate = value as Record<string, unknown>;
-  return (
-    isPlainObject(candidate.enabled) &&
-    isPlainObject(candidate.settings) &&
-    isPlainObject(candidate.options)
-  );
-}
-
-function isPlainObject(value: unknown): boolean {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
