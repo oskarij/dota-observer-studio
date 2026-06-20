@@ -4,10 +4,7 @@
   import * as Select from '$lib/components/ui/select/index.js';
   import { Switch } from '$lib/components/ui/switch/index.js';
   import * as Tooltip from '$lib/components/ui/tooltip/index.js';
-  import type {
-    PlayerNameSource,
-    SelectedPlayerOptions
-  } from '../../shared/componentOptions.js';
+  import type { PlayerNameSource, SelectedPlayerOptions } from '../../shared/componentOptions.js';
 
   // Bindable + optional to match the dynamic-index bind on the Components page (the indexed
   // lookup is ComponentOptions | undefined under noUncheckedIndexedAccess).
@@ -124,7 +121,8 @@
         <div class="flex items-center justify-between gap-4 pt-3 {ingame ? 'opacity-60' : ''}">
           <div class="flex min-w-0 flex-col gap-0.5">
             <span class="text-sm font-medium">MMR</span>
-            <span class="text-xs text-muted-foreground">Show the player's MMR next to the medal.</span
+            <span class="text-xs text-muted-foreground"
+              >Show the player's MMR next to the medal.</span
             >
           </div>
           <!-- Disabled in in-game mode: MMR isn't public, so it can't be shown (see the Rank tooltip). -->
