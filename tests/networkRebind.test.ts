@@ -36,13 +36,10 @@ async function postPayload(port: number, payload: GsiPayload): Promise<number> {
   const body = JSON.stringify(payload);
 
   return await new Promise<number>((resolve, reject) => {
-    const req = request(
-      { host: HOST, port, path: '/gsi', method: 'POST' },
-      (response) => {
-        response.resume();
-        response.once('end', () => resolve(response.statusCode ?? 0));
-      }
-    );
+    const req = request({ host: HOST, port, path: '/gsi', method: 'POST' }, (response) => {
+      response.resume();
+      response.once('end', () => resolve(response.statusCode ?? 0));
+    });
     req.once('error', reject);
     req.end(body);
   });
