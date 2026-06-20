@@ -118,6 +118,7 @@ export default tseslint.config(
     files: ['src/lib/components/ui/**/*.{svelte,ts}', 'src/lib/hooks/**/*.svelte.ts'],
     rules: {
       '@typescript-eslint/consistent-type-definitions': 'off',
+      '@typescript-eslint/no-shadow': 'off',
       '@typescript-eslint/no-useless-default-assignment': 'off',
       'comma-dangle': 'off',
       'no-undef': 'off',
