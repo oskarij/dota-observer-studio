@@ -6,7 +6,6 @@
   import * as Tooltip from '$lib/components/ui/tooltip/index.js';
   import type {
     PlayerNameSource,
-    RankValueDisplay,
     SelectedPlayerOptions
   } from '../../shared/componentOptions.js';
 
@@ -17,10 +16,6 @@
   const NAME_SOURCE_LABELS: Record<PlayerNameSource, string> = {
     ingame: 'In-game name',
     profile: 'Known name'
-  };
-  const RANK_VALUE_LABELS: Record<RankValueDisplay, string> = {
-    hidden: 'Hidden',
-    mmr: 'MMR'
   };
 </script>
 
@@ -128,38 +123,21 @@
 
         <div class="flex items-center justify-between gap-4 pt-3 {ingame ? 'opacity-60' : ''}">
           <div class="flex min-w-0 flex-col gap-0.5">
-            <span class="text-sm font-medium">Value</span>
-            <span class="text-xs text-muted-foreground"
-              >Show MMR next to the medal, or hide it.</span
+            <span class="text-sm font-medium">MMR</span>
+            <span class="text-xs text-muted-foreground">Show the player's MMR next to the medal.</span
             >
           </div>
-          {#if ingame}
-            <div
-              class="flex h-8 w-40 shrink-0 cursor-not-allowed items-center rounded-lg border border-input px-2.5 text-sm text-muted-foreground"
-            >
-              Unavailable
-            </div>
-          {:else}
-            <Select.Root
-              type="single"
-              value={options.rankValue}
-              onValueChange={(value) => {
-                if (options) {
-                  options.rankValue = value as RankValueDisplay;
-                }
-              }}
-            >
-              <Select.Trigger class="w-40 shrink-0">
-                <span class="min-w-0 flex-1 truncate text-left">
-                  {RANK_VALUE_LABELS[options.rankValue]}
-                </span>
-              </Select.Trigger>
-              <Select.Content>
-                <Select.Item value="mmr" label={RANK_VALUE_LABELS.mmr}>MMR</Select.Item>
-                <Select.Item value="hidden" label={RANK_VALUE_LABELS.hidden}>Hidden</Select.Item>
-              </Select.Content>
-            </Select.Root>
-          {/if}
+          <!-- Disabled in in-game mode: MMR isn't public, so it can't be shown (see the Rank tooltip). -->
+          <Switch
+            class="shrink-0"
+            disabled={ingame}
+            checked={!ingame && options.rankValue === 'mmr'}
+            onCheckedChange={(checked) => {
+              if (options) {
+                options.rankValue = checked ? 'mmr' : 'hidden';
+              }
+            }}
+          />
         </div>
       </div>
     </div>
