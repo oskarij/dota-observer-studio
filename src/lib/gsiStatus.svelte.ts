@@ -1,5 +1,4 @@
-import { GSI_STATUS_EVENT } from '../shared/gsiStatus.js';
-import { OVERLAY_REALTIME_EVENTS_URL } from '../shared/overlayEventStreamEndpoint.js';
+import { connectOverlayRealtime } from '../overlay/overlayRealtimeClient.js';
 
 // `disconnected` covers both a stale feed and an unreachable stream: the control
 // window can see that data stopped, but not why.
@@ -13,24 +12,17 @@ export class GsiStatusWatcher {
   }
 
   start(): () => void {
-    // EventSource is unavailable during SSR / prerender.
-    if (typeof EventSource === 'undefined') {
-      return () => {};
-    }
-
-    const events = new EventSource(OVERLAY_REALTIME_EVENTS_URL);
-
-    events.addEventListener(GSI_STATUS_EVENT, (event) => {
-      const data = (event as MessageEvent<string>).data;
-      this.#status = data === 'live' ? 'connected' : 'disconnected';
+    // Routed through the shared SSE decoder so this watcher follows the same connection contract as
+    // the overlay and the preview feed instead of opening its own raw EventSource.
+    return connectOverlayRealtime({
+      onStatus: (status) => {
+        this.#status = status === 'live' ? 'connected' : 'disconnected';
+      },
+      onConnectionChange: (state) => {
+        if (state === 'disconnected') {
+          this.#status = 'disconnected';
+        }
+      }
     });
-
-    events.onerror = () => {
-      this.#status = 'disconnected';
-    };
-
-    return () => {
-      events.close();
-    };
   }
 }
