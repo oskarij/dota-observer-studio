@@ -1,6 +1,9 @@
 {
   "name": "dota-observer-studio",
   "version": "0.1.0",
+  "description": "Desktop app for building Dota 2 spectator stream overlays.",
+  "author": "oskarij",
+  "license": "MIT",
   "private": true,
   "type": "module",
   "main": "build/electron/electron/main.js",

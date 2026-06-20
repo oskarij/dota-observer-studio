@@ -12,6 +12,9 @@ files:
 directories:
   output: release
 
+# Stable, descriptive zip name instead of electron-builder's default.
+artifactName: ${productName}-${version}-win-x64.${ext}
+
 win:
   # zip = a folder with Observer Studio.exe + resources, compressed. Extract and run, no installer.
   target:
@@ -19,6 +22,9 @@ win:
   # logo.png is 263x263 (>=256); electron-builder generates the multi-size exe icon from it.
   # (icon.ico is only 32x32 and is still used for the in-app window icon at runtime.)
   icon: static/logo.png
+  # Identifies the publisher in the exe metadata. The app is unsigned, so this is informational
+  # (populating the version resource reduces some AV false positives), not a verified signature.
+  publisherName: oskarij
   # Code signing is optional. To sign, drop the cert here (or set CSC_LINK / CSC_KEY_PASSWORD env vars):
   # certificateFile: path/to/cert.pfx
   # certificatePassword: ...
