@@ -128,7 +128,7 @@ export function buildGsiConfig(host: string, gsiPort: number): string {
         "items"          "0"
         "events"         "0"
         "buildings"      "0"
-        "league"         "0"
+        "league"         "1"
         "draft"          "0"
         "wearables"      "0"
         "minimap"        "0"
