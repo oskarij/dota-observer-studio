@@ -16,7 +16,7 @@ export const OVERLAY_ELEMENT_DEFINITIONS: OverlayElementDefinition[] = [
     name: 'Selected Player'
   },
   {
-    enabled: true,
+    enabled: false,
     id: FEARLESS_DRAFT_ID,
     name: 'Fearless Draft'
   }

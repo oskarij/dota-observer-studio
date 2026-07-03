@@ -17,14 +17,12 @@ export interface ComponentSettings {
 // (selected-player); other elements want a different anchor (the fearless grid sits near the top so
 // it can grow downward), so they override just the bits that differ.
 const COMPONENT_SETTINGS_OVERRIDES: Record<string, Partial<ComponentSettings>> = {
-  'fearless-draft': { position: { x: 510, y: 140 } }
+  'fearless-draft': { position: { x: 510, y: 25 } }
 };
 
 export function createDefaultComponentSettings(id?: string): ComponentSettings {
   const base: ComponentSettings = {
-    // Top-left offset that reproduces the original bottom-left placement (~32px above
-    // the 1080px floor); see selectedPlayer.css for the matching fallbacks.
-    position: { x: 32, y: 994 },
+    position: { x: 545, y: 852 },
     size: 100,
     font: { family: 'RadianceOverlay', weight: 600, italic: false },
     color: '#f8fbff',
