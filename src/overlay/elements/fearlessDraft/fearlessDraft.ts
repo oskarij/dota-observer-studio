@@ -50,8 +50,11 @@ export function mountFearlessDraftElement(container: HTMLElement): OverlayElemen
       root.dataset.enabled = String(enabled);
     },
     update(gsiData: DotaGsiData) {
+      // No bans means nothing to show — first game of a series, or not part of a series at all.
       const shouldShow =
-        root.dataset.enabled !== 'false' && gsiData.map?.game_state === DRAFT_GAME_STATE;
+        root.dataset.enabled !== 'false' &&
+        gsiData.map?.game_state === DRAFT_GAME_STATE &&
+        bannedHeroIds.length > 0;
 
       if (!shouldShow) {
         visible = false;
