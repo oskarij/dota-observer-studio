@@ -110,7 +110,6 @@ test('fearless capture records a locked lineup once, deduped by match', () => {
   assert.equal(captured.length, 1);
   assert.equal(captured[0]?.matchId, '999');
   assert.equal(captured[0]?.capturedAt, 1000);
-  assert.equal(captured[0]?.source, 'spectated');
   assert.equal(captured[0]?.heroIds.length, 10);
 });
 

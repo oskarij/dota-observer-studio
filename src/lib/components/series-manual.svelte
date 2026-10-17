@@ -45,9 +45,6 @@
   }
 
   function gameLabel(game: WatchedGame): string {
-    if (game.radiantTeam !== undefined && game.direTeam !== undefined) {
-      return `${game.radiantTeam} vs ${game.direTeam}`;
-    }
     const names = (game.playerNames ?? []).filter((name) => name !== '');
     return names.length > 0 ? names.slice(0, 3).join(', ') : `Match ${game.matchId}`;
   }

@@ -124,10 +124,6 @@ export class FearlessSeriesStore {
 }
 
 function seriesLabel(game: WatchedGame): string {
-  if (game.radiantTeam !== undefined && game.direTeam !== undefined) {
-    return `${game.radiantTeam} vs ${game.direTeam}`;
-  }
-
   const names = game.playerNames ?? [];
   if (names.some((name) => name !== '')) {
     const radiant = names

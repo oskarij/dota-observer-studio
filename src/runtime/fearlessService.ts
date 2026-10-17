@@ -93,8 +93,7 @@ export function createFearlessService(options: FearlessServiceOptions) {
         const game: WatchedGame = {
           matchId,
           capturedAt: Date.now(),
-          heroIds: result.heroIds,
-          source: 'valve'
+          heroIds: result.heroIds
         };
         store.upsertWatchedGame(game);
         options.notifyWatched();

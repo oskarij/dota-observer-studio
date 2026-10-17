@@ -46,7 +46,6 @@ export function createFearlessCapture(options: {
         matchId,
         capturedAt: now(),
         heroIds,
-        source: 'spectated',
         ...(hasNames ? { playerNames } : {}),
         ...(accountIds.length > 0 ? { accountIds } : {})
       });

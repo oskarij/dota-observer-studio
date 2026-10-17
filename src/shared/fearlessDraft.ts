@@ -1,20 +1,9 @@
-// Shared fearless-draft types + helpers, framework-agnostic so the main process (persistence + IPC),
-// the renderer (studio UI), and the overlay all use one shape.
-
-// How a watched game's heroes were obtained: live from a spectated game's GSI feed, fetched from
-// Valve for a game the operator didn't spectate, or hand-picked (when Valve can't parse it).
-export type WatchedGameSource = 'spectated' | 'valve' | 'opendota' | 'manual';
-
-// A game whose 10 picked heroes have been recorded, available for the operator to add to a series.
-// The optional metadata is best-effort for labelling the match in the picker: team names come from
-// Valve pro matches; player names (aligned with heroIds) come from either source when available.
+// A recorded game the operator can add to a series. playerNames align with heroIds and only label
+// the game in the picker.
 export interface WatchedGame {
   readonly matchId: string;
   readonly capturedAt: number; // epoch ms
   readonly heroIds: number[];
-  readonly source: WatchedGameSource;
-  readonly radiantTeam?: string;
-  readonly direTeam?: string;
   readonly playerNames?: string[];
   // Spectated games only: who played, so the game can be linked to saved teams via known players.
   readonly accountIds?: string[];
