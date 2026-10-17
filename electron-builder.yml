@@ -1,4 +1,4 @@
-appId: com.observerstudio.app
+appId: io.github.oskarij.observerstudio
 productName: Observer Studio
 
 # Production node_modules are added automatically.

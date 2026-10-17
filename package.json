@@ -1,9 +1,17 @@
 {
   "name": "dota-observer-studio",
-  "version": "0.3.0",
+  "version": "1.0.0",
   "description": "Desktop app for building Dota 2 spectator stream overlays.",
   "author": "oskarij",
   "license": "MIT",
+  "homepage": "https://github.com/oskarij/dota-observer-studio#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/oskarij/dota-observer-studio.git"
+  },
+  "bugs": {
+    "url": "https://github.com/oskarij/dota-observer-studio/issues"
+  },
   "private": true,
   "type": "module",
   "main": "build/electron/electron/main.js",

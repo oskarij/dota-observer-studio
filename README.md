@@ -20,11 +20,18 @@ it, the overlay uses the system font.
    at your canvas size. Build both scenes on the **Overlay** page; its Draft / In-game tabs switch
    between them.
 
-GSI only sends data while you're spectating or in a match, so the status stays "Not connected" until
-then.
-
 **Updating from an older version:** run **Settings → Game integration → Install GSI config** again
-and restart Dota. The draft board needs the draft data, which older configs turn off.
+and restart Dota. Older configs have no auth token, so Observer Studio rejects their updates and
+the status shows "Config outdated".
+
+## Troubleshooting
+
+- **Not connected:** Dota sends data only while you spectate or play. Check the
+  `-gamestateintegration` launch option, install the GSI config again and restart Dota.
+- **Config outdated:** install the GSI config again and restart Dota.
+- **Overlay empty during a live game:** watch through DotaTV, the delayed spectator feed. Watching
+  live from a team's view sends data for one hero only, which the overlay cannot use.
+- **Anything else:** **Settings → Maintenance → Open logs folder** opens the app's log.
 
 ## Teams, scores and fearless picks
 
