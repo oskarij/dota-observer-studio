@@ -4,7 +4,7 @@ import type { DotaGsiData } from '../shared/dotaGsiPayload.js';
 import type { FearlessSeriesPayload } from '../shared/fearlessDraft.js';
 import type { KnownPlayer } from '../shared/knownPlayer.js';
 import type { OverlayPhase } from '../shared/overlayElementCatalog.js';
-import type { PlayerRank } from '../shared/overlayPlayerRankEvent.js';
+import type { PlayerRank } from '../shared/overlayEvents.js';
 import type { SeriesStatePayload } from '../shared/seriesState.js';
 
 import { overlayElementRegistry } from './elementRegistry.js';

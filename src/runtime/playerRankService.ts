@@ -1,7 +1,7 @@
 import type { PlayerRankRecord, PlayerRankStore } from '../persistence/playerRankStore.js';
 import { isValidAccountId } from '../shared/accountId.js';
 import { getSelectedDotaGsiPlayer } from '../shared/dotaGsiPayload.js';
-import type { PlayerRank } from '../shared/overlayPlayerRankEvent.js';
+import type { PlayerRank } from '../shared/overlayEvents.js';
 import type { GsiPayload } from './gsiListener.js';
 import { fetchPlayerRankTier } from './openDotaClient.js';
 

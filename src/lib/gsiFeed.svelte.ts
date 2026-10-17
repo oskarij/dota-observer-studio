@@ -1,6 +1,6 @@
 import type { DotaGsiData } from '../shared/dotaGsiPayload.js';
 import { connectOverlayRealtime } from '../overlay/overlayRealtimeClient.js';
-import type { PlayerRank } from '../shared/overlayPlayerRankEvent.js';
+import type { PlayerRank } from '../shared/overlayEvents.js';
 import type { SeriesStatePayload } from '../shared/seriesState.js';
 
 // The realtime stream as reactive state, for the studio preview's Live mode.

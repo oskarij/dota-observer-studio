@@ -1,15 +1,19 @@
 import { mergeOverlayConfigDefaults, type OverlayConfig } from '../shared/componentSettings.js';
 import type { DotaGsiData } from '../shared/dotaGsiPayload.js';
 import type { FearlessSeriesPayload } from '../shared/fearlessDraft.js';
-import { GSI_STATUS_EVENT, type GsiStatus } from '../shared/gsiStatus.js';
+import type { GsiStatus } from '../shared/gsiStatus.js';
 import type { KnownPlayer } from '../shared/knownPlayer.js';
 import { logWarning } from '../shared/logger.js';
 import { OVERLAY_EVENTS_PATH } from '../shared/networkConfig.js';
-import { OVERLAY_FEARLESS_EVENT } from '../shared/overlayFearlessEvent.js';
-import { OVERLAY_KNOWN_PLAYERS_EVENT } from '../shared/overlayKnownPlayersEvent.js';
-import { OVERLAY_PLAYER_RANK_EVENT, type PlayerRank } from '../shared/overlayPlayerRankEvent.js';
-import { OVERLAY_SERIES_EVENT } from '../shared/overlaySeriesEvent.js';
-import { OVERLAY_SETTINGS_EVENT } from '../shared/overlaySettingsEvent.js';
+import {
+  GSI_STATUS_EVENT,
+  OVERLAY_FEARLESS_EVENT,
+  OVERLAY_KNOWN_PLAYERS_EVENT,
+  OVERLAY_PLAYER_RANK_EVENT,
+  OVERLAY_SERIES_EVENT,
+  OVERLAY_SETTINGS_EVENT,
+  type PlayerRank
+} from '../shared/overlayEvents.js';
 import type { SeriesStatePayload } from '../shared/seriesState.js';
 
 export type RealtimeConnectionState = 'connected' | 'disconnected';

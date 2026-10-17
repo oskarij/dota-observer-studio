@@ -3,7 +3,7 @@ import type { ComponentSettings } from '../shared/componentSettings.js';
 import type { DotaGsiData } from '../shared/dotaGsiPayload.js';
 import type { FearlessSeriesPayload } from '../shared/fearlessDraft.js';
 import type { KnownPlayer } from '../shared/knownPlayer.js';
-import type { PlayerRank } from '../shared/overlayPlayerRankEvent.js';
+import type { PlayerRank } from '../shared/overlayEvents.js';
 import type { SeriesStatePayload } from '../shared/seriesState.js';
 
 // Presentation behavior belongs to the surface, not to the persisted overlay configuration.
