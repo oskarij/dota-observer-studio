@@ -4,14 +4,13 @@
   import * as Select from '$lib/components/ui/select/index.js';
   import { Switch } from '$lib/components/ui/switch/index.js';
   import * as Tooltip from '$lib/components/ui/tooltip/index.js';
-  import type { PlayerNameSource, SelectedPlayerOptions } from '../../shared/componentOptions.js';
+  import {
+    NAME_SOURCE_LABELS,
+    type PlayerNameSource,
+    type SelectedPlayerOptions
+  } from '../../shared/componentOptions.js';
 
   let { options = $bindable() }: { options?: SelectedPlayerOptions | undefined } = $props();
-
-  const NAME_SOURCE_LABELS: Record<PlayerNameSource, string> = {
-    ingame: 'In-game name',
-    profile: 'Known name'
-  };
 </script>
 
 {#if options}
@@ -44,7 +43,7 @@
           <div class="flex min-w-0 flex-col gap-0.5">
             <span class="text-sm font-medium">Source</span>
             <span class="text-xs text-muted-foreground">
-              Use local list of player names, or pull the current in-game name.
+              Known names come from the known-players list and fall back to the in-game name.
             </span>
           </div>
           <Select.Root
@@ -63,11 +62,11 @@
             </Select.Trigger>
             <Select.Content>
               <Select.Item value="profile" label={NAME_SOURCE_LABELS.profile}>
-                Known name (fallback to in-game)
+                {NAME_SOURCE_LABELS.profile}
               </Select.Item>
-              <Select.Item value="ingame" label={NAME_SOURCE_LABELS.ingame}
-                >In-game name</Select.Item
-              >
+              <Select.Item value="ingame" label={NAME_SOURCE_LABELS.ingame}>
+                {NAME_SOURCE_LABELS.ingame}
+              </Select.Item>
             </Select.Content>
           </Select.Root>
         </div>

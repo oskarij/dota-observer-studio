@@ -7,6 +7,11 @@ import {
 } from './overlayElementCatalog.js';
 
 export type PlayerNameSource = 'profile' | 'ingame';
+
+export const NAME_SOURCE_LABELS: Record<PlayerNameSource, string> = {
+  profile: 'Known name',
+  ingame: 'In-game name'
+};
 export type RankValueDisplay = 'mmr' | 'hidden';
 
 export interface SelectedPlayerOptions {

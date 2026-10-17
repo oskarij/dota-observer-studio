@@ -2,46 +2,20 @@ import { errorMessage, type Result } from '../../shared/result.js';
 import type { StudioApi } from '../../shared/studioApi.js';
 import { logWarning } from '../../shared/logger.js';
 import type { SeriesSnapshot, Side } from '../../shared/seriesState.js';
+import { BridgeSnapshot } from './bridgeSnapshot.svelte.js';
 
 const BRIDGE_UNAVAILABLE =
   'Series bridge unavailable (window.dotaSpectatorTools.series missing). Series controls will not work. Expected the Electron preload to expose it.';
 
-export class SeriesStateStore {
-  error = $state<string | null>(null);
+export class SeriesStateStore extends BridgeSnapshot<SeriesSnapshot, StudioApi['series']> {
   pending = $state(0);
-  #loadVersion = 0;
-  #snapshot = $state<SeriesSnapshot | null>(null);
+
+  constructor() {
+    super(() => globalThis.window?.dotaSpectatorTools?.series, BRIDGE_UNAVAILABLE);
+  }
 
   get snapshot(): SeriesSnapshot | null {
-    return this.#snapshot;
-  }
-
-  async load(): Promise<void> {
-    if (this.#api === undefined) {
-      logWarning(BRIDGE_UNAVAILABLE);
-      return;
-    }
-
-    const version = ++this.#loadVersion;
-    try {
-      const next = await this.#api.get();
-      if (version === this.#loadVersion) {
-        this.#snapshot = next;
-        this.error = null;
-      }
-    } catch (error) {
-      this.error = errorMessage(error);
-    }
-  }
-
-  listen(): () => void {
-    if (this.#api === undefined) {
-      return () => {};
-    }
-
-    return this.#api.onChanged(() => {
-      void this.load();
-    });
+    return this.value;
   }
 
   async setTeam(side: Side, teamId: string | null): Promise<void> {
@@ -64,20 +38,17 @@ export class SeriesStateStore {
     await this.#command((api) => api.resetScores());
   }
 
-  get #api() {
-    return globalThis.window?.dotaSpectatorTools?.series;
-  }
-
   async #command(run: (api: StudioApi['series']) => Promise<Result>): Promise<void> {
-    if (this.#api === undefined) {
-      logWarning(BRIDGE_UNAVAILABLE);
+    const api = this.bridge();
+    if (api === undefined) {
+      logWarning(this.unavailable);
       return;
     }
 
     this.pending++;
     this.error = null;
     try {
-      const result = await run(this.#api);
+      const result = await run(api);
       if (!result.ok) throw new Error(result.reason);
       await this.load();
     } catch (error) {

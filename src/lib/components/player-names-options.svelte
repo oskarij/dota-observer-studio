@@ -1,14 +1,9 @@
 <script lang="ts">
   import * as Select from '$lib/components/ui/select/index.js';
   import TeamNameOptionsForm from '$lib/components/team-name-options.svelte';
-  import type { PlayerNameSource, PlayerNamesOptions } from '../../shared/componentOptions.js';
+  import { NAME_SOURCE_LABELS, type PlayerNamesOptions } from '../../shared/componentOptions.js';
 
   let { options = $bindable() }: { options?: PlayerNamesOptions | undefined } = $props();
-
-  const NAME_SOURCE_LABELS: Record<PlayerNameSource, string> = {
-    ingame: 'Current in-game name',
-    profile: 'Player list name'
-  };
 </script>
 
 {#if options}
@@ -29,11 +24,11 @@
         {NAME_SOURCE_LABELS[options.nameSource]}
       </Select.Trigger>
       <Select.Content>
-        <Select.Item value="ingame" label={NAME_SOURCE_LABELS.ingame}>
-          {NAME_SOURCE_LABELS.ingame}
-        </Select.Item>
         <Select.Item value="profile" label={NAME_SOURCE_LABELS.profile}>
           {NAME_SOURCE_LABELS.profile}
+        </Select.Item>
+        <Select.Item value="ingame" label={NAME_SOURCE_LABELS.ingame}>
+          {NAME_SOURCE_LABELS.ingame}
         </Select.Item>
       </Select.Content>
     </Select.Root>

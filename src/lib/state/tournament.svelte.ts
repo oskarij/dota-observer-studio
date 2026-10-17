@@ -1,18 +1,20 @@
 import { errorMessage, type Result } from '../../shared/result.js';
 import type { StudioApi, TournamentView } from '../../shared/studioApi.js';
 import { logWarning } from '../../shared/logger.js';
+import { BridgeSnapshot } from './bridgeSnapshot.svelte.js';
 
 const BRIDGE_UNAVAILABLE =
   'Tournament bridge unavailable (window.dotaSpectatorTools.tournament missing). League lookups will not work. Expected the Electron preload to expose it.';
 
-export class TournamentStore {
-  #state = $state<TournamentView | null>(null);
+export class TournamentStore extends BridgeSnapshot<TournamentView, StudioApi['tournament']> {
   #busy = $state(false);
-  error = $state<string | null>(null);
-  #loadVersion = 0;
+
+  constructor() {
+    super(() => globalThis.window?.dotaSpectatorTools?.tournament, BRIDGE_UNAVAILABLE);
+  }
 
   get state(): TournamentView | null {
-    return this.#state;
+    return this.value;
   }
 
   get busy(): boolean {
@@ -20,35 +22,7 @@ export class TournamentStore {
   }
 
   get series() {
-    return this.#state?.series ?? null;
-  }
-
-  async load(): Promise<void> {
-    if (this.#api === undefined) {
-      logWarning(BRIDGE_UNAVAILABLE);
-      return;
-    }
-
-    const version = ++this.#loadVersion;
-    try {
-      const next = await this.#api.get();
-      if (version === this.#loadVersion) {
-        this.#state = next;
-        this.error = null;
-      }
-    } catch (error) {
-      this.error = errorMessage(error);
-    }
-  }
-
-  listen(): () => void {
-    if (this.#api === undefined) {
-      return () => {};
-    }
-
-    return this.#api.onChanged(() => {
-      void this.load();
-    });
+    return this.value?.series ?? null;
   }
 
   async refresh(): Promise<string | null> {
@@ -59,15 +33,11 @@ export class TournamentStore {
     return this.#command((api) => api.setApiKey(key));
   }
 
-  get #api() {
-    return globalThis.window?.dotaSpectatorTools?.tournament;
-  }
-
   async #command(run: (api: StudioApi['tournament']) => Promise<Result>): Promise<string | null> {
-    const api = this.#api;
+    const api = this.bridge();
     if (api === undefined) {
-      logWarning(BRIDGE_UNAVAILABLE);
-      return BRIDGE_UNAVAILABLE;
+      logWarning(this.unavailable);
+      return this.unavailable;
     }
 
     this.#busy = true;
