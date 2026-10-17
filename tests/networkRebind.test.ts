@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
-import { createServer, request } from 'node:http';
+import { request } from 'node:http';
 import test from 'node:test';
 
 import { createGsiListener, type GsiPayload } from '../src/runtime/gsiListener.js';
+import { probePort } from './portProbe.js';
 
 // The rebind steps main.ts's applyPorts runs: move the GSI listener to a new port, free the old
 // one, re-wire subscribers, and fail without side effects when the new port is taken.
@@ -10,24 +11,6 @@ import { createGsiListener, type GsiPayload } from '../src/runtime/gsiListener.j
 const HOST = '127.0.0.1';
 const PORT_A = 31994;
 const PORT_B = 31995;
-
-// Resolves if the port is free (bindable), rejects if it is already taken.
-async function probePort(port: number): Promise<void> {
-  const probe = createServer();
-
-  try {
-    await new Promise<void>((resolve, reject) => {
-      probe.once('error', reject);
-      probe.listen(port, HOST, resolve);
-    });
-  } finally {
-    await new Promise<void>((resolve) => {
-      probe.close(() => {
-        resolve();
-      });
-    });
-  }
-}
 
 // POSTs a JSON payload to the GSI endpoint and resolves with the response status code.
 async function postPayload(port: number, payload: GsiPayload): Promise<number> {
@@ -71,7 +54,7 @@ test('rebinding to a new port serves there, frees the old port, and re-wires sub
   // New port serves and the re-wired subscriber receives; old port is released.
   assert.equal(await postPayload(PORT_B, { provider: { b: 2 } }), 204);
   assert.equal(received.length, 2);
-  await assert.doesNotReject(probePort(PORT_A), 'old port should be free after the swap');
+  await assert.doesNotReject(probePort(HOST, PORT_A), 'old port should be free after the swap');
 
   unwire();
   await listener.stop();

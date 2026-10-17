@@ -1,30 +1,12 @@
 import assert from 'node:assert/strict';
-import { createServer } from 'node:http';
 import test from 'node:test';
 import { connect } from 'node:net';
 
 import { createManagedHttpServer } from '../src/runtime/httpServer.js';
+import { probePort } from './portProbe.js';
 
 const HOST = '127.0.0.1';
 const PORT = 31987;
-
-// Resolves if the port can be bound (it is free), rejects otherwise (it is taken).
-async function probePort(port: number): Promise<void> {
-  const probe = createServer();
-
-  try {
-    await new Promise<void>((resolve, reject) => {
-      probe.once('error', reject);
-      probe.listen(port, HOST, resolve);
-    });
-  } finally {
-    await new Promise<void>((resolve) => {
-      probe.close(() => {
-        resolve();
-      });
-    });
-  }
-}
 
 test('start binds the port and stop releases it', async () => {
   const managed = createManagedHttpServer({
@@ -36,10 +18,10 @@ test('start binds the port and stop releases it', async () => {
   });
 
   await managed.start();
-  await assert.rejects(probePort(PORT));
+  await assert.rejects(probePort(HOST, PORT));
 
   await managed.stop();
-  await assert.doesNotReject(probePort(PORT));
+  await assert.doesNotReject(probePort(HOST, PORT));
 });
 
 test('double start and double stop are idempotent', async () => {
@@ -56,7 +38,7 @@ test('double start and double stop are idempotent', async () => {
   await managed.stop();
   await managed.stop();
 
-  await assert.doesNotReject(probePort(PORT));
+  await assert.doesNotReject(probePort(HOST, PORT));
 });
 
 test('onBeforeClose runs during stop, even before start', async () => {
