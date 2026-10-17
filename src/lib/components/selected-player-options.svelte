@@ -6,8 +6,6 @@
   import * as Tooltip from '$lib/components/ui/tooltip/index.js';
   import type { PlayerNameSource, SelectedPlayerOptions } from '../../shared/componentOptions.js';
 
-  // Bindable + optional to match the dynamic-index bind on the Components page (the indexed
-  // lookup is ComponentOptions | undefined under noUncheckedIndexedAccess).
   let { options = $bindable() }: { options?: SelectedPlayerOptions | undefined } = $props();
 
   const NAME_SOURCE_LABELS: Record<PlayerNameSource, string> = {
@@ -17,9 +15,6 @@
 </script>
 
 {#if options}
-  <!-- In-game mode treats the player as live/unknown: the medal is pulled from OpenDota (real, but
-       only as fresh as its last refresh, and missing for private profiles) and MMR isn't public,
-       so the rank value is disabled in that mode. -->
   {@const ingame = options.nameSource === 'ingame'}
   <Tooltip.Provider delayDuration={200}>
     <div class="rounded-lg border bg-card p-4 shadow-sm">
@@ -45,8 +40,6 @@
           />
         </div>
 
-        <!-- Source: also drives the medal source in in-game mode, so it stays active even when
-             the name itself is hidden. -->
         <div class="flex items-center justify-between gap-4 pt-3">
           <div class="flex min-w-0 flex-col gap-0.5">
             <span class="text-sm font-medium">Source</span>
@@ -125,7 +118,6 @@
               >Show the player's MMR next to the medal.</span
             >
           </div>
-          <!-- Disabled in in-game mode: MMR isn't public, so it can't be shown (see the Rank tooltip). -->
           <Switch
             class="shrink-0"
             disabled={ingame}

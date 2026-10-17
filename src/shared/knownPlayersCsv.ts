@@ -1,15 +1,11 @@
 import { isValidAccountId } from './accountId.js';
 import type { KnownPlayer } from './knownPlayer.js';
 
-// CSV backup format for the known-players list. Pure string code (no DOM/Node APIs) so the renderer
-// and unit tests can both use it. Validation mirrors the inline editor in known-players.svelte:
-// numeric account ids, a required name, and an optional integer MMR.
-
-const HEADER = ['accountId', 'name', 'mmr'] as const;
+const HEADER = ['accountId', 'name', 'mmr', 'teamId'] as const;
 
 export interface ParseResult {
   players: KnownPlayer[];
-  // Rows dropped as invalid or duplicate, so the UI can report a count.
+
   skipped: number;
 }
 
@@ -20,7 +16,8 @@ export function serializeKnownPlayersCsv(players: readonly KnownPlayer[]): strin
       [
         escapeField(player.accountId),
         escapeField(player.name),
-        player.mmr === null ? '' : String(player.mmr)
+        player.mmr === null ? '' : String(player.mmr),
+        player.teamId === null ? '' : escapeField(player.teamId)
       ].join(',')
     );
   }
@@ -30,7 +27,6 @@ export function serializeKnownPlayersCsv(players: readonly KnownPlayer[]): strin
 export function parseKnownPlayersCsv(text: string): ParseResult {
   const rows = parseRows(text);
 
-  // Drop a leading header row (matched case-insensitively on the first cell).
   if (rows[0]?.[0]?.trim().toLowerCase() === HEADER[0].toLowerCase()) {
     rows.shift();
   }
@@ -40,7 +36,6 @@ export function parseKnownPlayersCsv(text: string): ParseResult {
   let skipped = 0;
 
   for (const row of rows) {
-    // Skip fully blank lines without counting them as errors.
     if (row.length === 1 && (row[0] ?? '').trim() === '') {
       continue;
     }
@@ -53,8 +48,15 @@ export function parseKnownPlayersCsv(text: string): ParseResult {
       continue;
     }
 
+    const teamId = (row[3] ?? '').trim();
+
     seen.add(accountId);
-    players.push({ accountId, name, mmr: parseMmr(row[2] ?? '') });
+    players.push({
+      accountId,
+      name,
+      mmr: parseMmr(row[2] ?? ''),
+      teamId: teamId === '' ? null : teamId
+    });
   }
 
   return { players, skipped };
@@ -66,16 +68,13 @@ export function parseMmr(raw: string): number | null {
     return null;
   }
 
-  const mmr = Number(trimmed);
-  return Number.isFinite(mmr) ? Math.round(mmr) : null;
+  const mmr = Math.round(Number(trimmed));
+  return Number.isSafeInteger(mmr) && mmr >= 0 ? mmr : null;
 }
 
-// A leading =, +, -, or @ makes spreadsheet apps treat a cell as a formula.
 const FORMULA_LEAD = /^[=+\-@]/u;
 
 function escapeField(value: string): string {
-  // Neutralize spreadsheet formula injection by prefixing a risky lead character with an apostrophe
-  // (reversed on import), then quote per RFC 4180 when the field contains a comma, quote, or newline.
   const guarded = FORMULA_LEAD.test(value) ? `'${value}` : value;
 
   if (/[",\r\n]/u.test(guarded)) {
@@ -84,13 +83,10 @@ function escapeField(value: string): string {
   return guarded;
 }
 
-// Reverse the export-side formula guard: drop a leading apostrophe only when it shields a formula
-// character, so a name that legitimately starts with an apostrophe is left intact.
 function unguardFormulaField(value: string): string {
   return value.startsWith("'") && FORMULA_LEAD.test(value.slice(1)) ? value.slice(1) : value;
 }
 
-// Minimal RFC 4180 reader: handles quoted fields, escaped quotes ("") and quoted newlines.
 function parseRows(text: string): string[][] {
   const rows: string[][] = [];
   let field = '';
@@ -108,7 +104,6 @@ function parseRows(text: string): string[][] {
   };
 
   for (let i = 0; i < text.length; i += 1) {
-    // charAt (not text[i]) returns string, never string | undefined, so concatenation is clean.
     const char = text.charAt(i);
 
     if (inQuotes) {
@@ -136,7 +131,6 @@ function parseRows(text: string): string[][] {
     }
   }
 
-  // Flush the trailing row unless the input ended exactly on a newline.
   if (field !== '' || row.length > 0) {
     pushRow();
   }

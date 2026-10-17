@@ -1,3 +1,4 @@
+import type { Result } from '../../shared/result.js';
 import { ipcMain, type OpenDialogOptions } from 'electron';
 import { writeFile } from 'node:fs/promises';
 
@@ -15,12 +16,7 @@ import type { NetworkSettingsStore } from '../networkSettingsStore.js';
 
 import { showOpenDialog, showSaveDialog } from './dialogs.js';
 
-export interface GsiInstallResult {
-  ok: boolean;
-  // The written file path on success; a human-readable reason on failure/cancel.
-  path?: string;
-  reason?: string;
-}
+export type GsiInstallResult = Result<{ path: string }>;
 
 // Auto-detects the Dota cfg folder, falling back to a folder picker when Dota can't be located.
 // Uses the currently-stored GSI port (changes apply on relaunch). Export writes the same cfg with

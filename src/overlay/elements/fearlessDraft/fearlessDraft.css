@@ -1,32 +1,13 @@
-/* The overlay fonts (RadianceOverlay/ReaverOverlay) are declared once in selectedPlayer.css and are
-   global to the bundled overlay, so this element only consumes them. */
-
 .fearless-draft {
-  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  left: var(--fd-x, 510px);
-  opacity: 0;
-  position: absolute;
-  top: var(--fd-y, 140px);
-  transform: scale(var(--fd-scale, 1));
-  transform-origin: top left;
-}
-
-.fearless-draft[data-visible='true'] {
-  opacity: 1;
 }
 
 .fearless-draft__title {
-  color: var(--fd-color, #f8fbff);
-  font-family: var(--fd-font-family, 'RadianceOverlay'), serif;
   font-size: 28px;
-  font-style: var(--fd-font-style, normal);
-  font-weight: var(--fd-font-weight, 600);
   letter-spacing: 0.04em;
   line-height: 1;
-  text-shadow: var(--fd-shadow, 0 0 4px #000, 2px 2px 4px #000);
   text-transform: uppercase;
 }
 
@@ -40,7 +21,10 @@
   align-items: center;
   aspect-ratio: 16 / 9;
   background: rgba(8, 10, 14, 0.55);
-  border: 1px solid rgba(220, 60, 50, 0.85);
+  border: 1px solid var(--fd-ban-border, rgba(220, 60, 50, 0.85));
+  /* The 1px frame counts inside the tracked width, so a cell fills its grid column instead of
+     running 2px past it — which pushed the last column out over the element's own edge. */
+  box-sizing: border-box;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
@@ -58,8 +42,6 @@
 }
 
 .fearless-draft__fallback {
-  color: var(--fd-color, #f8fbff);
-  font-family: var(--fd-font-family, 'RadianceOverlay'), serif;
   font-size: 12px;
   line-height: 1.1;
   padding: 2px;

@@ -8,6 +8,7 @@
   import { knownPlayers } from '$lib/state/knownPlayers.svelte.js';
   import { network } from '$lib/state/network.svelte.js';
   import { overlayConfig } from '$lib/state/overlayConfig.svelte.js';
+  import { teams } from '$lib/state/teams.svelte.js';
   import type { NetworkInfo } from '../shared/networkConfig.js';
 
   import '../styles/app.css';
@@ -25,22 +26,23 @@
     return `Another app is using the ${parts.join(' and ')}.`;
   }
 
-  // The config is shared app-wide, so its lifecycle lives here rather than on any one page:
-  // load once, and keep the close-guard wired no matter which route is active.
   onMount(() => {
     void overlayConfig.load();
-    // Curated player list: edits persist immediately, so it's outside the Save/Discard flow.
+
     void knownPlayers.load();
+    void teams.load();
     void network.refresh();
 
-    // When the close-guard chooses "Save", persist then let main proceed with the quit.
-    return globalThis.window?.dotaSpectatorTools?.app?.onSaveAndQuit(async () => {
-      await overlayConfig.save();
-      globalThis.window?.dotaSpectatorTools?.app?.confirmQuit();
+    const unsubscribeQuit = globalThis.window?.dotaSpectatorTools?.app?.onSaveAndQuit(async () => {
+      if (await overlayConfig.save()) globalThis.window?.dotaSpectatorTools?.app?.confirmQuit();
     });
+    return () => {
+      unsubscribeQuit?.();
+      knownPlayers.dispose();
+      teams.dispose();
+    };
   });
 
-  // Mirror the dirty flag to the main process so it can guard the window close.
   $effect(() => {
     globalThis.window?.dotaSpectatorTools?.app?.setDirty(overlayConfig.dirty);
   });
@@ -53,6 +55,9 @@
 
   <div class="flex min-w-0 flex-1 flex-col">
     <AppHeader />
+    {#if overlayConfig.error}<p role="alert" class="px-6 py-2 text-sm text-destructive">
+        {overlayConfig.error}
+      </p>{/if}
 
     {#if network.hasPortConflict && network.info !== null}
       <div

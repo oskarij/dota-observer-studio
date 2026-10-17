@@ -1,28 +1,144 @@
-import { createDefaultComponentOptions, type ComponentOptions } from './componentOptions.js';
-import { OVERLAY_ELEMENT_DEFINITIONS } from './overlayElementCatalog.js';
+import { isRecord } from './validation.js';
+import { validPartialSettings, validPartialOptions } from './configValidation.js';
+import {
+  createDefaultComponentOptions,
+  type ComponentOptions,
+  type ComponentOptionsById
+} from './componentOptions.js';
+import { OVERLAY_ELEMENT_DEFINITIONS, SERIES_INFO_ELEMENTS } from './overlayElementCatalog.js';
 
-// Per-component overlay settings; framework-agnostic so the studio preview and live overlay
-// share the type. `position` is the top-left offset in stage (1920x1080) coordinates.
+export type ComponentAnchorX = 'left' | 'center' | 'right';
+export type ComponentAnchorY = 'top' | 'center' | 'bottom';
+
+export interface ComponentAnchor {
+  x: ComponentAnchorX;
+  y: ComponentAnchorY;
+}
+
+const ANCHOR_SHIFT: Record<ComponentAnchorX | ComponentAnchorY, string> = {
+  left: '0',
+  top: '0',
+  center: '-50%',
+  right: '-100%',
+  bottom: '-100%'
+};
+
+export const STAGE_WIDTH = 1920;
+export const STAGE_HEIGHT = 1080;
+
+export interface ElementBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export function anchoredRegionLeft(
+  anchorX: ComponentAnchorX,
+  positionX: number,
+  width: number
+): number {
+  if (anchorX === 'left') {
+    return positionX;
+  }
+  if (anchorX === 'right') {
+    return positionX - width;
+  }
+  return positionX - width / 2;
+}
+
+export function positionForAnchor(
+  box: ElementBox,
+  anchor: ComponentAnchor
+): { x: number; y: number } {
+  return {
+    x: anchorPoint(anchor.x, box.x, box.width),
+    y: anchorPoint(anchor.y, box.y, box.height)
+  };
+}
+
+function anchorPoint(
+  anchor: ComponentAnchorX | ComponentAnchorY,
+  start: number,
+  size: number
+): number {
+  if (anchor === 'center') {
+    return Math.round(start + size / 2);
+  }
+  if (anchor === 'right' || anchor === 'bottom') {
+    return Math.round(start + size);
+  }
+  return Math.round(start);
+}
+
+export function anchorShift(value: ComponentAnchorX | ComponentAnchorY): string {
+  return ANCHOR_SHIFT[value] ?? '0';
+}
+
+// Position uses a 1920 × 1080 stage; size is a percentage.
 export interface ComponentSettings {
   position: { x: number; y: number };
-  size: number; // scale percentage
-  // weight is a CSS font-weight, italic toggles font-style; resolved by a bundled
-  // @font-face for the overlay fonts and by the OS for system fonts.
+  anchor: ComponentAnchor;
+  size: number;
+
   font: { family: string; weight: number; italic: boolean };
   color: string;
   shadow: { color: string; blur: number; offsetX: number; offsetY: number };
 }
 
-// Per-element starting position overrides. The shared default suits a single bottom-left readout
-// (selected-player); other elements want a different anchor (the fearless grid sits near the top so
-// it can grow downward), so they override just the bits that differ.
+const DRAFT_SERIES_OVERRIDES: Record<string, Partial<ComponentSettings>> = {
+  'team-name-radiant': { position: { x: 80, y: 550 }, anchor: { x: 'left', y: 'bottom' } },
+  'team-name-dire': { position: { x: 1840, y: 550 }, anchor: { x: 'right', y: 'bottom' } },
+  'team-logo-radiant': { position: { x: 80, y: 500 }, anchor: { x: 'left', y: 'bottom' } },
+  'team-logo-dire': { position: { x: 1840, y: 500 }, anchor: { x: 'right', y: 'bottom' } },
+
+  'series-score-radiant': { position: { x: 800, y: 550 }, anchor: { x: 'right', y: 'bottom' } },
+  'series-score-dire': { position: { x: 1120, y: 550 }, anchor: { x: 'left', y: 'bottom' } }
+};
+
+const INGAME_SERIES_OVERRIDES: Record<string, Partial<ComponentSettings>> = {
+  'team-name-radiant': { position: { x: 766, y: 48 }, anchor: { x: 'right', y: 'center' } },
+  'team-name-dire': { position: { x: 1154, y: 48 }, anchor: { x: 'left', y: 'center' } },
+  'team-logo-radiant': {
+    position: { x: 844, y: 48 },
+    anchor: { x: 'right', y: 'center' },
+    size: 60
+  },
+  'team-logo-dire': { position: { x: 1076, y: 48 }, anchor: { x: 'left', y: 'center' }, size: 60 },
+  'series-score-radiant': { position: { x: 934, y: 48 }, anchor: { x: 'right', y: 'center' } },
+  'series-score-dire': { position: { x: 986, y: 48 }, anchor: { x: 'left', y: 'center' } }
+};
+
+const seriesInfoOverrides: Record<string, Partial<ComponentSettings>> = Object.fromEntries(
+  SERIES_INFO_ELEMENTS.map((element) => {
+    const key = `${element.kind}-${element.side}`;
+    if (element.scope === 'draft') {
+      return [element.id, DRAFT_SERIES_OVERRIDES[key] ?? {}];
+    }
+    return [element.id, { size: 63, ...INGAME_SERIES_OVERRIDES[key] }];
+  })
+);
+
 const COMPONENT_SETTINGS_OVERRIDES: Record<string, Partial<ComponentSettings>> = {
-  'fearless-draft': { position: { x: 510, y: 25 } }
+  'fearless-draft': { position: { x: 960, y: 888 }, anchor: { x: 'center', y: 'top' } },
+
+  'draft-board': { position: { x: 960, y: 567 }, anchor: { x: 'center', y: 'top' }, size: 100 },
+
+  'player-names-radiant-draft': {
+    position: { x: 80, y: 40 },
+    anchor: { x: 'left', y: 'top' }
+  },
+  'player-names-dire-draft': {
+    position: { x: 1840, y: 40 },
+    anchor: { x: 'right', y: 'top' }
+  },
+  ...seriesInfoOverrides
 };
 
 export function createDefaultComponentSettings(id?: string): ComponentSettings {
   const base: ComponentSettings = {
-    position: { x: 545, y: 852 },
+    position: { x: 32, y: 1048 },
+    anchor: { x: 'left', y: 'bottom' },
     size: 100,
     font: { family: 'RadianceOverlay', weight: 600, italic: false },
     color: '#f8fbff',
@@ -30,15 +146,26 @@ export function createDefaultComponentSettings(id?: string): ComponentSettings {
   };
 
   const override = id === undefined ? undefined : COMPONENT_SETTINGS_OVERRIDES[id];
-  return override === undefined ? base : { ...base, ...override };
+  const merged = override === undefined ? base : { ...base, ...override };
+
+  return {
+    ...merged,
+    position: { ...merged.position },
+    anchor: { ...merged.anchor },
+    font: { ...merged.font },
+    shadow: { ...merged.shadow }
+  };
 }
 
-// Per-component visibility + styling + behavioral options, persisted and broadcast as one unit.
 export interface OverlayConfig {
   enabled: Record<string, boolean>;
   settings: Record<string, ComponentSettings>;
-  options: Record<string, ComponentOptions>;
+  options: ComponentOptionsById;
+  // The operator's stylesheet, applied after the bundled styles (docs/custom-styling.md).
+  customCss: string;
 }
+
+export const CUSTOM_CSS_MAX_LENGTH = 100_000;
 
 export function createDefaultOverlayConfig(): OverlayConfig {
   return {
@@ -51,25 +178,70 @@ export function createDefaultOverlayConfig(): OverlayConfig {
         createDefaultComponentSettings(element.id)
       ])
     ),
-    options: createDefaultComponentOptions()
+    options: createDefaultComponentOptions(),
+    customCss: ''
   };
 }
 
-// Minimal structural check for a config crossing a trust/process boundary (an imported file or an
-// SSE payload). The field-level merge over defaults fills in anything missing afterward.
-export function isOverlayConfigShape(value: unknown): value is OverlayConfig {
-  if (typeof value !== 'object' || value === null) {
-    return false;
+export function mergeOverlayConfigDefaults(input: unknown): OverlayConfig {
+  const defaults = createDefaultOverlayConfig();
+  if (
+    !isRecord(input) ||
+    !isRecord(input.enabled) ||
+    !isRecord(input.settings) ||
+    (input.options !== undefined && !isRecord(input.options))
+  ) {
+    throw new Error('Invalid overlay configuration.');
+  }
+  if (
+    input.customCss !== undefined &&
+    (typeof input.customCss !== 'string' || input.customCss.length > CUSTOM_CSS_MAX_LENGTH)
+  ) {
+    throw new Error('Custom CSS must be text of at most 100 000 characters.');
+  }
+  for (const enabled of Object.values(input.enabled)) {
+    if (typeof enabled !== 'boolean') throw new Error('Invalid element visibility.');
+  }
+  for (const [id, settings] of Object.entries(input.settings)) {
+    if (!validPartialSettings(settings)) throw new Error('Invalid settings for ' + id + '.');
+  }
+  for (const [id, options] of Object.entries(input.options ?? {})) {
+    const base = defaults.options[id];
+    if (base === undefined || !validPartialOptions(options, base))
+      throw new Error('Invalid options for ' + id + '.');
+  }
+  const config = input as {
+    enabled: Record<string, boolean>;
+    settings: Record<string, Partial<ComponentSettings>>;
+    options?: Record<string, Partial<ComponentOptions>>;
+    customCss?: string;
+  };
+  const settings = defaults.settings;
+  for (const [id, value] of Object.entries(config.settings ?? {})) {
+    const base = defaults.settings[id] ?? createDefaultComponentSettings(id);
+    settings[id] = {
+      ...base,
+      ...value,
+      position: { ...base.position, ...value.position },
+      // Saved positions predate anchors and meant top-left; without one, keep the default pair.
+      anchor:
+        value.position === undefined
+          ? { ...base.anchor, ...value.anchor }
+          : { x: 'left', y: 'top', ...value.anchor },
+      font: { ...base.font, ...value.font },
+      shadow: { ...base.shadow, ...value.shadow }
+    };
   }
 
-  const candidate = value as Record<string, unknown>;
-  return (
-    isPlainObject(candidate.enabled) &&
-    isPlainObject(candidate.settings) &&
-    isPlainObject(candidate.options)
-  );
-}
+  const options = defaults.options;
+  for (const [id, value] of Object.entries(config.options ?? {})) {
+    options[id] = { ...defaults.options[id], ...value } as ComponentOptions;
+  }
 
-function isPlainObject(value: unknown): boolean {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
+  return {
+    enabled: { ...defaults.enabled, ...config.enabled },
+    settings,
+    options,
+    customCss: config.customCss ?? ''
+  };
 }

@@ -107,16 +107,18 @@ async function steamLibraryPaths(steamRoot: string): Promise<string[]> {
 // host is the address Dota POSTs to: loopback for a local install, or the app's LAN IP for an
 // exported config used by Dota on another PC.
 export function buildGsiConfig(host: string, gsiPort: number): string {
+  // Five updates/second is enough for selection/name changes; draft countdowns run locally.
+  // Capping generation in Dota also reduces work on the game thread, before our listener sees it.
   // Valve KeyValues (VDF). Only the blocks the overlay actually reads are enabled (see
-  // dotaGsiPayload.ts: map.game_state, the hero block, and the per-team player block); the rest are
-  // listed but off so the payloads stay small. An IP literal (not localhost) matches the IPv4-only
-  // listener and avoids an IPv6 (::1) resolution miss.
+  // dotaGsiPayload.ts: the map, hero, player, draft, and league blocks); the rest are listed but
+  // off so the payloads stay small. An IP literal (not localhost) matches the IPv4-only listener
+  // and avoids an IPv6 (::1) resolution miss.
   return `"Observer Studio Integration"
 {
     "uri"           "http://${host}:${gsiPort}/gsi"
     "timeout"       "5.0"
     "buffer"        "0.1"
-    "throttle"      "0.1"
+    "throttle"      "0.2"
     "heartbeat"     "30.0"
     "data"
     {
@@ -129,7 +131,7 @@ export function buildGsiConfig(host: string, gsiPort: number): string {
         "events"         "0"
         "buildings"      "0"
         "league"         "1"
-        "draft"          "0"
+        "draft"          "1"
         "wearables"      "0"
         "minimap"        "0"
         "roshan"         "0"

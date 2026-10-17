@@ -1,3 +1,4 @@
+import type { Result } from '../../shared/result.js';
 import { ipcMain } from 'electron';
 
 import { NETWORK_GET_CHANNEL, NETWORK_SET_CHANNEL } from '../../shared/ipcChannels.js';
@@ -13,10 +14,7 @@ import {
 import { getLanIpv4 } from '../lanAddress.js';
 import type { NetworkSettingsStore } from '../networkSettingsStore.js';
 
-export interface NetworkSetResult {
-  ok: boolean;
-  reason?: string;
-}
+export type NetworkSetResult = Result;
 
 // Rebinds the running servers to the new ports in-process. Implemented in main.ts (it owns the
 // server instances); resolves ok:false if a port can't be bound, leaving the old servers running.

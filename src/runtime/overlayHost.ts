@@ -1,4 +1,7 @@
+import { resolveOverlayAssetPath } from '../shared/overlayRoutes.js';
+import { getRequestPath } from './httpUtils.js';
 import { createManagedHttpServer } from './httpServer.js';
+import { createMediaFileHandler } from './mediaFiles.js';
 import type { OverlayGsiEventStream } from './overlayGsiEventStream.js';
 import { createStaticFileHandler } from './staticFiles.js';
 
@@ -8,6 +11,8 @@ export interface OverlayHostConfig {
   readonly port: number;
   // Serves the realtime SSE feed on /events alongside the overlay assets, same-origin.
   readonly eventStream: OverlayGsiEventStream;
+  // When set, user media (team logos) under this directory is served at /media/, same-origin.
+  readonly mediaRoot?: string;
 }
 
 export interface OverlayHost {
@@ -15,7 +20,8 @@ export interface OverlayHost {
   stop(): Promise<void>;
 }
 
-// Serves the built overlay bundle under /overlay/ over loopback HTTP for the OBS browser source.
+// Serves the built overlay bundle under /overlay/ over loopback HTTP for the OBS browser sources: one
+// page per phase plus the bare route, all mapped onto the bundle by overlayRoutes.ts.
 export function createOverlayHost(config: OverlayHostConfig): OverlayHost {
   const handle = createStaticFileHandler({
     assetRoot: config.assetRoot,
@@ -27,11 +33,17 @@ export function createOverlayHost(config: OverlayHostConfig): OverlayHost {
     notFoundMessage: 'Overlay route not found',
     readErrorMessage: 'Unable to read overlay asset'
   });
+  const handleMedia =
+    config.mediaRoot === undefined ? null : createMediaFileHandler(config.mediaRoot, config);
 
   const httpServer = createManagedHttpServer({
     host: config.host,
     port: config.port,
     onRequest(request, response) {
+      if (handleMedia !== null && getRequestPath(request, config).startsWith('/media/')) {
+        void handleMedia(request, response);
+        return;
+      }
       void handle(request, response);
     }
   });
@@ -40,18 +52,4 @@ export function createOverlayHost(config: OverlayHostConfig): OverlayHost {
     start: httpServer.start,
     stop: httpServer.stop
   };
-}
-
-// Maps the /overlay/ prefix to the bundle; the bare path resolves to its index.
-function resolveOverlayAssetPath(requestPath: string): string | null {
-  if (requestPath === '/overlay' || requestPath === '/overlay/') {
-    return 'index.html';
-  }
-
-  if (!requestPath.startsWith('/overlay/')) {
-    return null;
-  }
-
-  const assetPath = requestPath.slice('/overlay/'.length);
-  return assetPath.length === 0 ? 'index.html' : assetPath;
 }

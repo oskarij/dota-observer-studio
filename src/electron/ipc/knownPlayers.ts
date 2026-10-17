@@ -1,49 +1,39 @@
 import { ipcMain, type OpenDialogOptions, type SaveDialogOptions } from 'electron';
 import { readFile, writeFile } from 'node:fs/promises';
 
-import type { KnownPlayersStore } from '../../persistence/knownPlayersStore.js';
+import type { RosterService } from '../../runtime/rosterService.js';
+import type { Result } from '../../shared/result.js';
 import type { OverlayGsiEventStream } from '../../runtime/overlayGsiEventStream.js';
-import type { KnownPlayer } from '../../shared/knownPlayer.js';
 import {
   KNOWN_PLAYERS_EXPORT_CSV_CHANNEL,
   KNOWN_PLAYERS_GET_CHANNEL,
   KNOWN_PLAYERS_IMPORT_CSV_CHANNEL,
-  KNOWN_PLAYERS_SET_CHANNEL
+  KNOWN_PLAYERS_SET_CHANNEL,
+  KNOWN_PLAYERS_ADD_CHANNEL,
+  KNOWN_PLAYERS_UPDATE_CHANNEL,
+  KNOWN_PLAYERS_REMOVE_CHANNEL
 } from '../../shared/ipcChannels.js';
 import { logError } from '../../shared/logger.js';
 
 import { showOpenDialog, showSaveDialog } from './dialogs.js';
 
-export interface KnownPlayersExportResult {
-  ok: boolean;
-  path?: string;
-  reason?: string;
-}
+type KnownPlayersExportResult = Result<{ path: string }>;
+type KnownPlayersImportResult = Result<{ text: string }>;
 
-export interface KnownPlayersImportResult {
-  ok: boolean;
-  // The raw file text on success; the renderer parses/validates it with the shared CSV util.
-  text?: string;
-  reason?: string;
-}
-
-// Persists the known-players list and fans it out to live-overlay clients. Like the settings IPC,
-// the main process is the single source of truth; the renderer's preview reads the same list over
-// the get channel and drives itself reactively, so this is the persistence + SSE broadcast path.
-// CSV import/export only does the file dialog + raw I/O here; serialize/parse lives in the renderer
-// so it can reuse the editor's validation rules.
 export function registerKnownPlayersIpc(
-  store: KnownPlayersStore,
-  eventStream: OverlayGsiEventStream
+  roster: RosterService,
+  eventStream: Pick<OverlayGsiEventStream, 'setKnownPlayers'>
 ): () => void {
-  // Seed the stream so an overlay opened before the studio still gets the saved list.
-  eventStream.setKnownPlayers(store.list());
-
-  ipcMain.handle(KNOWN_PLAYERS_GET_CHANNEL, () => store.list());
-  ipcMain.handle(KNOWN_PLAYERS_SET_CHANNEL, (_event, players: KnownPlayer[]) => {
-    store.replaceAll(players);
-    eventStream.setKnownPlayers(players);
-  });
+  eventStream.setKnownPlayers(roster.getPlayers().items);
+  ipcMain.handle(KNOWN_PLAYERS_GET_CHANNEL, () => roster.getPlayers());
+  ipcMain.handle(KNOWN_PLAYERS_SET_CHANNEL, (_event, players: unknown) =>
+    roster.replacePlayers(players)
+  );
+  ipcMain.handle(KNOWN_PLAYERS_ADD_CHANNEL, (_event, player: unknown) => roster.addPlayer(player));
+  ipcMain.handle(KNOWN_PLAYERS_UPDATE_CHANNEL, (_event, id: unknown, patch: unknown) =>
+    roster.updatePlayer(id, patch)
+  );
+  ipcMain.handle(KNOWN_PLAYERS_REMOVE_CHANNEL, (_event, id: unknown) => roster.removePlayer(id));
 
   ipcMain.handle(
     KNOWN_PLAYERS_EXPORT_CSV_CHANNEL,
@@ -94,6 +84,9 @@ export function registerKnownPlayersIpc(
   return () => {
     ipcMain.removeHandler(KNOWN_PLAYERS_GET_CHANNEL);
     ipcMain.removeHandler(KNOWN_PLAYERS_SET_CHANNEL);
+    ipcMain.removeHandler(KNOWN_PLAYERS_ADD_CHANNEL);
+    ipcMain.removeHandler(KNOWN_PLAYERS_UPDATE_CHANNEL);
+    ipcMain.removeHandler(KNOWN_PLAYERS_REMOVE_CHANNEL);
     ipcMain.removeHandler(KNOWN_PLAYERS_EXPORT_CSV_CHANNEL);
     ipcMain.removeHandler(KNOWN_PLAYERS_IMPORT_CSV_CHANNEL);
   };

@@ -1,66 +1,135 @@
 <script lang="ts">
+  import { onMount, untrack } from 'svelte';
   import { asset } from '$app/paths';
-  import { SAMPLE_GSI_DATA, SAMPLE_KNOWN_PLAYERS } from '$lib/dev/sampleGsiData.js';
+  import {
+    SAMPLE_DRAFT_GSI_DATA,
+    SAMPLE_GSI_DATA,
+    SAMPLE_KNOWN_PLAYERS
+  } from '$lib/dev/sampleGsiData.js';
   import {
     applyOverlayConfigToStage,
     createOverlayStage,
     type OverlayStage
   } from '../../overlay/overlayStage.js';
-  import type { ComponentOptions } from '../../shared/componentOptions.js';
-  import type { ComponentSettings } from '../../shared/componentSettings.js';
+  import type { ComponentOptionsById } from '../../shared/componentOptions.js';
+  import { isMaxWidthOptions } from '../../shared/componentOptions.js';
+  import {
+    anchoredRegionLeft,
+    STAGE_HEIGHT,
+    STAGE_WIDTH,
+    type ComponentSettings,
+    type ElementBox
+  } from '../../shared/componentSettings.js';
   import { getSelectedDotaGsiPlayer, type DotaGsiData } from '../../shared/dotaGsiPayload.js';
   import type { KnownPlayer } from '../../shared/knownPlayer.js';
+  import type { OverlayPhase } from '../../shared/overlayElementCatalog.js';
   import type { PlayerRank } from '../../shared/overlayPlayerRankEvent.js';
+  import { createEmptySeriesPayload, type SeriesStatePayload } from '../../shared/seriesState.js';
 
-  // The overlay elements are authored against a fixed 1080p canvas.
-  const STAGE_WIDTH = 1920;
-  const STAGE_HEIGHT = 1080;
-
-  // In-game name mode derives its medal from OpenDota ranks. Live mode receives them over SSE (via
-  // the `ranks` prop); the static sample has no feed, so we synthesize one for its selected player.
-  const SAMPLE_RANK_TIER = 74; // Divine
+  const SAMPLE_RANK_TIER = 74;
 
   let {
     gsiData = SAMPLE_GSI_DATA,
     ranks = [],
     knownPlayers = [],
     fearlessBannedHeroIds = [],
+    seriesState = null,
+    phase = null,
     enabled,
     settings,
     options,
-    background = 'checkerboard'
+    background = 'checkerboard',
+    selectedId,
+    customCss = ''
   }: {
-    // null = live mode with no fresh feed (render an empty stage + waiting hint); undefined falls
-    // back to the static sample.
     gsiData?: DotaGsiData | null | undefined;
     ranks?: PlayerRank[];
-    knownPlayers?: KnownPlayer[];
-    // Fearless ban pool for the draft grid (sample pool in Sample mode, SSE-fed pool in Live mode).
-    fearlessBannedHeroIds?: number[];
+    knownPlayers?: readonly KnownPlayer[];
+
+    fearlessBannedHeroIds?: readonly number[];
+
+    seriesState?: SeriesStatePayload | null;
+
+    phase?: OverlayPhase | null;
     enabled?: Record<string, boolean>;
     settings?: Record<string, ComponentSettings>;
-    options?: Record<string, ComponentOptions>;
-    // Backdrop behind the transparent overlay (checkerboard or in-game frame).
+    options?: ComponentOptionsById;
+
     background?: 'checkerboard' | 'ingame';
+
+    selectedId?: string | undefined;
+
+    customCss?: string;
   } = $props();
 
+  export function measureElement(id: string): ElementBox | null {
+    return stage?.measure(id) ?? null;
+  }
+
+  let selectedBox = $state<ElementBox | null>(null);
   let root = $state<HTMLElement | null>(null);
   let stageEl = $state<HTMLElement | null>(null);
-  let stage = $state<OverlayStage | null>(null);
+  let stage = $state.raw<OverlayStage | null>(null);
   let scale = $state(0);
+  let pageVisible = $state(true);
+  let measureFrame: number | null = null;
+  const emptySeries = createEmptySeriesPayload();
+  const sampleData = $derived(gsiData === SAMPLE_GSI_DATA || gsiData === SAMPLE_DRAFT_GSI_DATA);
 
-  // Mount the real overlay elements once the stage node exists.
+  onMount(() => {
+    const visibilityChanged = () => {
+      pageVisible = !globalThis.document.hidden;
+    };
+    visibilityChanged();
+    globalThis.document.addEventListener('visibilitychange', visibilityChanged);
+    return () => {
+      globalThis.document.removeEventListener('visibilitychange', visibilityChanged);
+      if (measureFrame !== null) globalThis.cancelAnimationFrame(measureFrame);
+    };
+  });
+
+  // The preview shares the studio's document, so the custom CSS is fenced into the stage with
+  // @scope. @font-face and @keyframes cannot nest there and stay global, which is harmless.
+  let customSheet = $state.raw<CSSStyleSheet | null>(null);
+  onMount(() => {
+    const { document } = globalThis;
+    const sheet = new CSSStyleSheet();
+    document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
+    customSheet = sheet;
+    return () => {
+      document.adoptedStyleSheets = document.adoptedStyleSheets.filter((other) => other !== sheet);
+    };
+  });
+  /* eslint-disable no-sync -- in-memory CSSOM, not I/O; the async form would race between keystrokes. */
   $effect(() => {
-    if (stageEl === null) {
+    if (customSheet === null) return;
+    const parsed = new CSSStyleSheet();
+    parsed.replaceSync(customCss);
+    customSheet.replaceSync(
+      Array.from(parsed.cssRules, (rule) =>
+        rule instanceof CSSStyleRule || rule instanceof CSSGroupingRule
+          ? `@scope (.overlay-preview-stage) { ${rule.cssText} }`
+          : rule.cssText
+      ).join('\n')
+    );
+  });
+  /* eslint-enable no-sync */
+
+  $effect(() => {
+    if (stageEl === null || !pageVisible) {
       return;
     }
 
-    const mounted = createOverlayStage(stageEl);
+    const mounted = createOverlayStage(stageEl, phase, {
+      motion: 'static',
+      clock: sampleData ? 'snapshot' : 'live'
+    });
     stage = mounted;
 
     return () => {
       mounted.destroy();
       stage = null;
+      selectedBox = null;
     };
   });
 
@@ -69,41 +138,98 @@
       return;
     }
 
-    // Apply toggles + settings + options before updating so each element re-evaluates against the
-    // latest config, not just on GSI changes.
     applyOverlayConfigToStage(stage, { enabled, settings, options });
-
-    // Curated names/MMR for "Known name" mode; applied before update so this render resolves them.
-    // The sample snapshot supplies its own profiles (the fake account ids match no real list entry),
-    // so "Known name" mode still shows a name + MMR-derived medal.
-    stage.applyKnownPlayers(
-      gsiData === SAMPLE_GSI_DATA ? [...SAMPLE_KNOWN_PLAYERS, ...knownPlayers] : knownPlayers
-    );
-
-    // Fearless ban pool for the draft grid; applied before update so it renders this pass.
-    stage.applyFearlessSeries({ bannedHeroIds: fearlessBannedHeroIds });
-
-    // null = live mode without a fresh feed: clear rather than render stale/sample content.
-    if (gsiData === null) {
-      stage.clear();
-    } else {
-      // Feed ranks before update so the medal resolves this render (sample synthesizes one; live arrives via prop).
-      if (gsiData === SAMPLE_GSI_DATA) {
-        const accountId = getSelectedDotaGsiPlayer(gsiData)?.player?.accountid;
-        if (accountId !== undefined) {
-          stage.applyPlayerRank({ accountId, rankTier: SAMPLE_RANK_TIER });
-        }
-      } else {
-        for (const rank of ranks) {
-          stage.applyPlayerRank(rank);
-        }
-      }
-
-      stage.update(gsiData);
-    }
+    renderCurrent();
   });
 
-  // Scale the 1080p stage to fit the available area without overflow.
+  $effect(() => {
+    if (stage === null) return;
+    stage.applyKnownPlayers(sampleData ? [...SAMPLE_KNOWN_PLAYERS, ...knownPlayers] : knownPlayers);
+    renderCurrent();
+  });
+
+  $effect(() => {
+    if (stage === null) return;
+    stage.applyFearlessSeries({ bannedHeroIds: [...fearlessBannedHeroIds] });
+    renderCurrent();
+  });
+
+  $effect(() => {
+    if (stage === null) return;
+    stage.applySeriesState(seriesState ?? emptySeries);
+    renderCurrent();
+  });
+
+  $effect(() => {
+    if (stage === null) return;
+    if (sampleData) {
+      const accountId = getSelectedDotaGsiPlayer(SAMPLE_GSI_DATA)?.player?.accountid;
+      if (accountId !== undefined) {
+        stage.applyPlayerRank({ accountId, rankTier: SAMPLE_RANK_TIER });
+      }
+    } else {
+      for (const rank of ranks) stage.applyPlayerRank(rank);
+    }
+    renderCurrent();
+  });
+
+  $effect(() => {
+    if (stage === null) return;
+    if (gsiData === null) stage.clear();
+    else stage.update(gsiData);
+    scheduleMeasure();
+  });
+
+  function renderCurrent(): void {
+    untrack(() => {
+      if (stage === null) return;
+      if (gsiData === null) stage.clear();
+      else stage.update(gsiData);
+      scheduleMeasure();
+    });
+  }
+
+  $effect(() => {
+    void selectedId;
+    if (selectedId !== undefined) {
+      void settings?.[selectedId];
+      void options?.[selectedId];
+    }
+    scheduleMeasure();
+  });
+
+  function scheduleMeasure(): void {
+    if (measureFrame !== null) return;
+    measureFrame = globalThis.requestAnimationFrame(() => {
+      measureFrame = null;
+      measureOutlines();
+    });
+  }
+
+  function measureOutlines(): void {
+    const box = stage === null || selectedId === undefined ? null : stage.measure(selectedId);
+    const setting = selectedId === undefined ? undefined : settings?.[selectedId];
+    const option = selectedId === undefined ? undefined : options?.[selectedId];
+
+    if (
+      box === null ||
+      setting === undefined ||
+      option === undefined ||
+      !isMaxWidthOptions(option)
+    ) {
+      selectedBox = box;
+      return;
+    }
+
+    const width = option.maxWidth * (setting.size / 100);
+    selectedBox = {
+      x: anchoredRegionLeft(setting.anchor.x, setting.position.x, width),
+      y: box.y,
+      width,
+      height: box.height
+    };
+  }
+
   $effect(() => {
     if (root === null) {
       return;
@@ -125,7 +251,6 @@
 </script>
 
 <div bind:this={root} class="flex h-full w-full items-center justify-center">
-  <!-- Largest 16:9 frame that fits the available area, centered. -->
   <div
     class="relative overflow-hidden border {background === 'checkerboard' ? 'checkerboard' : ''}"
     style="width: {STAGE_WIDTH * scale}px; height: {STAGE_HEIGHT * scale}px;{background === 'ingame'
@@ -134,9 +259,17 @@
   >
     <div
       bind:this={stageEl}
-      class="absolute top-0 left-0 origin-top-left"
+      class="overlay-preview-stage absolute top-0 left-0 origin-top-left"
       style="width: {STAGE_WIDTH}px; height: {STAGE_HEIGHT}px; transform: scale({scale});"
     ></div>
+
+    {#if selectedBox !== null}
+      <div
+        class="pointer-events-none absolute border-2 border-red-500"
+        style="left: {selectedBox.x * scale}px; top: {selectedBox.y *
+          scale}px; width: {selectedBox.width * scale}px; height: {selectedBox.height * scale}px;"
+      ></div>
+    {/if}
 
     {#if gsiData === null}
       <div class="absolute inset-0 flex items-center justify-center">

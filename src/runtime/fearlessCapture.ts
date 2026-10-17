@@ -1,5 +1,5 @@
 import type { DotaGsiData } from '../shared/dotaGsiPayload.js';
-import { getDotaGsiMatchId, getPickedHeroes } from '../shared/dotaGsiPayload.js';
+import { getDotaGsiMatchId, getGameAccountIds, getPickedHeroes } from '../shared/dotaGsiPayload.js';
 import type { WatchedGame } from '../shared/fearlessDraft.js';
 
 import type { GsiPayload } from './gsiListener.js';
@@ -39,18 +39,20 @@ export function createFearlessCapture(options: {
         return;
       }
 
-      lastCapturedMatchId = matchId;
       const heroIds = picked.map((entry) => entry.heroId);
       const playerNames = picked.map((entry) => entry.playerName ?? '');
       const hasNames = playerNames.some((name) => name !== '');
+      const accountIds = getGameAccountIds(gsiData);
 
       options.upsert({
         matchId,
         capturedAt: now(),
         heroIds,
         source: 'spectated',
-        ...(hasNames ? { playerNames } : {})
+        ...(hasNames ? { playerNames } : {}),
+        ...(accountIds.length > 0 ? { accountIds } : {})
       });
+      lastCapturedMatchId = matchId;
     }
   };
 }

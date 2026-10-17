@@ -1,5 +1,6 @@
 import {
   createDefaultSelectedPlayerOptions,
+  isSelectedPlayerOptions,
   type PlayerNameSource,
   type SelectedPlayerOptions
 } from '../../../shared/componentOptions.js';
@@ -11,6 +12,8 @@ import { mmrToMedal, rankTierToMedal, type RankMedal } from './playerProfileData
 import { formatMedalName, formatMmr } from './selectedPlayerFormat.js';
 
 import type { OverlayElement } from '../../overlayElement.js';
+import { applyElementSettings } from '../../elementSettings.js';
+import { getRequiredChild, setData, setHidden, setText } from '../../dom.js';
 
 import ancientMedalUrl from './rankMedals/ancient.webp';
 import archonMedalUrl from './rankMedals/archon.webp';
@@ -55,28 +58,32 @@ export function mountSelectedPlayerElement(container: HTMLElement): OverlayEleme
       knownPlayersByAccountId = new Map(players.map((player) => [player.accountId, player]));
     },
     applyOptions(nextOptions) {
-      options = nextOptions;
+      // The stage addresses options by element id, but the type is the all-components union.
+      if (isSelectedPlayerOptions(nextOptions)) {
+        options = nextOptions;
+      }
     },
     applyPlayerRank(rank) {
       rankTiersByAccountId.set(rank.accountId, rank.rankTier);
     },
     applySettings(settings: ComponentSettings) {
-      applySelectedPlayerSettings(root, settings);
+      applyElementSettings(root, settings);
     },
     clear() {
-      root.dataset.visible = 'false';
+      setData(root, 'visible', 'false');
     },
     destroy() {
       root.remove();
     },
     setEnabled(enabled) {
-      root.dataset.enabled = String(enabled);
+      setData(root, 'enabled', String(enabled));
     },
     update(gsiData: DotaGsiData) {
-      const selectedPlayer = getSelectedDotaGsiPlayer(gsiData);
+      const selectedPlayer =
+        root.dataset.enabled === 'false' ? null : getSelectedDotaGsiPlayer(gsiData);
 
       if (root.dataset.enabled === 'false' || selectedPlayer === null) {
-        root.dataset.visible = 'false';
+        setData(root, 'visible', 'false');
         return;
       }
 
@@ -95,31 +102,15 @@ export function mountSelectedPlayerElement(container: HTMLElement): OverlayEleme
         },
         options
       );
-      root.dataset.visible = 'true';
+      setData(root, 'visible', 'true');
     }
   };
-}
-
-// Settings are applied as CSS custom properties so layout stays in CSS; the
-// selectedPlayer.css fallbacks keep the default config a visual no-op.
-function applySelectedPlayerSettings(root: HTMLElement, settings: ComponentSettings): void {
-  const { shadow } = settings;
-  const shadowValue = `0 0 ${shadow.blur}px ${shadow.color}, ${shadow.offsetX}px ${shadow.offsetY}px ${shadow.blur}px ${shadow.color}`;
-
-  root.style.setProperty('--sp-x', `${settings.position.x}px`);
-  root.style.setProperty('--sp-y', `${settings.position.y}px`);
-  root.style.setProperty('--sp-scale', String(settings.size / 100));
-  root.style.setProperty('--sp-color', settings.color);
-  root.style.setProperty('--sp-font-family', settings.font.family);
-  root.style.setProperty('--sp-font-weight', String(settings.font.weight));
-  root.style.setProperty('--sp-font-style', settings.font.italic ? 'italic' : 'normal');
-  root.style.setProperty('--sp-shadow', shadowValue);
 }
 
 function createSelectedPlayerRoot(): HTMLElement {
   const root = document.createElement('section');
   root.id = 'selected-player';
-  root.className = 'selected-player';
+  root.className = 'overlay-element selected-player';
   root.dataset.enabled = 'true';
   root.dataset.visible = 'false';
   root.setAttribute('aria-live', 'polite');
@@ -148,11 +139,11 @@ function renderSelectedPlayer(view: SelectedPlayerView, options: SelectedPlayerO
   const medal = resolveMedal(view, options);
 
   if (options.showName) {
-    view.name.hidden = false;
-    view.name.textContent = resolveName(view, options.nameSource);
+    setHidden(view.name, false);
+    setText(view.name, resolveName(view, options.nameSource));
   } else {
-    view.name.hidden = true;
-    view.name.textContent = '';
+    setHidden(view.name, true);
+    setText(view.name, '');
   }
 
   // MMR is only known for curated profiles; in-game mode treats the player as live/unknown,
@@ -162,11 +153,11 @@ function renderSelectedPlayer(view: SelectedPlayerView, options: SelectedPlayerO
   const usingFallbackName = options.nameSource === 'profile' && view.profile === null;
 
   if (options.rankValue === 'hidden' || options.nameSource === 'ingame' || usingFallbackName) {
-    view.mmr.hidden = true;
-    view.mmr.textContent = '';
+    setHidden(view.mmr, true);
+    setText(view.mmr, '');
   } else {
-    view.mmr.hidden = false;
-    view.mmr.textContent = formatMmr(mmr);
+    setHidden(view.mmr, false);
+    setText(view.mmr, formatMmr(mmr));
   }
 
   updateMedalImage(view.medal, medal);
@@ -199,25 +190,17 @@ function resolveName(view: SelectedPlayerView, source: PlayerNameSource): string
 
 function updateMedalImage(element: HTMLImageElement, medal: RankMedal | null): void {
   if (medal === null) {
-    element.hidden = true;
-    element.removeAttribute('src');
-    element.alt = '';
+    setHidden(element, true);
+    if (element.hasAttribute('src')) element.removeAttribute('src');
+    if (element.alt !== '') element.alt = '';
     return;
   }
 
-  element.hidden = false;
-  element.src = MEDAL_IMAGE_URLS[medal];
-  element.alt = `${formatMedalName(medal)} medal`;
-}
-
-function getRequiredChild(root: HTMLElement, selector: string): HTMLElement {
-  const element = root.querySelector(selector);
-
-  if (!(element instanceof HTMLElement)) {
-    throw new Error(`Missing overlay element: ${selector}`);
-  }
-
-  return element;
+  setHidden(element, false);
+  if (element.getAttribute('src') !== MEDAL_IMAGE_URLS[medal])
+    element.src = MEDAL_IMAGE_URLS[medal];
+  const label = `${formatMedalName(medal)} medal`;
+  if (element.alt !== label) element.alt = label;
 }
 
 function getRequiredImage(root: HTMLElement, selector: string): HTMLImageElement {

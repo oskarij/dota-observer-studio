@@ -35,6 +35,23 @@ function gameInProgress(matchid: string, heroIds: number[]): DotaGsiData {
 
 const TEN_HEROES = [1, 8, 11, 14, 19, 22, 25, 31, 35, 41];
 
+test('a failed capture is retried on the next identical payload', () => {
+  let attempts = 0;
+  const captured: WatchedGame[] = [];
+  const capture = createFearlessCapture({
+    upsert(game) {
+      if (++attempts === 1) throw new Error('Disk full');
+      captured.push(game);
+    }
+  });
+  const payload = asPayload(gameInProgress('999', TEN_HEROES));
+  assert.throws(() => capture.handlePayload(payload), /Disk full/);
+  capture.handlePayload(payload);
+  capture.handlePayload(payload);
+  assert.equal(attempts, 2);
+  assert.equal(captured.length, 1);
+});
+
 test('getPickedHeroIds collects every picked hero across both teams', () => {
   const heroIds = getPickedHeroIds(gameInProgress('123', TEN_HEROES));
   assert.deepEqual(

@@ -34,7 +34,10 @@ export function createGsiLiveness(config: GsiLivenessConfig = {}): GsiLiveness {
   }
 
   function armStaleTimer(): void {
-    clearStaleTimer();
+    if (staleTimer !== null) {
+      staleTimer.refresh();
+      return;
+    }
     staleTimer = setTimeout(() => {
       staleTimer = null;
       setStatus('stale');

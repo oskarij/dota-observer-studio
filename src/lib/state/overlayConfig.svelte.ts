@@ -1,7 +1,9 @@
-import type { ComponentOptions } from '../../shared/componentOptions.js';
+import { errorMessage } from '../../shared/result.js';
+import type { ComponentOptionsById } from '../../shared/componentOptions.js';
 import {
   createDefaultComponentSettings,
   createDefaultOverlayConfig,
+  mergeOverlayConfigDefaults,
   type ComponentSettings,
   type OverlayConfig
 } from '../../shared/componentSettings.js';
@@ -10,14 +12,13 @@ import { logWarning } from '../../shared/logger.js';
 const BRIDGE_UNAVAILABLE =
   'Settings bridge unavailable (window.dotaSpectatorTools.settings missing). Changes will not persist. Expected the Electron preload to expose it.';
 
-// Single source of truth for per-component visibility + settings. Edits mutate a working copy
-// that the studio preview reads reactively (immediate), while persistence + the live-overlay
-// broadcast happen only on save(). discard() rolls the working copy back to the last saved state.
 export class OverlayConfigStore {
+  error = $state<string | null>(null);
   #enabled = $state<Record<string, boolean>>({});
   #settings = $state<Record<string, ComponentSettings>>({});
-  #options = $state<Record<string, ComponentOptions>>({});
-  // Last saved/loaded config as JSON, for dirty detection and discard.
+  #options = $state<ComponentOptionsById>({});
+  customCss = $state('');
+
   #saved = $state('');
   #dirty = $derived(this.#currentJson() !== this.#saved);
 
@@ -33,7 +34,7 @@ export class OverlayConfigStore {
     return this.#settings;
   }
 
-  get options(): Record<string, ComponentOptions> {
+  get options(): ComponentOptionsById {
     return this.#options;
   }
 
@@ -47,19 +48,30 @@ export class OverlayConfigStore {
       return;
     }
 
-    this.#apply(await this.#api.get());
+    try {
+      this.#apply(await this.#api.get());
+    } catch (error) {
+      this.error = errorMessage(error);
+    }
   }
 
-  async save(): Promise<void> {
+  async save(): Promise<boolean> {
     if (this.#api === undefined) {
-      // Don't clear the dirty flag: the user must see the save did not take.
-      logWarning(BRIDGE_UNAVAILABLE);
-      return;
+      this.error = 'Open the desktop app to save changes.';
+      return false;
     }
 
     const config = this.#current();
-    await this.#api.set(config);
-    this.#saved = JSON.stringify(config);
+    this.error = null;
+    try {
+      const result = await this.#api.set(config);
+      if (!result.ok) throw new Error(result.reason);
+      this.#saved = JSON.stringify(config);
+      return true;
+    } catch (error) {
+      this.error = errorMessage(error);
+      return false;
+    }
   }
 
   discard(): void {
@@ -78,7 +90,8 @@ export class OverlayConfigStore {
     return {
       enabled: $state.snapshot(this.#enabled),
       settings: $state.snapshot(this.#settings),
-      options: $state.snapshot(this.#options)
+      options: $state.snapshot(this.#options),
+      customCss: this.customCss
     };
   }
 
@@ -87,13 +100,13 @@ export class OverlayConfigStore {
   }
 
   #apply(config: OverlayConfig): void {
-    this.#enabled = config.enabled;
-    this.#settings = config.settings;
-    this.#options = config.options;
-    this.#saved = JSON.stringify(config);
+    const merged = mergeOverlayConfigDefaults(config);
+    this.#enabled = merged.enabled;
+    this.#settings = merged.settings;
+    this.#options = merged.options;
+    this.customCss = merged.customCss;
+    this.#saved = JSON.stringify(merged);
   }
 }
 
-// Shared across the app so the Overlay and Components pages edit one working copy and the
-// app-wide Save/Discard bar reflects a single dirty state. Loaded once from the layout.
 export const overlayConfig = new OverlayConfigStore();

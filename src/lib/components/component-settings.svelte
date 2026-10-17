@@ -1,8 +1,13 @@
 <script lang="ts">
   import ItalicIcon from '@lucide/svelte/icons/italic';
-  import { onMount } from 'svelte';
+  import { onMount, type Snippet } from 'svelte';
 
-  import type { ComponentSettings } from '../../shared/componentSettings.js';
+  import {
+    positionForAnchor,
+    type ComponentAnchor,
+    type ComponentSettings,
+    type ElementBox
+  } from '../../shared/componentSettings.js';
   import {
     BUNDLED_FONTS,
     defaultWeightFor,
@@ -17,19 +22,29 @@
   import * as Select from '$lib/components/ui/select/index.js';
   import { Slider } from '$lib/components/ui/slider/index.js';
 
-  // settings is $bindable so the inputs below can mutate it via bind: with the page as co-owner
-  // (avoids Svelte's ownership_invalid_mutation warning for cross-component prop mutation).
   let {
     name,
+    elementId,
     settings = $bindable(),
-    onReset
+    measure,
+    onReset,
+    children,
+    tabs,
+    activeTab,
+    onTabChange
   }: {
     name?: string | undefined;
+
+    elementId?: string | undefined;
     settings?: ComponentSettings | undefined;
+    measure?: ((id: string) => ElementBox | null) | undefined;
     onReset?: (() => void) | undefined;
+    children?: Snippet | undefined;
+    tabs?: { value: string; label: string }[] | undefined;
+    activeTab?: string | undefined;
+    onTabChange?: ((value: string) => void) | undefined;
   } = $props();
 
-  // The user's installed fonts, loaded over the IPC bridge (empty in a plain browser).
   let systemFonts = $state<string[]>([]);
 
   onMount(async () => {
@@ -42,8 +57,6 @@
   let weightOptions = $derived(settings ? fontWeights(settings.font.family) : []);
   let hasItalic = $derived(settings ? fontHasItalic(settings.font.family) : false);
 
-  // Switching font: snap to a weight the new font has and drop italic if it has none,
-  // so we never request a face the picker shows as unavailable.
   function setFamily(family: string): void {
     if (settings === undefined) {
       return;
@@ -58,10 +71,40 @@
     }
   }
 
-  // Inline confirm/cancel instead of a modal.
+  const ANCHOR_LABEL = { top: 'Top', center: 'Center', bottom: 'Bottom' } as const;
+
+  const ANCHOR_OPTIONS: { value: string; label: string; anchor: ComponentAnchor }[] = (
+    ['top', 'center', 'bottom'] as const
+  ).flatMap((y) =>
+    (['left', 'center', 'right'] as const).map((x) => ({
+      value: `${y}-${x}`,
+      label: y === 'center' && x === 'center' ? 'Center' : `${ANCHOR_LABEL[y]} ${x}`,
+      anchor: { x, y }
+    }))
+  );
+
+  let anchorValue = $derived(
+    settings === undefined ? '' : `${settings.anchor.y}-${settings.anchor.x}`
+  );
+  let anchorLabel = $derived(
+    ANCHOR_OPTIONS.find((option) => option.value === anchorValue)?.label ?? 'Top left'
+  );
+
+  function setAnchor(value: string): void {
+    const option = ANCHOR_OPTIONS.find((candidate) => candidate.value === value);
+    if (settings === undefined || option === undefined) {
+      return;
+    }
+
+    const box = elementId === undefined ? null : (measure?.(elementId) ?? null);
+    if (box !== null) {
+      settings.position = positionForAnchor(box, option.anchor);
+    }
+    settings.anchor = { ...option.anchor };
+  }
+
   let confirmingReset = $state(false);
 
-  // Drop the pending confirmation when the user switches to a different component.
   $effect(() => {
     void name;
     confirmingReset = false;
@@ -78,29 +121,131 @@
     <span class="text-base font-semibold">{name ? `${name} Settings` : 'Settings'}</span>
   </div>
 
+  {#if tabs !== undefined && tabs.length > 1}
+    <div class="shrink-0 border-b p-2">
+      <div
+        class="flex items-center gap-0.5 rounded-lg border bg-muted p-0.5 text-sm"
+        role="group"
+        aria-label="Configured side"
+      >
+        {#each tabs as tab (tab.value)}
+          {@const active = activeTab === tab.value}
+          <button
+            type="button"
+            class="flex-1 rounded-md px-3 py-1 font-medium transition-colors {active
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'}"
+            aria-pressed={active}
+            onclick={() => onTabChange?.(tab.value)}
+          >
+            {tab.label}
+          </button>
+        {/each}
+      </div>
+    </div>
+  {/if}
+
   {#if settings === undefined}
     <div class="flex flex-1 items-center justify-center p-4">
       <span class="text-sm text-muted-foreground">Select a component to edit its settings.</span>
     </div>
   {:else}
-    <div class="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
+    <div class="grid min-h-0 flex-1 content-start grid-cols-2 gap-x-4 gap-y-4 overflow-y-auto p-4">
       <section class="flex flex-col gap-2">
         <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Position
         </span>
-        <div class="grid grid-cols-2 gap-2">
+        <div class="coord-fields grid grid-cols-2 gap-2">
           <label class="flex flex-col gap-1 text-xs">
             <span class="text-muted-foreground">X</span>
-            <Input type="number" bind:value={settings.position.x} />
+            <Input type="number" class="px-2 tabular-nums" bind:value={settings.position.x} />
           </label>
           <label class="flex flex-col gap-1 text-xs">
             <span class="text-muted-foreground">Y</span>
-            <Input type="number" bind:value={settings.position.y} />
+            <Input type="number" class="px-2 tabular-nums" bind:value={settings.position.y} />
           </label>
+        </div>
+        <div class="flex flex-col gap-1 text-xs">
+          <span class="text-muted-foreground">Position anchor</span>
+          <Select.Root type="single" value={anchorValue} onValueChange={setAnchor}>
+            <Select.Trigger class="h-8 w-full" aria-label="Position anchor">
+              <span class="min-w-0 flex-1 truncate text-left capitalize">{anchorLabel}</span>
+            </Select.Trigger>
+            <Select.Content class="max-h-64">
+              {#each ANCHOR_OPTIONS as option (option.value)}
+                <Select.Item value={option.value} label={option.label}>
+                  <span class="capitalize">{option.label}</span>
+                </Select.Item>
+              {/each}
+            </Select.Content>
+          </Select.Root>
         </div>
       </section>
 
       <section class="flex flex-col gap-2">
+        <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Color & Shadow
+        </span>
+        <div class="flex items-center justify-between gap-2 text-xs">
+          <span class="text-muted-foreground">Text color</span>
+          <input
+            type="color"
+            class="h-8 w-12 cursor-pointer rounded-md border bg-background"
+            bind:value={settings.color}
+          />
+        </div>
+        <div class="flex items-center justify-between gap-2 text-xs">
+          <span class="text-muted-foreground">Shadow</span>
+          <Popover.Root>
+            <Popover.Trigger>
+              {#snippet child({ props })}
+                <Button {...props} variant="outline" class="h-8 gap-2 px-2 font-normal">
+                  <span
+                    class="size-4 shrink-0 rounded-sm border"
+                    style="background-color: {settings.shadow.color}"
+                  ></span>
+                  Edit
+                </Button>
+              {/snippet}
+            </Popover.Trigger>
+            <Popover.Content
+              side="right"
+              align="start"
+              sideOffset={8}
+              collisionPadding={8}
+              class="w-56"
+            >
+              <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Shadow
+              </span>
+              <div class="flex items-center justify-between gap-2 text-xs">
+                <span class="text-muted-foreground">Color</span>
+                <input
+                  type="color"
+                  class="h-8 w-12 cursor-pointer rounded-md border bg-background"
+                  bind:value={settings.shadow.color}
+                />
+              </div>
+              <label class="flex flex-col gap-1 text-xs">
+                <span class="text-muted-foreground">Blur</span>
+                <Input type="number" min={0} bind:value={settings.shadow.blur} />
+              </label>
+              <div class="grid grid-cols-2 gap-2">
+                <label class="flex flex-col gap-1 text-xs">
+                  <span class="text-muted-foreground">Offset X</span>
+                  <Input type="number" bind:value={settings.shadow.offsetX} />
+                </label>
+                <label class="flex flex-col gap-1 text-xs">
+                  <span class="text-muted-foreground">Offset Y</span>
+                  <Input type="number" bind:value={settings.shadow.offsetY} />
+                </label>
+              </div>
+            </Popover.Content>
+          </Popover.Root>
+        </div>
+      </section>
+
+      <section class="col-span-2 flex flex-col gap-2">
         <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Size
         </span>
@@ -110,7 +255,7 @@
         </div>
       </section>
 
-      <section class="flex flex-col gap-2">
+      <section class="col-span-2 flex flex-col gap-2">
         <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Font
         </span>
@@ -185,70 +330,7 @@
         </div>
       </section>
 
-      <section class="flex flex-col gap-2">
-        <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Color & Shadow
-        </span>
-        <div class="flex items-center justify-between gap-2 text-xs">
-          <span class="text-muted-foreground">Text color</span>
-          <!-- No shadcn color picker exists; the native input is the only option. -->
-          <input
-            type="color"
-            class="h-8 w-12 cursor-pointer rounded-md border bg-background"
-            bind:value={settings.color}
-          />
-        </div>
-        <div class="flex items-center justify-between gap-2 text-xs">
-          <span class="text-muted-foreground">Shadow</span>
-          <Popover.Root>
-            <Popover.Trigger>
-              {#snippet child({ props })}
-                <Button {...props} variant="outline" class="h-8 gap-2 px-2 font-normal">
-                  <span
-                    class="size-4 shrink-0 rounded-sm border"
-                    style="background-color: {settings.shadow.color}"
-                  ></span>
-                  Edit
-                </Button>
-              {/snippet}
-            </Popover.Trigger>
-            <!-- collisionPadding keeps an 8px gap from window edges so the popover never sits flush against the bottom. -->
-            <Popover.Content
-              side="right"
-              align="start"
-              sideOffset={8}
-              collisionPadding={8}
-              class="w-56"
-            >
-              <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Shadow
-              </span>
-              <div class="flex items-center justify-between gap-2 text-xs">
-                <span class="text-muted-foreground">Color</span>
-                <input
-                  type="color"
-                  class="h-8 w-12 cursor-pointer rounded-md border bg-background"
-                  bind:value={settings.shadow.color}
-                />
-              </div>
-              <label class="flex flex-col gap-1 text-xs">
-                <span class="text-muted-foreground">Blur</span>
-                <Input type="number" min={0} bind:value={settings.shadow.blur} />
-              </label>
-              <div class="grid grid-cols-2 gap-2">
-                <label class="flex flex-col gap-1 text-xs">
-                  <span class="text-muted-foreground">Offset X</span>
-                  <Input type="number" bind:value={settings.shadow.offsetX} />
-                </label>
-                <label class="flex flex-col gap-1 text-xs">
-                  <span class="text-muted-foreground">Offset Y</span>
-                  <Input type="number" bind:value={settings.shadow.offsetY} />
-                </label>
-              </div>
-            </Popover.Content>
-          </Popover.Root>
-        </div>
-      </section>
+      {@render children?.()}
     </div>
 
     {#if onReset}
@@ -272,3 +354,17 @@
     {/if}
   {/if}
 </div>
+
+<style>
+  /* Stage coordinates run to 4 digits in ~64px-wide inputs: drop the native number spinners
+     (arrow keys and typing still work) so the full value stays visible; px-2 above slims the
+     padding for the same reason. */
+  .coord-fields :global(input[type='number']) {
+    appearance: textfield;
+  }
+  .coord-fields :global(input[type='number']::-webkit-outer-spin-button),
+  .coord-fields :global(input[type='number']::-webkit-inner-spin-button) {
+    appearance: none;
+    margin: 0;
+  }
+</style>

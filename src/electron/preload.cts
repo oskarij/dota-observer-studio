@@ -1,102 +1,84 @@
 import { contextBridge, ipcRenderer } from 'electron';
+import type { StudioApi } from '../shared/studioApi.js';
 
-import type { OverlayConfig } from '../shared/componentSettings.js';
-import type { SeriesGame, WatchedGame } from '../shared/fearlessDraft.js';
-import type { KnownPlayer } from '../shared/knownPlayer.js';
-import type { NetworkInfo, NetworkSettings } from '../shared/networkConfig.js';
-
-// CommonJS (.cts) and self-contained so Electron's sandboxed preload can load it:
-// a sandboxed preload cannot use ESM or require local modules. Channel names are
-// inlined for that reason. Keep in sync with src/shared/ipcChannels.ts.
-const SETTINGS_GET_CHANNEL = 'settings:get';
-const SETTINGS_SET_CHANNEL = 'settings:set';
-const SETTINGS_EXPORT_CHANNEL = 'settings:export';
-const SETTINGS_IMPORT_CHANNEL = 'settings:import';
-const NETWORK_GET_CHANNEL = 'network:get';
-const NETWORK_SET_CHANNEL = 'network:set';
-const GSI_INSTALL_CHANNEL = 'gsi:install';
-const GSI_EXPORT_CHANNEL = 'gsi:export';
-const PLAYER_RANKS_CLEAR_CHANNEL = 'player-ranks:clear';
-const FONTS_LIST_CHANNEL = 'fonts:list';
-const KNOWN_PLAYERS_GET_CHANNEL = 'known-players:get';
-const KNOWN_PLAYERS_SET_CHANNEL = 'known-players:set';
-const KNOWN_PLAYERS_EXPORT_CSV_CHANNEL = 'known-players:export-csv';
-const KNOWN_PLAYERS_IMPORT_CSV_CHANNEL = 'known-players:import-csv';
-const WATCHED_GAMES_GET_CHANNEL = 'watched-games:get';
-const WATCHED_GAMES_CHANGED_CHANNEL = 'watched-games:changed';
-const FEARLESS_SERIES_GET_CHANNEL = 'fearless-series:get';
-const FEARLESS_SERIES_SET_CHANNEL = 'fearless-series:set';
-const FEARLESS_FETCH_MATCH_CHANNEL = 'fearless:fetch-match';
-const APP_DIRTY_CHANGED_CHANNEL = 'app:dirty-changed';
-const APP_SAVE_AND_QUIT_CHANNEL = 'app:save-and-quit';
-const APP_QUIT_CONFIRMED_CHANNEL = 'app:quit-confirmed';
-
-// These mirror the result types declared in the corresponding main-process IPC modules; kept
-// inline because the sandboxed preload cannot import them.
-interface OkResult {
-  ok: boolean;
-  reason?: string;
+function subscribe(channel: string, handler: () => void): () => void {
+  const listener = (): void => handler();
+  ipcRenderer.on(channel, listener);
+  return () => {
+    ipcRenderer.removeListener(channel, listener);
+  };
 }
 
-const api = {
+// Sandboxed preloads cannot require local modules; channel strings must stay inline.
+const api: StudioApi = {
   platform: 'desktop',
   settings: {
-    get: (): Promise<OverlayConfig> => ipcRenderer.invoke(SETTINGS_GET_CHANNEL),
-    set: (config: OverlayConfig): Promise<void> => ipcRenderer.invoke(SETTINGS_SET_CHANNEL, config),
-    export: (): Promise<OkResult & { path?: string }> =>
-      ipcRenderer.invoke(SETTINGS_EXPORT_CHANNEL),
-    import: (): Promise<OkResult & { config?: OverlayConfig }> =>
-      ipcRenderer.invoke(SETTINGS_IMPORT_CHANNEL)
+    get: (...args) => ipcRenderer.invoke('settings:get', ...args),
+    set: (...args) => ipcRenderer.invoke('settings:set', ...args),
+    export: (...args) => ipcRenderer.invoke('settings:export', ...args),
+    import: (...args) => ipcRenderer.invoke('settings:import', ...args),
+    openMediaFolder: () => ipcRenderer.invoke('settings:open-media-folder')
   },
   network: {
-    get: (): Promise<NetworkInfo> => ipcRenderer.invoke(NETWORK_GET_CHANNEL),
-    set: (settings: NetworkSettings): Promise<OkResult> =>
-      ipcRenderer.invoke(NETWORK_SET_CHANNEL, settings)
+    get: (...args) => ipcRenderer.invoke('network:get', ...args),
+    set: (...args) => ipcRenderer.invoke('network:set', ...args)
   },
   gsi: {
-    install: (): Promise<OkResult & { path?: string }> => ipcRenderer.invoke(GSI_INSTALL_CHANNEL),
-    export: (): Promise<OkResult & { path?: string }> => ipcRenderer.invoke(GSI_EXPORT_CHANNEL)
+    install: (...args) => ipcRenderer.invoke('gsi:install', ...args),
+    export: (...args) => ipcRenderer.invoke('gsi:export', ...args)
   },
   playerRanks: {
-    clear: (): Promise<void> => ipcRenderer.invoke(PLAYER_RANKS_CLEAR_CHANNEL)
+    clear: (...args) => ipcRenderer.invoke('player-ranks:clear', ...args)
   },
   fonts: {
-    list: (): Promise<string[]> => ipcRenderer.invoke(FONTS_LIST_CHANNEL)
+    list: (...args) => ipcRenderer.invoke('fonts:list', ...args)
   },
   knownPlayers: {
-    get: (): Promise<KnownPlayer[]> => ipcRenderer.invoke(KNOWN_PLAYERS_GET_CHANNEL),
-    set: (players: KnownPlayer[]): Promise<void> =>
-      ipcRenderer.invoke(KNOWN_PLAYERS_SET_CHANNEL, players),
-    exportCsv: (csv: string): Promise<OkResult & { path?: string }> =>
-      ipcRenderer.invoke(KNOWN_PLAYERS_EXPORT_CSV_CHANNEL, csv),
-    importCsv: (): Promise<OkResult & { text?: string }> =>
-      ipcRenderer.invoke(KNOWN_PLAYERS_IMPORT_CSV_CHANNEL)
+    get: (...args) => ipcRenderer.invoke('known-players:get', ...args),
+    set: (...args) => ipcRenderer.invoke('known-players:set', ...args),
+    add: (...args) => ipcRenderer.invoke('known-players:add', ...args),
+    update: (...args) => ipcRenderer.invoke('known-players:update', ...args),
+    remove: (...args) => ipcRenderer.invoke('known-players:remove', ...args),
+    exportCsv: (...args) => ipcRenderer.invoke('known-players:export-csv', ...args),
+    importCsv: (...args) => ipcRenderer.invoke('known-players:import-csv', ...args),
+    onChanged: (handler) => subscribe('known-players:changed', handler)
+  },
+  teams: {
+    get: (...args) => ipcRenderer.invoke('teams:get', ...args),
+    add: (...args) => ipcRenderer.invoke('teams:add', ...args),
+    update: (...args) => ipcRenderer.invoke('teams:update', ...args),
+    remove: (...args) => ipcRenderer.invoke('teams:remove', ...args),
+    pickLogo: (...args) => ipcRenderer.invoke('teams:pick-logo', ...args),
+    onChanged: (handler) => subscribe('teams:changed', handler)
+  },
+  series: {
+    get: (...args) => ipcRenderer.invoke('series:get', ...args),
+    setTeam: (...args) => ipcRenderer.invoke('series:set-team', ...args),
+    swapSides: () => ipcRenderer.invoke('series:swap-sides'),
+    adjustScore: (...args) => ipcRenderer.invoke('series:adjust-score', ...args),
+    useAutomaticScore: (...args) => ipcRenderer.invoke('series:use-automatic-score', ...args),
+    resetScores: () => ipcRenderer.invoke('series:reset-scores'),
+    onChanged: (handler) => subscribe('series:changed', handler)
+  },
+  tournament: {
+    get: (...args) => ipcRenderer.invoke('tournament:get', ...args),
+    refresh: (...args) => ipcRenderer.invoke('tournament:refresh', ...args),
+    setApiKey: (...args) => ipcRenderer.invoke('tournament:set-api-key', ...args),
+    onChanged: (handler) => subscribe('tournament:changed', handler)
   },
   fearless: {
-    getWatchedGames: (): Promise<WatchedGame[]> => ipcRenderer.invoke(WATCHED_GAMES_GET_CHANNEL),
-    // Fires when the live GSI capture or an OpenDota fetch adds a watched game.
-    onWatchedGamesChanged: (handler: () => void): (() => void) => {
-      const listener = (): void => handler();
-      ipcRenderer.on(WATCHED_GAMES_CHANGED_CHANNEL, listener);
-      return () => ipcRenderer.removeListener(WATCHED_GAMES_CHANGED_CHANNEL, listener);
-    },
-    getSeries: (): Promise<SeriesGame[]> => ipcRenderer.invoke(FEARLESS_SERIES_GET_CHANNEL),
-    setSeries: (series: SeriesGame[]): Promise<void> =>
-      ipcRenderer.invoke(FEARLESS_SERIES_SET_CHANNEL, series),
-    fetchMatch: (matchId: string): Promise<OkResult & { game?: WatchedGame }> =>
-      ipcRenderer.invoke(FEARLESS_FETCH_MATCH_CHANNEL, matchId)
+    getWatchedGames: (...args) => ipcRenderer.invoke('watched-games:get', ...args),
+    onWatchedGamesChanged: (handler) => subscribe('watched-games:changed', handler),
+    getSeries: (...args) => ipcRenderer.invoke('fearless-series:get', ...args),
+    editSeries: (...args) => ipcRenderer.invoke('fearless-series:set', ...args),
+    onSeriesChanged: (handler) => subscribe('fearless-series:changed', handler),
+    fetchMatch: (...args) => ipcRenderer.invoke('fearless:fetch-match', ...args)
   },
   app: {
-    // Keep main informed of unsaved changes so it can guard the window close.
-    setDirty: (dirty: boolean): void => ipcRenderer.send(APP_DIRTY_CHANGED_CHANNEL, dirty),
-    // Main asks the renderer to persist before quitting.
-    onSaveAndQuit: (handler: () => void): (() => void) => {
-      const listener = (): void => handler();
-      ipcRenderer.on(APP_SAVE_AND_QUIT_CHANNEL, listener);
-      return () => ipcRenderer.removeListener(APP_SAVE_AND_QUIT_CHANNEL, listener);
-    },
-    confirmQuit: (): void => ipcRenderer.send(APP_QUIT_CONFIRMED_CHANNEL)
+    setDirty: (...args) => ipcRenderer.send('app:dirty-changed', ...args),
+    onSaveAndQuit: (handler) => subscribe('app:save-and-quit', handler),
+    confirmQuit: (...args) => ipcRenderer.send('app:quit-confirmed', ...args)
   }
-} as const;
+};
 
 contextBridge.exposeInMainWorld('dotaSpectatorTools', api);

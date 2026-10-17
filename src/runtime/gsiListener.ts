@@ -73,8 +73,8 @@ export function createGsiListener(config: GsiListenerConfig): GsiListener {
       throw new HttpError(400, 'GSI payload must be a JSON object');
     }
 
-    payloadObservers.emit(payload);
     writeNoContent(response);
+    payloadObservers.emit(payload);
   }
 
   return {

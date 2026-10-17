@@ -1,45 +1,40 @@
-import { ipcMain, type OpenDialogOptions, type SaveDialogOptions } from 'electron';
-import { readFile, writeFile } from 'node:fs/promises';
+import { ipcMain, shell, type OpenDialogOptions, type SaveDialogOptions } from 'electron';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 
 import type { OverlayGsiEventStream } from '../../runtime/overlayGsiEventStream.js';
-import { isOverlayConfigShape, type OverlayConfig } from '../../shared/componentSettings.js';
+import { type OverlayConfig } from '../../shared/componentSettings.js';
 import {
   SETTINGS_EXPORT_CHANNEL,
   SETTINGS_GET_CHANNEL,
   SETTINGS_IMPORT_CHANNEL,
+  SETTINGS_OPEN_MEDIA_FOLDER_CHANNEL,
   SETTINGS_SET_CHANNEL
 } from '../../shared/ipcChannels.js';
+import { errorMessage, type Result } from '../../shared/result.js';
 import { logError } from '../../shared/logger.js';
 import { createSettingsStore } from '../settingsStore.js';
 
 import { showOpenDialog, showSaveDialog } from './dialogs.js';
 
-export interface SettingsExportResult {
-  ok: boolean;
-  path?: string;
-  reason?: string;
-}
+type SettingsExportResult = Result<{ path: string }>;
+type SettingsImportResult = Result<{ config: OverlayConfig }>;
 
-export interface SettingsImportResult {
-  ok: boolean;
-  // The merged config on success, so the renderer can refresh its working copy.
-  config?: OverlayConfig;
-  reason?: string;
-}
-
-// The main process is the single source of truth: it persists settings and pushes them to
-// live-overlay clients. The renderer drives its own preview reactively, so this is the
-// persistence + cross-process fan-out path only.
-export function registerSettingsIpc(eventStream: OverlayGsiEventStream): () => void {
+export function registerSettingsIpc(
+  eventStream: OverlayGsiEventStream,
+  mediaRoot: string
+): () => void {
   const store = createSettingsStore();
 
-  // Seed the stream so an overlay opened before the studio still renders the saved layout.
   eventStream.setSettings(store.get());
 
   ipcMain.handle(SETTINGS_GET_CHANNEL, () => store.get());
-  ipcMain.handle(SETTINGS_SET_CHANNEL, (_event, config: OverlayConfig) => {
-    store.set(config);
-    eventStream.setSettings(config);
+  ipcMain.handle(SETTINGS_SET_CHANNEL, (_event, config: unknown): Result => {
+    try {
+      eventStream.setSettings(store.set(config));
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, reason: errorMessage(error) };
+    }
   });
 
   ipcMain.handle(SETTINGS_EXPORT_CHANNEL, async (): Promise<SettingsExportResult> => {
@@ -78,14 +73,7 @@ export function registerSettingsIpc(eventStream: OverlayGsiEventStream): () => v
       }
 
       const parsed: unknown = JSON.parse(await readFile(filePath, 'utf8'));
-      if (!isOverlayConfigShape(parsed)) {
-        return { ok: false, reason: 'That file is not a valid Observer Studio config.' };
-      }
-
-      store.set(parsed);
-      // store.get() re-applies the field-level merge over defaults, so a partial/older file is
-      // filled in before it reaches the overlay and the renderer.
-      const merged = store.get();
+      const merged = store.set(parsed);
       eventStream.setSettings(merged);
       return { ok: true, config: merged };
     } catch (error) {
@@ -94,10 +82,18 @@ export function registerSettingsIpc(eventStream: OverlayGsiEventStream): () => v
     }
   });
 
+  // Custom CSS refers to fonts and images dropped here as url(/media/<file>).
+  ipcMain.handle(SETTINGS_OPEN_MEDIA_FOLDER_CHANNEL, async (): Promise<Result> => {
+    await mkdir(mediaRoot, { recursive: true });
+    const error = await shell.openPath(mediaRoot);
+    return error === '' ? { ok: true } : { ok: false, reason: error };
+  });
+
   return () => {
     ipcMain.removeHandler(SETTINGS_GET_CHANNEL);
     ipcMain.removeHandler(SETTINGS_SET_CHANNEL);
     ipcMain.removeHandler(SETTINGS_EXPORT_CHANNEL);
     ipcMain.removeHandler(SETTINGS_IMPORT_CHANNEL);
+    ipcMain.removeHandler(SETTINGS_OPEN_MEDIA_FOLDER_CHANNEL);
   };
 }

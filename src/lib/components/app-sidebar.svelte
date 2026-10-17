@@ -2,16 +2,18 @@
   import { asset, resolve } from '$app/paths';
   import { page } from '$app/state';
   import type { Pathname } from '$app/types';
-  import LayoutGridIcon from '@lucide/svelte/icons/layout-grid';
   import LayersIcon from '@lucide/svelte/icons/layers';
   import MoonIcon from '@lucide/svelte/icons/moon';
   import SettingsIcon from '@lucide/svelte/icons/settings';
   import SunIcon from '@lucide/svelte/icons/sun';
+  import SwordsIcon from '@lucide/svelte/icons/swords';
+  import UsersIcon from '@lucide/svelte/icons/users';
   import { toggleMode } from 'mode-watcher';
 
   const navigation: { href: Pathname; label: string; icon: typeof LayersIcon }[] = [
     { href: '/', label: 'Overlay', icon: LayersIcon },
-    { href: '/components', label: 'Components', icon: LayoutGridIcon }
+    { href: '/series', label: 'Series', icon: SwordsIcon },
+    { href: '/players', label: 'Teams & Players', icon: UsersIcon }
   ];
 
   const settings: { href: Pathname; label: string; icon: typeof LayersIcon } = {
@@ -36,7 +38,7 @@
     href={resolve(item.href)}
   >
     <item.icon class="size-5 shrink-0" />
-    <span>{item.label}</span>
+    <span class="text-center leading-tight">{item.label}</span>
   </a>
 {/snippet}
 

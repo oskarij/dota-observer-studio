@@ -1,4 +1,4 @@
-import { isOverlayConfigShape, type OverlayConfig } from '../shared/componentSettings.js';
+import { mergeOverlayConfigDefaults, type OverlayConfig } from '../shared/componentSettings.js';
 import type { DotaGsiData } from '../shared/dotaGsiPayload.js';
 import type { FearlessSeriesPayload } from '../shared/fearlessDraft.js';
 import { GSI_STATUS_EVENT, type GsiStatus } from '../shared/gsiStatus.js';
@@ -8,7 +8,9 @@ import { OVERLAY_EVENTS_PATH } from '../shared/networkConfig.js';
 import { OVERLAY_FEARLESS_EVENT } from '../shared/overlayFearlessEvent.js';
 import { OVERLAY_KNOWN_PLAYERS_EVENT } from '../shared/overlayKnownPlayersEvent.js';
 import { OVERLAY_PLAYER_RANK_EVENT, type PlayerRank } from '../shared/overlayPlayerRankEvent.js';
+import { OVERLAY_SERIES_EVENT } from '../shared/overlaySeriesEvent.js';
 import { OVERLAY_SETTINGS_EVENT } from '../shared/overlaySettingsEvent.js';
+import type { SeriesStatePayload } from '../shared/seriesState.js';
 
 export type RealtimeConnectionState = 'connected' | 'disconnected';
 
@@ -20,6 +22,7 @@ export interface OverlayRealtimeHandlers {
   onSettings?(config: OverlayConfig): void;
   onKnownPlayers?(players: KnownPlayer[]): void;
   onFearlessSeries?(payload: FearlessSeriesPayload): void;
+  onSeriesState?(payload: SeriesStatePayload): void;
   onPlayerRank?(rank: PlayerRank): void;
   onConnectionChange?(state: RealtimeConnectionState): void;
 }
@@ -32,9 +35,19 @@ export function connectOverlayRealtime(handlers: OverlayRealtimeHandlers): () =>
 
   // The /events SSE route is served on the same origin that served this page (the overlay host, or
   // the web host for the studio preview), so it works over loopback or a LAN address with no CORS.
-  const events = new EventSource(`${window.location.origin}${OVERLAY_EVENTS_PATH}`);
+  const statusOnly =
+    !handlers.onGsiData &&
+    !handlers.onSettings &&
+    !handlers.onKnownPlayers &&
+    !handlers.onFearlessSeries &&
+    !handlers.onSeriesState &&
+    !handlers.onPlayerRank;
+  const events = new EventSource(
+    `${window.location.origin}${OVERLAY_EVENTS_PATH}${statusOnly ? '?statusOnly=1' : ''}`
+  );
 
   events.onmessage = (event) => {
+    if (handlers.onGsiData === undefined) return;
     const gsiData = parse<DotaGsiData>(event.data, 'GSI payload');
 
     if (gsiData !== null) {
@@ -50,8 +63,10 @@ export function connectOverlayRealtime(handlers: OverlayRealtimeHandlers): () =>
   events.addEventListener(OVERLAY_SETTINGS_EVENT, (event) => {
     const config = parse<unknown>(event.data, 'overlay settings');
 
-    if (isOverlayConfigShape(config)) {
-      handlers.onSettings?.(config);
+    try {
+      handlers.onSettings?.(mergeOverlayConfigDefaults(config));
+    } catch {
+      // Keep the last valid settings when an event is malformed.
     }
   });
 
@@ -68,6 +83,22 @@ export function connectOverlayRealtime(handlers: OverlayRealtimeHandlers): () =>
 
     if (payload !== null && Array.isArray(payload.bannedHeroIds)) {
       handlers.onFearlessSeries?.(payload);
+    }
+  });
+
+  events.addEventListener(OVERLAY_SERIES_EVENT, (event) => {
+    const payload = parse<SeriesStatePayload>(event.data, 'series state');
+
+    // typeof null is 'object', so the null checks are load-bearing: a malformed side would throw
+    // inside every consumer render.
+    if (
+      payload !== null &&
+      typeof payload.radiant === 'object' &&
+      payload.radiant !== null &&
+      typeof payload.dire === 'object' &&
+      payload.dire !== null
+    ) {
+      handlers.onSeriesState?.(payload);
     }
   });
 

@@ -21,45 +21,46 @@ export interface ManagedHttpServer {
 // start/stop, and a stop that destroys keep-alive sockets so the port frees immediately.
 export function createManagedHttpServer(config: ManagedHttpServerConfig): ManagedHttpServer {
   let server: Server | null = null;
+  let starting: Promise<void> | null = null;
+  let stopping: Promise<void> | null = null;
 
-  async function start(): Promise<void> {
-    if (server !== null) {
-      return;
-    }
-
+  function start(): Promise<void> {
+    if (stopping !== null) return stopping.then(start);
+    if (starting !== null) return starting;
+    if (server !== null) return Promise.resolve();
     const nextServer = createServer(config.onRequest);
-
-    await new Promise<void>((resolve, reject) => {
+    server = nextServer;
+    starting = new Promise<void>((resolve, reject) => {
       nextServer.once('error', reject);
       nextServer.listen(config.port, config.host, resolve);
-    });
-
-    server = nextServer;
+    })
+      .catch((error: unknown) => {
+        server = null;
+        throw error;
+      })
+      .finally(() => {
+        starting = null;
+      });
+    return starting;
   }
 
-  async function stop(): Promise<void> {
-    config.onBeforeClose?.();
-
-    if (server === null) {
-      return;
-    }
-
-    const activeServer = server;
-    server = null;
-
-    // close() alone waits for idle keep-alive sockets to drain; destroy them so the port frees now.
-    activeServer.closeAllConnections();
-
-    await new Promise<void>((resolve, reject) => {
-      activeServer.close((error) => {
-        if (error === undefined) {
-          resolve();
-          return;
-        }
-
-        reject(error);
+  function stop(): Promise<void> {
+    if (stopping !== null) return stopping;
+    stopping = (async () => {
+      await starting?.catch(() => {});
+      config.onBeforeClose?.();
+      if (server === null) return;
+      const activeServer = server;
+      server = null;
+      const closed = new Promise<void>((resolve, reject) => {
+        activeServer.close((error) => (error === undefined ? resolve() : reject(error)));
       });
+      activeServer.closeAllConnections();
+      await closed;
+    })().finally(() => {
+      stopping = null;
     });
+    return stopping;
   }
 
   function address(): AddressInfo | null {

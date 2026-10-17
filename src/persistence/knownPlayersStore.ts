@@ -1,23 +1,17 @@
 import { DatabaseSync } from 'node:sqlite';
 
-import { DEFAULT_KNOWN_PLAYERS } from '../shared/defaultKnownPlayers.js';
+import { transaction } from './sqliteTransaction.js';
 import type { KnownPlayer } from '../shared/knownPlayer.js';
 import { logWarning } from '../shared/logger.js';
 
-// Persistent, user-editable list of curated players keyed by account id. node:sqlite (built into
-// Electron's Node) is used to match the rest of the persistence layer; see playerRankStore for why
-// not better-sqlite3. The whole list is read and written at once (it's small and the UI edits it
-// as a single working set), so writes go through replaceAll() in a transaction.
 export interface KnownPlayersStore {
+  readonly warning?: string;
   list(): KnownPlayer[];
   replaceAll(players: readonly KnownPlayer[]): void;
   close(): void;
 }
 
 export function createKnownPlayersStore(filePath: string): KnownPlayersStore {
-  // The known-players list shouldn't block app startup if the DB is corrupt or locked: degrade to
-  // an in-memory no-op (the seeded defaults are gone, but the studio still opens and the user can
-  // re-add players for the session).
   try {
     return openKnownPlayersStore(filePath);
   } catch (error) {
@@ -25,14 +19,15 @@ export function createKnownPlayersStore(filePath: string): KnownPlayersStore {
       `Failed to open known-players store at ${filePath}; the list will not persist`,
       error
     );
-    return createNoopKnownPlayersStore();
+    return createMemoryPlayersStore();
   }
 }
 
-function createNoopKnownPlayersStore(): KnownPlayersStore {
+function createMemoryPlayersStore(): KnownPlayersStore {
   let players: KnownPlayer[] = [];
 
   return {
+    warning: 'Storage could not be opened. Changes will be lost when the app closes.',
     list: () => players,
     replaceAll: (next) => {
       players = [...next];
@@ -43,55 +38,61 @@ function createNoopKnownPlayersStore(): KnownPlayersStore {
 
 function openKnownPlayersStore(filePath: string): KnownPlayersStore {
   const db = new DatabaseSync(filePath);
-
-  db.exec(`
+  try {
+    db.exec(`
     CREATE TABLE IF NOT EXISTS known_players (
       account_id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
-      mmr INTEGER
+      mmr INTEGER,
+      team_id TEXT
     );
   `);
 
-  const readStmt = db.prepare('SELECT account_id, name, mmr FROM known_players ORDER BY rowid');
-  const insertStmt = db.prepare(
-    'INSERT INTO known_players (account_id, name, mmr) VALUES (?, ?, ?)'
-  );
-  const clearStmt = db.prepare('DELETE FROM known_players');
+    // Databases created before team links lack the column.
+    const columns = db.prepare('PRAGMA table_info(known_players)').all() as { name: string }[];
+    if (!columns.some((column) => column.name === 'team_id'))
+      db.exec('ALTER TABLE known_players ADD COLUMN team_id TEXT');
 
-  function replaceAll(players: readonly KnownPlayer[]): void {
-    // Whole-list swap kept atomic so a failed write never leaves a half-applied list.
-    db.exec('BEGIN');
-    try {
-      clearStmt.run();
-      for (const player of players) {
-        insertStmt.run(player.accountId, player.name, player.mmr);
+    const readStmt = db.prepare(
+      'SELECT account_id, name, mmr, team_id FROM known_players ORDER BY rowid'
+    );
+    const insertStmt = db.prepare(
+      'INSERT INTO known_players (account_id, name, mmr, team_id) VALUES (?, ?, ?, ?)'
+    );
+    const clearStmt = db.prepare('DELETE FROM known_players');
+
+    function replaceAll(players: readonly KnownPlayer[]): void {
+      transaction(db, () => {
+        clearStmt.run();
+        for (const player of players) {
+          insertStmt.run(player.accountId, player.name, player.mmr, player.teamId);
+        }
+      });
+    }
+
+    return {
+      list() {
+        const rows = readStmt.all() as {
+          account_id: string;
+          name: string;
+          mmr: number | null;
+          team_id: string | null;
+        }[];
+
+        return rows.map((row) => ({
+          accountId: row.account_id,
+          name: row.name,
+          mmr: row.mmr,
+          teamId: row.team_id
+        }));
+      },
+      replaceAll,
+      close() {
+        db.close();
       }
-      db.exec('COMMIT');
-    } catch (error) {
-      db.exec('ROLLBACK');
-      throw error;
-    }
+    };
+  } catch (error) {
+    db.close();
+    throw error;
   }
-
-  // user_version 0 = freshly created (never seeded). Seed the curated defaults once, then bump it so
-  // a user who later empties the list isn't re-seeded on the next launch.
-  const { user_version: version } = db.prepare('PRAGMA user_version').get() as {
-    user_version: number;
-  };
-  if (version === 0) {
-    replaceAll(DEFAULT_KNOWN_PLAYERS);
-    db.exec('PRAGMA user_version = 1');
-  }
-
-  return {
-    list() {
-      const rows = readStmt.all() as { account_id: string; name: string; mmr: number | null }[];
-
-      return rows.map((row) => ({ accountId: row.account_id, name: row.name, mmr: row.mmr }));
-    },
-    replaceAll,
-    close() {
-      db.close();
-    }
-  };
 }

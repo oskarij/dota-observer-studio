@@ -1,8 +1,8 @@
 # Observer Studio
 
 Observer Studio builds Dota 2 spectator-stream overlays. It reads live match data from Dota's Game
-State Integration (GSI), lets you design an overlay with a live preview, and serves it to OBS as a
-Browser source.
+State Integration (GSI), lets you design an overlay with a live preview, and serves it to OBS as two
+Browser sources: one for the draft, one for the game.
 
 ## Requirements
 
@@ -14,16 +14,54 @@ Windows 10/11, Dota 2, and OBS (or anything that supports a Browser source).
    `Observer Studio.exe`. It's unsigned, so on the SmartScreen prompt click **More info → Run anyway**.
 2. **Settings → Game integration → Install GSI config**, then add the `-gamestateintegration` launch
    option to Dota (Steam → Dota 2 → Properties → Launch Options) and restart Dota.
-3. **Settings → OBS browser source**: copy the URL into an OBS Browser source (transparent
-   background, your canvas size). Build the overlay on the **Overlay** page.
+3. **Settings → OBS browser sources**: the overlay is two Browser sources, one for the draft and one
+   for the game. Copy each URL into a Browser source in the matching OBS scene (transparent
+   background, your canvas size). Build both on the **Overlay** page; its Draft / In-game tabs switch
+   between them.
 
 GSI only sends data while you're spectating or in a match, so the status stays "Not connected" until
 then.
 
+**Updating from an older version:** run **Settings → Game integration → Install GSI config** again
+and restart Dota. The draft board needs the draft data, which older configs turn off.
+
+## Teams, scores and fearless picks
+
+In a league lobby, the ticket names both teams, their sides and the series score, and a new matchup
+replaces the previous one automatically. Each team is saved under its Valve team ID the first time
+it appears, so you can rename it or add a logo on **Teams & Players**; to use a team you created
+yourself, enter its Valve team ID there. Without a ticket, pick the teams and keep the score on the
+**Series** page; players linked to teams on **Teams & Players** put each team on its side.
+
+**Optional: Steam Web API key.** To load the earlier games of a league series you did not spectate
+(for fearless picks and scores), save your own key in **Settings → Steam Web API key**. Get one at
+[steamcommunity.com/dev/apikey](https://steamcommunity.com/dev/apikey). It is stored encrypted on
+your PC.
+
+## Custom styling
+
+The **Custom CSS** box on the **Overlay** page restyles the overlay for both scenes, with a live
+preview. Put fonts and images in the media folder (**Open media folder**) and use them as
+`url(/media/<file>)`. The styling hooks and recipes are in
+[docs/custom-styling.md](docs/custom-styling.md).
+
+## Performance on a shared gaming/streaming PC
+
+The Studio preview uses still hero portraits and static effects, while OBS keeps its animations.
+Edits and live match information update immediately. Sample mode has a fixed clock and does no
+ongoing rendering while idle; Live mode keeps the draft countdown running. Minimizing Studio
+suspends the preview and restoring it shows the latest state.
+
+New GSI configs cap updates at five per second. The throttle interval is 200 ms (previously 100 ms); draft countdowns still tick locally between
+game updates. Browser sources receive changes to visible overlay data, with current state replayed
+when a source reconnects.
+
+Rendering regression checks and measurement details are in [tests/performance](tests/performance/README.md).
+
 ## OBS or Dota on another PC
 
 Turn on **Settings → Network access → Allow LAN access** and restart. Settings then shows the URLs
-with your LAN address: use the overlay URL in OBS on the other PC, or **Export config for another
+with your LAN address: use the overlay URLs in OBS on the other PC, or **Export config for another
 PC** to get a GSI config for a separate Dota machine. This exposes the GSI listener to your network,
 so use it only on networks you trust.
 

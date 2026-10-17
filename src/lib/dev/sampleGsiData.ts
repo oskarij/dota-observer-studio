@@ -1,5 +1,8 @@
+import { asset } from '$app/paths';
+
 import type { DotaGsiData } from '../../shared/dotaGsiPayload.js';
 import type { KnownPlayer } from '../../shared/knownPlayer.js';
+import type { SeriesStatePayload } from '../../shared/seriesState.js';
 
 export const SAMPLE_GSI_DATA: DotaGsiData = {
   map: { game_state: 'DOTA_GAMERULES_STATE_GAME_IN_PROGRESS' },
@@ -158,13 +161,74 @@ export const SAMPLE_GSI_DATA: DotaGsiData = {
 };
 
 export const SAMPLE_KNOWN_PLAYERS: readonly KnownPlayer[] = [
-  { accountId: '900000008', name: 'MarkoDota', mmr: 5200 }
+  { accountId: '900000002', name: 'Moss', mmr: null, teamId: null },
+  { accountId: '900000007', name: 'Desert King', mmr: null, teamId: null },
+  { accountId: '900000008', name: 'MarkoDota', mmr: 5200, teamId: null }
 ];
 
-// Draft-phase snapshot for previewing the fearless-draft overlay. Only game_state matters to that
-// element (it reads the ban pool from SAMPLE_BANNED_HERO_IDS, not the GSI hero blocks).
+// Draft-phase snapshot for previewing the draft-phase overlays: a mid-draft Captains Mode pick/ban
+// block for the draft board (Dire actively picking with ~21s left), plus the game_state the
+// fearless-draft grid keys on (its ban pool comes from SAMPLE_BANNED_HERO_IDS).
 export const SAMPLE_DRAFT_GSI_DATA: DotaGsiData = {
-  map: { game_state: 'DOTA_GAMERULES_STATE_HERO_SELECTION', matchid: '0' }
+  player: SAMPLE_GSI_DATA.player ?? {},
+  map: {
+    game_state: 'DOTA_GAMERULES_STATE_HERO_SELECTION',
+    game_mode: 'DOTA_GAMEMODE_CM',
+    matchid: '0'
+  },
+  draft: {
+    activeteam: 3,
+    pick: true,
+    activeteam_time_remaining: 21,
+    radiant_bonus_time: 114,
+    dire_bonus_time: 76,
+    team2: {
+      home_team: true,
+      pick0_id: 100,
+      pick0_class: 'tusk',
+      pick1_id: 26,
+      pick1_class: 'lion',
+      pick2_id: 135,
+      pick2_class: 'dawnbreaker',
+      ban0_id: 74,
+      ban0_class: 'invoker',
+      ban1_id: 8,
+      ban1_class: 'juggernaut',
+      ban2_id: 86,
+      ban2_class: 'rubick',
+      ban3_id: 114,
+      ban3_class: 'monkey_king'
+    },
+    team3: {
+      home_team: false,
+      pick0_id: 6,
+      pick0_class: 'drow_ranger',
+      pick1_id: 16,
+      pick1_class: 'sand_king',
+      ban0_id: 1,
+      ban0_class: 'antimage',
+      ban1_id: 11,
+      ban1_class: 'nevermore',
+      ban2_id: 25,
+      ban2_class: 'lina'
+    }
+  }
+};
+
+// Stand-in series state so the team-name/logo/score elements render in Sample mode. The bundled
+// placeholder logos keep the logo elements visible before the user has configured any real teams.
+export const SAMPLE_SERIES_STATE: SeriesStatePayload = {
+  radiant: {
+    name: 'Taneli Esports',
+    logoPath: asset('/sample-team-logo-radiant.svg'),
+    score: 1
+  },
+  dire: {
+    name: 'Windo Esports',
+    logoPath: asset('/sample-team-logo-dire.svg'),
+    score: 0
+  },
+  seriesConfigured: true
 };
 
 // A stand-in fearless ban pool (~16 heroes, as if two prior games of a series were played) so the

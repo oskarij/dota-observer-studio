@@ -9,18 +9,73 @@ export type DotaGameState =
   | 'DOTA_GAMERULES_STATE_POST_GAME';
 
 export type DotaGsiTeamKey = 'team2' | 'team3';
+export const DRAFT_GAME_STATES: readonly DotaGameState[] = [
+  'DOTA_GAMERULES_STATE_HERO_SELECTION',
+  'DOTA_GAMERULES_STATE_STRATEGY_TIME',
+  'DOTA_GAMERULES_STATE_TEAM_SHOWCASE'
+];
 export type DotaGsiPlayerKey = `player${number}`;
 
 export interface DotaGsiData {
+  readonly draft?: DotaGsiDraft;
   readonly hero?: Partial<Record<DotaGsiTeamKey, DotaGsiHeroTeam>>;
+  readonly league?: DotaGsiLeague;
   readonly map?: DotaGsiMap;
   readonly player?: Partial<Record<DotaGsiTeamKey, DotaGsiPlayerTeam>>;
 }
 
 export interface DotaGsiMap {
   readonly game_state?: DotaGameState;
+  // e.g. 'DOTA_GAMEMODE_CM'; observed as a string but kept loose in case Dota sends the enum number.
+  readonly game_mode?: string | number;
   // The spectated match's id. Present whenever a match is assigned; '0' (or absent) before then.
   readonly matchid?: string;
+  // True while the match is paused; the draft timers freeze in place while it holds.
+  readonly paused?: boolean;
+  // Which side won: 'radiant' | 'dire' | 'none'. Kept as plain string (any other value must be
+  // treated as undecided); appears at POST_GAME ('none' until then, when present at all).
+  readonly win_team?: string;
+}
+
+// The pick/ban block sent while spectating a captains-style draft (cfg "draft" flag). Slots are
+// flat numbered keys (pick0_id, pick0_class, ban0_id, ...) rather than arrays.
+export interface DotaGsiDraft {
+  readonly activeteam?: number; // 2 = radiant, 3 = dire
+  readonly pick?: boolean; // true when the active phase is a pick (vs a ban)
+  readonly activeteam_time_remaining?: number; // seconds
+  readonly radiant_bonus_time?: number; // reserve time, seconds
+  readonly dire_bonus_time?: number;
+  readonly team2?: DotaGsiDraftTeam;
+  readonly team3?: DotaGsiDraftTeam;
+}
+
+export interface DotaGsiDraftTeam {
+  readonly home_team?: boolean;
+  readonly [slotId: `${'pick' | 'ban'}${number}_id`]: number | undefined;
+  readonly [slotClass: `${'pick' | 'ban'}${number}_class`]: string | undefined;
+}
+
+// Sent when the lobby has a league ticket. Shape captured from a real payload; everything stays
+// optional because Valve gives no guarantees.
+export interface DotaGsiLeague {
+  readonly league_id?: number;
+  readonly name?: string;
+  readonly tier?: number;
+  readonly region?: number;
+  readonly series_id?: number;
+  readonly match_id?: string;
+  readonly start_time?: number;
+  readonly team_id_1?: number;
+  readonly team_id_2?: number;
+  readonly radiant?: DotaGsiLeagueTeam;
+  readonly dire?: DotaGsiLeagueTeam;
+}
+
+export interface DotaGsiLeagueTeam {
+  readonly team_id?: number;
+  readonly team_tag?: string;
+  readonly name?: string;
+  readonly series_wins?: number;
 }
 
 export type DotaGsiHeroTeam = Partial<Record<DotaGsiPlayerKey, DotaGsiHero>>;
@@ -101,6 +156,96 @@ export function getDotaGsiMatchId(gsiData: DotaGsiData): string | null {
 // slots report id 0, so they're skipped; the caller checks for a full 10-hero lineup.
 export function getPickedHeroIds(gsiData: DotaGsiData): number[] {
   return getPickedHeroes(gsiData).map((entry) => entry.heroId);
+}
+
+// Account ids on one side, so linked known players can identify which saved team is playing it.
+export function getSideAccountIds(gsiData: DotaGsiData, teamKey: DotaGsiTeamKey): string[] {
+  const accountIds: string[] = [];
+
+  for (const player of Object.values(gsiData.player?.[teamKey] ?? {})) {
+    if (player?.accountid !== undefined) {
+      accountIds.push(player.accountid);
+    }
+  }
+
+  return accountIds;
+}
+
+// Every account id in the spectated game, recorded with a captured game so it can be recognised
+// later as belonging to a series.
+export function getGameAccountIds(gsiData: DotaGsiData): string[] {
+  return DOTA_GSI_TEAM_KEYS.flatMap((teamKey) => getSideAccountIds(gsiData, teamKey));
+}
+
+// Captains Mode slot counts; Captains Draft (5/3) fits inside these, trailing slots just stay empty.
+const CM_PICKS_PER_TEAM = 5;
+const CM_BANS_PER_TEAM = 7;
+const CD_BANS_PER_TEAM = 3;
+
+// game_mode arrives as a string, but keep the enum numbers in case Dota ever sends them raw.
+const CD_MODES: readonly (string | number)[] = ['DOTA_GAMEMODE_CD', 16];
+
+export interface DraftSlot {
+  readonly heroId: number | null;
+  readonly heroClass: string | null;
+}
+
+export interface DraftTeamSlots {
+  readonly picks: DraftSlot[];
+  readonly bans: DraftSlot[];
+}
+
+// Fixed-length pick/ban slot arrays for one side, read from the numbered draft keys in order.
+// Unfilled slots are { heroId: null, heroClass: null } so renderers can keep stable slot nodes.
+export function getDraftTeamSlots(
+  draft: DotaGsiDraft | undefined,
+  teamKey: DotaGsiTeamKey
+): DraftTeamSlots {
+  const team = draft?.[teamKey];
+
+  return {
+    picks: readDraftSlots(team, 'pick', CM_PICKS_PER_TEAM),
+    bans: readDraftSlots(team, 'ban', CM_BANS_PER_TEAM)
+  };
+}
+
+function readDraftSlots(
+  team: DotaGsiDraftTeam | undefined,
+  prefix: 'pick' | 'ban',
+  count: number
+): DraftSlot[] {
+  const slots: DraftSlot[] = [];
+
+  for (let index = 0; index < count; index += 1) {
+    const id = team?.[`${prefix}${index}_id`];
+    const heroClass = team?.[`${prefix}${index}_class`];
+
+    slots.push({
+      heroId: typeof id === 'number' && id > 0 ? id : null,
+      heroClass: typeof heroClass === 'string' && heroClass !== '' ? heroClass : null
+    });
+  }
+
+  return slots;
+}
+
+// The side that won the spectated game, only once the game has actually ended.
+export function getWinningSide(gsiData: DotaGsiData): 'radiant' | 'dire' | null {
+  if (gsiData.map?.game_state !== 'DOTA_GAMERULES_STATE_POST_GAME') {
+    return null;
+  }
+
+  const winTeam = gsiData.map.win_team;
+  return winTeam === 'radiant' || winTeam === 'dire' ? winTeam : null;
+}
+
+// Ban slots the current mode can actually fill, so renderers can collapse the unused tail up front
+// (Captains Draft uses 3 of the 7 CM slots) instead of guessing from which slots stay empty.
+export function getExpectedBanCount(gsiData: DotaGsiData): number {
+  const gameMode = gsiData.map?.game_mode;
+  return gameMode !== undefined && CD_MODES.includes(gameMode)
+    ? CD_BANS_PER_TEAM
+    : CM_BANS_PER_TEAM;
 }
 
 // Picked heroes paired with the in-game player name in the matching slot (null when the player block

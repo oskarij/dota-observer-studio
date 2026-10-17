@@ -1,0 +1,197 @@
+/* Movable pick/ban board, authored at 1760x332 and shipped at full size, so it spans 80 to 1840
+   on the stage and its rows land on whole pixels — the team names anchor to those edges and the
+   fearless title to the RADIANT/DIRE row. Theming hooks: --db-accent, --db-active-image,
+   --db-slot-background, --db-slot-border (docs/custom-styling.md). */
+
+.draft-board {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  visibility: hidden;
+  width: 1760px;
+}
+
+.draft-board[data-visible='true'] {
+  visibility: visible;
+}
+
+/* Picks: 5 large animated portraits per side, active-pick timer in the middle. */
+.draft-board__picks {
+  display: flex;
+  justify-content: space-between;
+}
+
+.draft-board__pick-row {
+  display: flex;
+  gap: 6px;
+}
+
+.draft-board__center {
+  align-items: center;
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 120px;
+}
+
+.draft-board__arrow {
+  align-self: stretch;
+  font-size: 40px;
+  line-height: 1;
+  text-align: center;
+}
+
+.draft-board[data-active-side='none'] .draft-board__arrow {
+  visibility: hidden;
+}
+
+/* Stretched to the centre column and centred inside it, so dropping from two digits to one
+   re-centres the number on the same point instead of shifting the row. */
+.draft-board__timer {
+  align-self: stretch;
+  font-size: 44px;
+  line-height: 1;
+  text-align: center;
+}
+
+/* One cell per character, sized from the active face's digit width, so the number keeps its width
+   whatever digits land in it. See renderFigures. */
+.draft-board__figure {
+  display: inline-block;
+  text-align: center;
+  width: var(--db-figure-width, 1ch);
+}
+
+.draft-board__figure--colon {
+  width: var(--db-figure-colon-width, 0.45ch);
+}
+
+/* The display rule below outweighs the UA's [hidden] default, so restate it explicitly. */
+.draft-board__slot[hidden] {
+  display: none;
+}
+
+.draft-board__slot {
+  align-items: center;
+  background: var(--db-slot-background, rgba(8, 10, 14, 0.55));
+  border: 1px solid var(--db-slot-border, rgba(255, 255, 255, 0.12));
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.draft-board__slot--pick {
+  height: 196px;
+  width: 146px;
+}
+
+.draft-board__slot--ban {
+  height: 56px;
+  width: 100px;
+}
+
+.draft-board__slot[data-active='true'] {
+  border-color: var(--db-accent, #f8fbff);
+  box-shadow:
+    0 0 14px var(--db-accent, #f8fbff),
+    0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+/* The slot being chosen can carry an image (--db-active-image, none by default), e.g. a league
+   mark. It breathes so the turn reads as live, slowly enough not to pull the eye off the draft. */
+.draft-board__slot[data-active='true']::before {
+  animation: draft-board-breathe 4.2s ease-in-out infinite;
+  background: var(--db-active-image, none) center / contain no-repeat;
+  content: '';
+  inset: 6%;
+  position: absolute;
+}
+
+.draft-board__slot--ban[data-active='true']::before {
+  inset: 8% 4%;
+}
+
+.draft-board[data-visible='false'] .draft-board__slot::before,
+.draft-board[data-motion='static'] .draft-board__slot::before {
+  animation: none;
+}
+
+@keyframes draft-board-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+/* The border and glow already carry the "active" meaning, so the motion is safe to drop. */
+@media (prefers-reduced-motion: reduce) {
+  .draft-board__slot[data-active='true']::before {
+    animation: none;
+  }
+}
+
+.draft-board__portrait {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+/* Banned heroes read as unavailable. */
+.draft-board__slot--ban .draft-board__portrait {
+  filter: grayscale(0.85) brightness(0.7);
+}
+
+.draft-board__slot-fallback {
+  font-size: 14px;
+  line-height: 1.1;
+  padding: 4px;
+  text-align: center;
+  word-break: break-word;
+}
+
+/* Bans: thin strips below the picks, per-team reserve times in the middle. */
+.draft-board__bans {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.draft-board__ban-row {
+  display: flex;
+  gap: 6px;
+}
+
+.draft-board__reserves {
+  display: flex;
+  gap: 64px;
+  justify-content: center;
+}
+
+/* m:ss keeps its length, but proportional digits do not keep their width, which slid both
+   reserves as the numbers ticked; the per-character cells above hold each one still. */
+.draft-board__reserve {
+  font-size: 26px;
+  line-height: 1;
+  opacity: 0.85;
+  text-align: center;
+}
+
+.draft-board__sides {
+  display: flex;
+  justify-content: space-between;
+}
+
+.draft-board__side-label {
+  font-size: 36px;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  text-transform: uppercase;
+}

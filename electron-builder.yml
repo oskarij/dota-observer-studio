@@ -6,8 +6,17 @@ productName: Observer Studio
 files:
   - build/electron/**/*
   - build/web/**/*
+  # The studio preview only shows still posters; the overlay host serves its own copy of the videos.
+  - '!build/web/**/*.webm'
   - build/overlay-assets/**/*
   - package.json
+
+# Keep setup instructions, the styling reference and the app license beside the executable in the
+# distributable ZIP.
+extraFiles:
+  - README.md
+  - LICENSE
+  - docs/custom-styling.md
 
 directories:
   output: release

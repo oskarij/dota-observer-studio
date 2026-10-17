@@ -1,3 +1,6 @@
+import type { OverlayPhase } from './overlayElementCatalog.js';
+import { overlayScenePath } from './overlayRoutes.js';
+
 // Single source of truth for the host + ports the runtime servers bind to (main, event-stream
 // endpoint, control UI).
 export const NETWORK_HOST = '127.0.0.1';
@@ -54,7 +57,8 @@ export interface NetworkInfo {
   ports: ConfigurablePorts;
   allowLanAccess: boolean;
   restartRequired: boolean;
-  overlayUrl: string;
+  // One OBS Browser-source URL per phase: the draft scene and the in-game scene are separate pages.
+  overlayUrls: Record<OverlayPhase, string>;
   gsiUrl: string;
   portConflicts: PortConflicts;
 }
@@ -68,11 +72,16 @@ export function buildNetworkInfo(
   lanActive: boolean,
   portConflicts: PortConflicts
 ): NetworkInfo {
+  const overlayOrigin = `http://${advertisedHost}:${settings.ports.overlayHost}`;
+
   return {
     ports: settings.ports,
     allowLanAccess: settings.allowLanAccess,
     restartRequired: settings.allowLanAccess !== lanActive,
-    overlayUrl: `http://${advertisedHost}:${settings.ports.overlayHost}/overlay/`,
+    overlayUrls: {
+      draft: `${overlayOrigin}${overlayScenePath('draft')}`,
+      ingame: `${overlayOrigin}${overlayScenePath('ingame')}`
+    },
     gsiUrl: `http://${advertisedHost}:${settings.ports.gsiListener}/gsi`,
     portConflicts
   };

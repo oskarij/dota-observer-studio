@@ -1,5 +1,5 @@
 // Bundled overlay fonts, the single source of truth for the picker. `family` must match the
-// @font-face blocks in selectedPlayer.css; `weights` lists only faces that actually exist so
+// @font-face blocks in overlay/elements.css; `weights` lists only faces that actually exist so
 // the picker can't offer a missing one. System fonts merged in via IPC fall back to
 // SYSTEM_FONT_WEIGHTS and are assumed to support italic (the OS resolves the real face).
 export interface FontWeightOption {

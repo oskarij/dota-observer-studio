@@ -7,9 +7,11 @@ import type { KnownPlayer } from '../shared/knownPlayer.js';
 import { OVERLAY_FEARLESS_EVENT } from '../shared/overlayFearlessEvent.js';
 import { OVERLAY_KNOWN_PLAYERS_EVENT } from '../shared/overlayKnownPlayersEvent.js';
 import { OVERLAY_PLAYER_RANK_EVENT, type PlayerRank } from '../shared/overlayPlayerRankEvent.js';
+import { OVERLAY_SERIES_EVENT } from '../shared/overlaySeriesEvent.js';
 import { OVERLAY_SETTINGS_EVENT } from '../shared/overlaySettingsEvent.js';
+import { projectOverlayPayload } from '../shared/overlayPayload.js';
+import type { SeriesStatePayload } from '../shared/seriesState.js';
 import type { GsiPayload } from './gsiListener.js';
-import { createObservers } from './observers.js';
 
 // The SSE fan-out hub for overlay clients. It owns no socket: the overlay host (and, in a packaged
 // build, the web host) route GET /events here, so the live overlay and the studio preview each
@@ -20,11 +22,11 @@ export interface OverlayGsiEventStream {
   connect(request: IncomingMessage, response: ServerResponse): void;
   broadcast(payload: GsiPayload): void;
   getClientCount(): number;
-  onClientCountChange(listener: (clientCount: number) => void): () => void;
   // The latest value pushed through each setter is replayed to clients that connect later.
   setPlayerRank(rank: PlayerRank): void;
   setKnownPlayers(players: readonly KnownPlayer[]): void;
   setFearlessSeries(payload: FearlessSeriesPayload): void;
+  setSeriesState(payload: SeriesStatePayload): void;
   setSettings(config: OverlayConfig): void;
   setStatus(status: GsiStatus): void;
   start(): void;
@@ -35,17 +37,29 @@ const HEARTBEAT_INTERVAL_MS = 15_000;
 
 export function createOverlayGsiEventStream(): OverlayGsiEventStream {
   const clients = new Set<ServerResponse>();
-  const clientCountObservers = createObservers<number>('overlay client count');
+  const statusOnlyClients = new Set<ServerResponse>();
 
   let currentStatus: GsiStatus = 'stale';
   let currentSettings: OverlayConfig | null = null;
   let currentKnownPlayers: readonly KnownPlayer[] | null = null;
   let currentFearlessSeries: FearlessSeriesPayload | null = null;
+  let currentSeriesState: SeriesStatePayload | null = null;
   // Every rank pushed this session, replayed to clients that connect after it was sent.
   const playerRanks = new Map<string, PlayerRank>();
   let heartbeatTimer: NodeJS.Timeout | null = null;
+  let latestPayload: GsiPayload | null = null;
+  let latestPayloadEvent: string | null = null;
+
+  function payloadEvent(): string | null {
+    if (latestPayloadEvent === null && latestPayload !== null) {
+      latestPayloadEvent = `data: ${JSON.stringify(projectOverlayPayload(latestPayload))}\n\n`;
+    }
+    return latestPayloadEvent;
+  }
 
   function connect(request: IncomingMessage, response: ServerResponse): void {
+    const statusOnly =
+      new URL(request.url ?? '/', 'http://localhost').searchParams.get('statusOnly') === '1';
     response.writeHead(200, {
       'Cache-Control': 'no-cache',
       Connection: 'keep-alive',
@@ -54,30 +68,44 @@ export function createOverlayGsiEventStream(): OverlayGsiEventStream {
     response.write(': connected\n\n');
     // Sync newly connected clients to the current feed liveness and saved settings immediately.
     response.write(formatStatusEvent(currentStatus));
-    if (currentSettings !== null) {
+    if (!statusOnly && currentSettings !== null) {
       response.write(formatSettingsEvent(currentSettings));
     }
-    if (currentKnownPlayers !== null) {
+    if (!statusOnly && currentKnownPlayers !== null) {
       response.write(formatKnownPlayersEvent(currentKnownPlayers));
     }
-    if (currentFearlessSeries !== null) {
+    if (!statusOnly && currentFearlessSeries !== null) {
       response.write(formatFearlessEvent(currentFearlessSeries));
     }
-    for (const rank of playerRanks.values()) {
-      response.write(formatPlayerRankEvent(rank));
+    if (!statusOnly && currentSeriesState !== null) {
+      response.write(formatSeriesEvent(currentSeriesState));
+    }
+    if (!statusOnly) {
+      for (const rank of playerRanks.values()) response.write(formatPlayerRankEvent(rank));
+      const event = payloadEvent();
+      if (event !== null) response.write(event);
     }
 
     clients.add(response);
-    emitClientCount();
+    if (statusOnly) statusOnlyClients.add(response);
 
     request.once('close', () => {
       clients.delete(response);
-      emitClientCount();
+      statusOnlyClients.delete(response);
     });
   }
 
   function broadcast(payload: GsiPayload): void {
-    writeToClients(`data: ${JSON.stringify(payload)}\n\n`);
+    latestPayload = payload;
+    // Retain a snapshot for reconnects, but do no serialization when nobody needs game data.
+    if (clients.size === statusOnlyClients.size) {
+      latestPayloadEvent = null;
+      return;
+    }
+    const event = `data: ${JSON.stringify(projectOverlayPayload(payload))}\n\n`;
+    if (event === latestPayloadEvent) return;
+    latestPayloadEvent = event;
+    writeToClients(event);
   }
 
   function setPlayerRank(rank: PlayerRank): void {
@@ -95,6 +123,11 @@ export function createOverlayGsiEventStream(): OverlayGsiEventStream {
     writeToClients(formatFearlessEvent(payload));
   }
 
+  function setSeriesState(payload: SeriesStatePayload): void {
+    currentSeriesState = payload;
+    writeToClients(formatSeriesEvent(payload));
+  }
+
   function setSettings(settings: OverlayConfig): void {
     currentSettings = settings;
     writeToClients(formatSettingsEvent(settings));
@@ -106,23 +139,36 @@ export function createOverlayGsiEventStream(): OverlayGsiEventStream {
     }
 
     currentStatus = status;
-    writeToClients(formatStatusEvent(status));
+    if (status === 'stale') {
+      latestPayload = null;
+      latestPayloadEvent = null;
+    }
+    writeToAliveClients(formatStatusEvent(status), true);
   }
 
   function writeToClients(message: string): void {
     writeToAliveClients(message);
-    emitClientCount();
   }
 
   // Prunes any client that has disconnected since the last write.
-  function writeToAliveClients(message: string): void {
+  function writeToAliveClients(message: string, includeStatusOnly = false): void {
     for (const client of clients) {
       if (client.destroyed) {
         clients.delete(client);
+        statusOnlyClients.delete(client);
         continue;
       }
 
-      client.write(message);
+      if (!includeStatusOnly && statusOnlyClients.has(client)) continue;
+      // A minimized or disconnected reader must never build an unbounded queue in main.
+      // EventSource reconnects and receives the latest state instead of minutes of old updates.
+      if (client.writableLength > 256 * 1024) {
+        clients.delete(client);
+        statusOnlyClients.delete(client);
+        client.destroy();
+      } else {
+        client.write(message);
+      }
     }
   }
 
@@ -132,8 +178,7 @@ export function createOverlayGsiEventStream(): OverlayGsiEventStream {
     }
 
     heartbeatTimer = setInterval(() => {
-      writeToAliveClients(': heartbeat\n\n');
-      emitClientCount();
+      writeToAliveClients(': heartbeat\n\n', true);
     }, HEARTBEAT_INTERVAL_MS);
     heartbeatTimer.unref();
   }
@@ -147,19 +192,15 @@ export function createOverlayGsiEventStream(): OverlayGsiEventStream {
     heartbeatTimer = null;
   }
 
-  function emitClientCount(): void {
-    clientCountObservers.emit(clients.size);
-  }
-
   return {
     connect,
     broadcast,
     getClientCount() {
       return clients.size;
     },
-    onClientCountChange: clientCountObservers.add,
     setKnownPlayers,
     setFearlessSeries,
+    setSeriesState,
     setPlayerRank,
     setSettings,
     setStatus,
@@ -171,7 +212,9 @@ export function createOverlayGsiEventStream(): OverlayGsiEventStream {
         client.end();
       }
       clients.clear();
-      emitClientCount();
+      statusOnlyClients.clear();
+      latestPayload = null;
+      latestPayloadEvent = null;
     }
   };
 }
@@ -190,6 +233,10 @@ function formatKnownPlayersEvent(players: readonly KnownPlayer[]): string {
 
 function formatFearlessEvent(payload: FearlessSeriesPayload): string {
   return `event: ${OVERLAY_FEARLESS_EVENT}\ndata: ${JSON.stringify(payload)}\n\n`;
+}
+
+function formatSeriesEvent(payload: SeriesStatePayload): string {
+  return `event: ${OVERLAY_SERIES_EVENT}\ndata: ${JSON.stringify(payload)}\n\n`;
 }
 
 function formatPlayerRankEvent(rank: PlayerRank): string {

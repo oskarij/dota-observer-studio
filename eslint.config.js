@@ -73,7 +73,17 @@ const projectRules = {
 
 export default tseslint.config(
   {
-    ignores: ['.svelte-kit/**', 'build/**', 'dist/**', 'node_modules/**', 'scripts/**']
+    ignores: [
+      '.dev/**',
+      '.svelte-kit/**',
+      'build/**',
+      'dist/**',
+      'node_modules/**',
+      'tools/*.mjs',
+      'tests/performance/*.mjs',
+      'tests/performance/*.cjs',
+      'tests/integration/*.mjs'
+    ]
   },
   js.configs.recommended,
   ...tseslint.configs.strictTypeChecked,
@@ -102,6 +112,33 @@ export default tseslint.config(
     }
   },
   {
+    files: [
+      'src/runtime/**/*.ts',
+      'src/persistence/**/*.ts',
+      'src/electron/ipc/**/*.ts',
+      'src/lib/state/**/*.ts'
+    ],
+    rules: {
+      '@typescript-eslint/no-floating-promises': 'error',
+      '@typescript-eslint/no-misused-promises': 'error'
+    }
+  },
+  {
+    files: [
+      'src/runtime/rosterService.ts',
+      'src/runtime/fearlessService.ts',
+      'src/persistence/validatedSettings.ts',
+      'src/shared/configValidation.ts'
+    ],
+    rules: {
+      '@typescript-eslint/no-unsafe-argument': 'error',
+      '@typescript-eslint/no-unsafe-assignment': 'error',
+      '@typescript-eslint/no-unsafe-call': 'error',
+      '@typescript-eslint/no-unsafe-member-access': 'error',
+      '@typescript-eslint/no-unsafe-return': 'error'
+    }
+  },
+  {
     files: ['**/*.svelte.ts'],
     languageOptions: {
       parser: tseslint.parser
@@ -109,7 +146,7 @@ export default tseslint.config(
   },
   {
     // Test fixtures and the preview sample mirror Dota's snake_case GSI payload shape verbatim.
-    files: ['tests/**/*.ts', 'src/lib/dev/sampleGsiData.ts'],
+    files: ['tests/**/*.ts', 'src/lib/dev/sampleGsiData.ts', 'src/shared/overlayPayload.ts'],
     rules: {
       camelcase: ['error', { properties: 'never' }]
     }

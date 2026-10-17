@@ -4,17 +4,16 @@
   import { getHeroIconUrl } from '../../overlay/elements/fearlessDraft/heroIcons.js';
   import { getAllHeroes } from '../../shared/heroes/heroCatalog.js';
 
-  // Inline graphical hero picker: a searchable grid of every hero, click to toggle. Used to enter a
-  // game's heroes by hand when OpenDota can't parse the match. onConfirm receives the selected ids.
-  // disabledHeroIds (heroes already banned in the series) are greyed out and can't be selected.
   let {
     onConfirm,
     onCancel,
-    disabledHeroIds = []
+    disabledHeroIds = [],
+    pending = false
   }: {
-    onConfirm: (heroIds: number[]) => void;
+    onConfirm: (heroIds: number[]) => void | Promise<void>;
     onCancel: () => void;
     disabledHeroIds?: number[];
+    pending?: boolean;
   } = $props();
 
   const heroes = getAllHeroes();
@@ -37,7 +36,7 @@
   }
 
   function toggle(heroId: number): void {
-    if (disabledSet.has(heroId)) {
+    if (pending || disabledSet.has(heroId) || (selected.length >= 10 && !isSelected(heroId))) {
       return;
     }
     selected = isSelected(heroId) ? selected.filter((id) => id !== heroId) : [...selected, heroId];
@@ -56,28 +55,27 @@
     <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
       Pick heroes manually
     </span>
-    <span class="text-xs text-muted-foreground">{selected.length} selected</span>
+    <span class="text-xs text-muted-foreground">{selected.length} / 10 selected</span>
   </div>
 
   <Input bind:value={search} placeholder="Search heroes" />
 
   <div
-    class="grid min-h-0 flex-1 grid-cols-[repeat(auto-fill,minmax(72px,1fr))] content-start gap-x-1.5 gap-y-3 overflow-y-auto rounded-md border p-2"
+    class="grid min-h-40 flex-1 grid-cols-[repeat(auto-fill,minmax(88px,1fr))] content-start items-start gap-2 overflow-y-auto rounded-md border p-2"
   >
     {#each filtered as hero (hero.id)}
       {@const url = getHeroIconUrl(hero.internalName)}
       {@const banned = disabledSet.has(hero.id)}
       <button
         type="button"
-        disabled={banned}
+        disabled={pending || banned || (selected.length >= 10 && !isSelected(hero.id))}
         title={banned ? `${hero.localizedName} (already banned)` : hero.localizedName}
         aria-pressed={isSelected(hero.id)}
-        class="overflow-hidden rounded border-2 transition-colors disabled:cursor-not-allowed {isSelected(
+        class="block h-12 w-full overflow-hidden rounded border-2 transition-colors disabled:cursor-not-allowed {isSelected(
           hero.id
         )
           ? 'border-primary'
           : 'border-transparent enabled:hover:border-border'}"
-        style="aspect-ratio: 16 / 9;"
         onclick={() => toggle(hero.id)}
       >
         {#if url !== null}
@@ -100,8 +98,12 @@
   </div>
 
   <div class="flex items-center justify-end gap-2">
-    <Button size="sm" variant="ghost" onclick={onCancel}>Cancel</Button>
-    <Button size="sm" disabled={selected.length === 0} onclick={() => onConfirm([...selected])}>
+    <Button size="sm" variant="ghost" disabled={pending} onclick={onCancel}>Cancel</Button>
+    <Button
+      size="sm"
+      disabled={pending || selected.length === 0}
+      onclick={() => onConfirm([...selected])}
+    >
       Add {selected.length} to series
     </Button>
   </div>

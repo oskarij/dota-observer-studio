@@ -2,12 +2,12 @@
 // the renderer (studio UI), and the overlay all use one shape.
 
 // How a watched game's heroes were obtained: live from a spectated game's GSI feed, fetched from
-// OpenDota for a game the operator didn't spectate, or hand-picked (when OpenDota can't parse it).
-export type WatchedGameSource = 'spectated' | 'opendota' | 'manual';
+// Valve for a game the operator didn't spectate, or hand-picked (when Valve can't parse it).
+export type WatchedGameSource = 'spectated' | 'valve' | 'opendota' | 'manual';
 
 // A game whose 10 picked heroes have been recorded, available for the operator to add to a series.
 // The optional metadata is best-effort for labelling the match in the picker: team names come from
-// OpenDota pro matches; player names (aligned with heroIds) come from either source when available.
+// Valve pro matches; player names (aligned with heroIds) come from either source when available.
 export interface WatchedGame {
   readonly matchId: string;
   readonly capturedAt: number; // epoch ms
@@ -16,6 +16,8 @@ export interface WatchedGame {
   readonly radiantTeam?: string;
   readonly direTeam?: string;
   readonly playerNames?: string[];
+  // Spectated games only: who played, so the game can be linked to saved teams via known players.
+  readonly accountIds?: string[];
 }
 
 // A game the operator has added to the current fearless series. `label` is a short human tag for the
@@ -24,6 +26,18 @@ export interface SeriesGame {
   readonly matchId: string;
   readonly heroIds: number[];
   readonly label: string;
+}
+
+export type FearlessCommand =
+  | { kind: 'add'; game: SeriesGame }
+  | { kind: 'remove'; matchId: string }
+  | { kind: 'clear' }
+  | { kind: 'automatic' };
+
+export interface FearlessSeriesState {
+  revision: number;
+  games: SeriesGame[];
+  manualOverride: boolean;
 }
 
 // Pushed to the overlay over SSE: the flat set of heroes banned for the upcoming draft.

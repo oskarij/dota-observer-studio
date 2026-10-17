@@ -1,16 +1,19 @@
 import { ipcMain } from 'electron';
 
 import type { PlayerRankStore } from '../../persistence/playerRankStore.js';
+import type { PlayerRankService } from '../../runtime/playerRankService.js';
 import { PLAYER_RANKS_CLEAR_CHANNEL } from '../../shared/ipcChannels.js';
 import { logError } from '../../shared/logger.js';
 
-// Clears the persisted rank cache. The playerRankService's in-session guard maps aren't reset, so a
-// player already seen this run refetches on the next new game rather than immediately, which is
-// acceptable for a "clear cache" action and avoids reaching into the running service.
-export function registerPlayerRanksIpc(store: PlayerRankStore): () => void {
+// Clear both cache layers so the next selected-player update can fetch a fresh rank.
+export function registerPlayerRanksIpc(
+  store: PlayerRankStore,
+  service: PlayerRankService
+): () => void {
   ipcMain.handle(PLAYER_RANKS_CLEAR_CHANNEL, () => {
     try {
       store.deleteAll();
+      service.clearSessionCache();
     } catch (error) {
       // A locked/busy DB can throw here; surface a clean message to the renderer instead of a raw
       // rejection.

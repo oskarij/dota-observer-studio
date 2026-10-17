@@ -1,0 +1,24 @@
+.player-names {
+  /* Keep the rows' negative margins from collapsing into each other. */
+  display: flex;
+  flex-direction: column;
+  max-width: var(--pn-max-width, 400px);
+  font-size: 40px;
+  letter-spacing: 0.05em;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.player-names[data-side='dire'] {
+  text-align: right;
+}
+
+.player-names__name {
+  min-height: 1.15em;
+  /* Extend the clipping box around accents without changing row spacing or anchors. */
+  margin-block: -0.3em;
+  padding-block: 0.3em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

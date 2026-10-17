@@ -6,11 +6,17 @@
   import { Switch } from '$lib/components/ui/switch/index.js';
   import { network as networkStore } from '$lib/state/network.svelte.js';
   import { overlayConfig } from '$lib/state/overlayConfig.svelte.js';
+  import { tournament } from '$lib/state/tournament.svelte.js';
   import {
     type ConfigurablePorts,
     type NetworkInfo,
     validatePorts
   } from '../../shared/networkConfig.js';
+  import {
+    OVERLAY_PHASE_LABELS,
+    OVERLAY_PHASES,
+    type OverlayPhase
+  } from '../../shared/overlayElementCatalog.js';
 
   const bridge = globalThis.window?.dotaSpectatorTools;
 
@@ -31,6 +37,8 @@
   let portStatus = $state<string | null>(null);
   let dataStatus = $state<string | null>(null);
   let cacheStatus = $state<string | null>(null);
+  let apiKeyInput = $state('');
+  let apiKeyStatus = $state<string | null>(null);
   let busy = $state(false);
 
   // Swaps the trigger for an inline confirm/cancel pair (mirrors the component "Reset to defaults" affordance).
@@ -43,6 +51,16 @@
       allowLanAccess = network.allowLanAccess;
     }
   });
+
+  $effect(() => {
+    void tournament.load();
+    return tournament.listen();
+  });
+
+  async function saveApiKey(key: string | null): Promise<void> {
+    apiKeyStatus = await tournament.setApiKey(key);
+    if (apiKeyStatus === null) apiKeyInput = '';
+  }
 
   async function installGsi(): Promise<void> {
     if (busy) return;
@@ -72,10 +90,10 @@
     }
   }
 
-  async function copyOverlayUrl(): Promise<void> {
+  async function copyOverlayUrl(phase: OverlayPhase): Promise<void> {
     if (network === null) return;
-    await globalThis.navigator.clipboard.writeText(network.overlayUrl);
-    copyStatus = 'Copied to clipboard.';
+    await globalThis.navigator.clipboard.writeText(network.overlayUrls[phase]);
+    copyStatus = `${OVERLAY_PHASE_LABELS[phase]} overlay URL copied to clipboard.`;
   }
 
   async function savePorts(): Promise<void> {
@@ -87,7 +105,7 @@
       if (result?.ok) {
         network = (await bridge?.network?.get()) ?? network;
         void networkStore.refresh();
-        portStatus = 'Saved. Update your OBS source URL if you changed a port.';
+        portStatus = 'Saved. Update your OBS source URLs if you changed a port.';
       } else {
         portStatus = result?.reason ?? 'Could not save.';
       }
@@ -173,8 +191,7 @@
 {/snippet}
 
 <section class="grid max-w-3xl gap-6 p-6 max-sm:p-4">
-  <div class="grid gap-1 border-b pb-6">
-    <p class="text-sm font-medium text-muted-foreground">Settings</p>
+  <div class="border-b pb-6">
     <h1 class="text-2xl font-semibold leading-tight">Settings</h1>
   </div>
 
@@ -212,15 +229,68 @@
 
   <div class="grid gap-3 rounded-lg border bg-card p-4 shadow-sm">
     <div class="grid gap-1">
-      <h2 class="text-sm font-semibold">OBS browser source</h2>
+      <h2 class="text-sm font-semibold">Steam Web API key</h2>
       <p class="text-xs text-muted-foreground">
-        Add a Browser source in OBS pointing at this URL to show the overlay.
+        Optional. Lets the studio load earlier games of a league series you did not spectate, for
+        fearless picks and scores. Get a key at steamcommunity.com/dev/apikey. It is stored
+        encrypted on this PC.
       </p>
     </div>
-    <div class="flex items-center gap-2">
-      <Input class="font-mono" value={network?.overlayUrl ?? ''} readonly />
-      <Button variant="outline" onclick={copyOverlayUrl} disabled={network === null}>Copy</Button>
+    <form
+      class="flex flex-wrap items-center gap-2"
+      onsubmit={(event) => {
+        event.preventDefault();
+        void saveApiKey(apiKeyInput);
+      }}
+    >
+      <Input
+        class="w-80 font-mono"
+        type="password"
+        autocomplete="off"
+        bind:value={apiKeyInput}
+        placeholder={tournament.state?.hasApiKey ? 'Key saved. Paste to replace' : 'Paste key'}
+        aria-label="Steam Web API key"
+      />
+      <Button type="submit" disabled={tournament.busy || apiKeyInput.trim() === ''}>Save</Button>
+      {#if tournament.state?.hasApiKey}
+        <Button
+          type="button"
+          variant="ghost"
+          disabled={tournament.busy}
+          onclick={() => void saveApiKey(null)}
+        >
+          Remove
+        </Button>
+      {/if}
+    </form>
+    {#if apiKeyStatus !== null}
+      <p class="text-xs text-destructive">{apiKeyStatus}</p>
+    {/if}
+  </div>
+
+  <div class="grid gap-3 rounded-lg border bg-card p-4 shadow-sm">
+    <div class="grid gap-1">
+      <h2 class="text-sm font-semibold">OBS browser sources</h2>
+      <p class="text-xs text-muted-foreground">
+        The overlay is two Browser sources: one for the draft and one for the game. Add each URL to
+        the matching OBS scene; each shows only the components of its own phase.
+      </p>
     </div>
+    {#each OVERLAY_PHASES as phase (phase)}
+      <div class="grid gap-1">
+        <span class="text-xs text-muted-foreground">{OVERLAY_PHASE_LABELS[phase]} overlay</span>
+        <div class="flex items-center gap-2">
+          <Input class="font-mono" value={network?.overlayUrls[phase] ?? ''} readonly />
+          <Button
+            variant="outline"
+            onclick={() => copyOverlayUrl(phase)}
+            disabled={network === null}
+          >
+            Copy
+          </Button>
+        </div>
+      </div>
+    {/each}
     {@render status(copyStatus)}
   </div>
 

@@ -1,0 +1,144 @@
+/* Each weight/style is declared at its true font-weight so the picker's named
+   weights select the matching face instead of a browser-synthesized one. Keep these
+   in sync with the weights listed in shared/fontCatalog.ts. */
+@font-face {
+  font-display: swap;
+  font-family: 'RadianceOverlay';
+  font-style: normal;
+  font-weight: 200;
+  src: url('./assets/fonts/radiance-ultralight.otf') format('opentype');
+}
+
+@font-face {
+  font-display: swap;
+  font-family: 'RadianceOverlay';
+  font-style: italic;
+  font-weight: 200;
+  src: url('./assets/fonts/radiance-ultralightitalic.otf') format('opentype');
+}
+
+@font-face {
+  font-display: swap;
+  font-family: 'RadianceOverlay';
+  font-style: normal;
+  font-weight: 300;
+  src: url('./assets/fonts/radiance-light.otf') format('opentype');
+}
+
+@font-face {
+  font-display: swap;
+  font-family: 'RadianceOverlay';
+  font-style: italic;
+  font-weight: 300;
+  src: url('./assets/fonts/radiance-lightitalic.otf') format('opentype');
+}
+
+@font-face {
+  font-display: swap;
+  font-family: 'RadianceOverlay';
+  font-style: normal;
+  font-weight: 400;
+  src: url('./assets/fonts/radiance-regular.otf') format('opentype');
+}
+
+@font-face {
+  font-display: swap;
+  font-family: 'RadianceOverlay';
+  font-style: italic;
+  font-weight: 400;
+  src: url('./assets/fonts/radiance-regularitalic.otf') format('opentype');
+}
+
+@font-face {
+  font-display: swap;
+  font-family: 'RadianceOverlay';
+  font-style: normal;
+  font-weight: 600;
+  src: url('./assets/fonts/radiance-semibold.otf') format('opentype');
+}
+
+@font-face {
+  font-display: swap;
+  font-family: 'RadianceOverlay';
+  font-style: italic;
+  font-weight: 600;
+  src: url('./assets/fonts/radiance-semibolditalic.otf') format('opentype');
+}
+
+@font-face {
+  font-display: swap;
+  font-family: 'RadianceOverlay';
+  font-style: normal;
+  font-weight: 700;
+  src: url('./assets/fonts/radiance-bold.otf') format('opentype');
+}
+
+@font-face {
+  font-display: swap;
+  font-family: 'RadianceOverlay';
+  font-style: italic;
+  font-weight: 700;
+  src: url('./assets/fonts/radiance-bolditalic.otf') format('opentype');
+}
+
+/* Reaver ships no italic faces; the picker disables the italic toggle for it. */
+@font-face {
+  font-display: swap;
+  font-family: 'ReaverOverlay';
+  font-style: normal;
+  font-weight: 300;
+  src: url('./assets/fonts/reaver-light.otf') format('opentype');
+}
+
+@font-face {
+  font-display: swap;
+  font-family: 'ReaverOverlay';
+  font-style: normal;
+  font-weight: 400;
+  src: url('./assets/fonts/reaver-regular.otf') format('opentype');
+}
+
+@font-face {
+  font-display: swap;
+  font-family: 'ReaverOverlay';
+  font-style: normal;
+  font-weight: 600;
+  src: url('./assets/fonts/reaver-semibold.otf') format('opentype');
+}
+
+@font-face {
+  font-display: swap;
+  font-family: 'ReaverOverlay';
+  font-style: normal;
+  font-weight: 700;
+  src: url('./assets/fonts/reaver-bold.otf') format('opentype');
+}
+
+/* Every movable element. The studio's pickers write the --el-* values inline on each root (see
+   applyElementSettings): --el-x/y are stage coordinates for the point --el-anchor-x/y names on the
+   box, the translate slides the box so that point lands there, and the matching transform-origin
+   scales it about the same point. :where keeps this at zero specificity so each element's own
+   rules win whatever the stylesheet order. */
+:where(.overlay-element) {
+  box-sizing: border-box;
+  color: var(--el-color);
+  /* A missing face (an uninstalled system font, a removed bundled one) falls back to the default. */
+  font-family: var(--el-font-family), 'RadianceOverlay', sans-serif;
+  font-style: var(--el-font-style);
+  font-weight: var(--el-font-weight);
+  left: var(--el-x);
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  text-shadow: var(--el-shadow);
+  top: var(--el-y);
+  transform: translate(var(--el-shift-x), var(--el-shift-y)) scale(var(--el-scale));
+  transform-origin: var(--el-anchor-y) var(--el-anchor-x);
+  /* Auto width would shrink-to-fit against the space right of --el-x, squeezing a right- or
+     centre-anchored element near the stage edge; the natural width is what gets anchored. */
+  width: max-content;
+}
+
+:where(.overlay-element[data-visible='true']) {
+  opacity: 1;
+}

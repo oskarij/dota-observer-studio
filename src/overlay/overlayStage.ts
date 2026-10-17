@@ -1,45 +1,56 @@
-import type { ComponentOptions } from '../shared/componentOptions.js';
-import type { ComponentSettings } from '../shared/componentSettings.js';
+import type { ComponentOptions, ComponentOptionsById } from '../shared/componentOptions.js';
+import type { ComponentSettings, ElementBox } from '../shared/componentSettings.js';
 import type { DotaGsiData } from '../shared/dotaGsiPayload.js';
 import type { FearlessSeriesPayload } from '../shared/fearlessDraft.js';
 import type { KnownPlayer } from '../shared/knownPlayer.js';
+import type { OverlayPhase } from '../shared/overlayElementCatalog.js';
 import type { PlayerRank } from '../shared/overlayPlayerRankEvent.js';
+import type { SeriesStatePayload } from '../shared/seriesState.js';
 
 import { overlayElementRegistry } from './elementRegistry.js';
-import type { OverlayElement } from './overlayElement.js';
+import type { OverlayElement, OverlayRenderOptions } from './overlayElement.js';
 
-// Shared element lifecycle so the real overlay and the studio preview render the
-// exact same elements. Intentionally does NOT import overlay.css (its transparent
-// `html, body` rules belong only to the standalone overlay page).
 export interface OverlayStage {
   applyFearlessSeries(payload: FearlessSeriesPayload): void;
+  applySeriesState(payload: SeriesStatePayload): void;
   applyKnownPlayers(players: readonly KnownPlayer[]): void;
   applyOptions(id: string, options: ComponentOptions): void;
   applyPlayerRank(rank: PlayerRank): void;
   applySettings(id: string, settings: ComponentSettings): void;
   clear(): void;
+
+  measure(id: string): ElementBox | null;
   destroy(): void;
   setEnabled(id: string, enabled: boolean): void;
   update(gsiData: DotaGsiData): void;
 }
 
-export function createOverlayStage(root: HTMLElement): OverlayStage {
-  const elements: OverlayElement[] = overlayElementRegistry.map((registration) => {
-    const overlayElement = registration.mount(root);
-    overlayElement.setEnabled(registration.enabled);
+export function createOverlayStage(
+  root: HTMLElement,
+  phase: OverlayPhase | null = null,
+  renderOptions: OverlayRenderOptions = {}
+): OverlayStage {
+  const elements: OverlayElement[] = overlayElementRegistry
+    .filter((registration) => phase === null || registration.phase === phase)
+    .map((registration) => {
+      const overlayElement = registration.mount(root, renderOptions);
+      overlayElement.setEnabled(registration.enabled);
 
-    return overlayElement;
-  });
+      return overlayElement;
+    });
 
   return {
     applyFearlessSeries(payload) {
-      // Not addressed to a specific element id; only the fearless-draft element consumes it.
       for (const overlayElement of elements) {
         overlayElement.applyFearlessSeries?.(payload);
       }
     },
+    applySeriesState(payload) {
+      for (const overlayElement of elements) {
+        overlayElement.applySeriesState?.(payload);
+      }
+    },
     applyKnownPlayers(players) {
-      // Not addressed to a specific element id; every element that resolves names keys it itself.
       for (const overlayElement of elements) {
         overlayElement.applyKnownPlayers?.(players);
       }
@@ -52,7 +63,6 @@ export function createOverlayStage(root: HTMLElement): OverlayStage {
       }
     },
     applyPlayerRank(rank) {
-      // Not addressed to a specific element id; every medal-bearing element keys it by account id.
       for (const overlayElement of elements) {
         overlayElement.applyPlayerRank?.(rank);
       }
@@ -68,6 +78,26 @@ export function createOverlayStage(root: HTMLElement): OverlayStage {
       for (const overlayElement of elements) {
         overlayElement.clear();
       }
+    },
+    measure(id) {
+      const node = root.querySelector<HTMLElement>(`#${CSS.escape(id)}`);
+      if (node === null) {
+        return null;
+      }
+
+      const stageRect = root.getBoundingClientRect();
+      const scale = stageRect.width / root.offsetWidth;
+      if (!Number.isFinite(scale) || scale <= 0) {
+        return null;
+      }
+
+      const rect = node.getBoundingClientRect();
+      return {
+        x: (rect.left - stageRect.left) / scale,
+        y: (rect.top - stageRect.top) / scale,
+        width: rect.width / scale,
+        height: rect.height / scale
+      };
     },
     destroy() {
       for (const overlayElement of elements) {
@@ -89,14 +119,12 @@ export function createOverlayStage(root: HTMLElement): OverlayStage {
   };
 }
 
-// Apply config in a fixed order (visibility, settings, options); shared by overlay and preview so
-// they can't drift. Options only change content, so they take effect on the next GSI payload.
 export function applyOverlayConfigToStage(
   stage: OverlayStage,
   config: {
-    enabled?: Record<string, boolean>;
-    settings?: Record<string, ComponentSettings>;
-    options?: Record<string, ComponentOptions>;
+    enabled?: Record<string, boolean> | undefined;
+    settings?: Record<string, ComponentSettings> | undefined;
+    options?: ComponentOptionsById | undefined;
   }
 ): void {
   for (const [id, enabled] of Object.entries(config.enabled ?? {})) {
@@ -108,6 +136,6 @@ export function applyOverlayConfigToStage(
   }
 
   for (const [id, options] of Object.entries(config.options ?? {})) {
-    stage.applyOptions(id, options);
+    if (options !== undefined) stage.applyOptions(id, options);
   }
 }

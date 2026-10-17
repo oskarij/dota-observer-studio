@@ -1,137 +1,128 @@
 import {
   bannedHeroIdsFromSeries,
-  type SeriesGame,
+  type FearlessCommand,
+  type FearlessSeriesState,
   type WatchedGame
 } from '../../shared/fearlessDraft.js';
-import { logWarning } from '../../shared/logger.js';
+import { errorMessage, type Result } from '../../shared/result.js';
 
-const BRIDGE_UNAVAILABLE =
-  'Fearless bridge unavailable (window.dotaSpectatorTools.fearless missing). Edits will not persist. Expected the Electron preload to expose it.';
-
-// Reactive working copy of the fearless-draft data for the studio. `watchedGames` is the
-// auto-captured (+ manually fetched) history the operator picks from; `series` is the games added to
-// the current fearless series. Like the known-players list, series edits persist immediately (no
-// Save bar): every mutation writes the whole series back through the bridge, which re-broadcasts the
-// resulting ban pool to the live overlay over SSE.
 export class FearlessSeriesStore {
   #watchedGames = $state<WatchedGame[]>([]);
-  #series = $state<SeriesGame[]>([]);
-
-  get watchedGames(): WatchedGame[] {
+  #state = $state<FearlessSeriesState>({ games: [], manualOverride: false, revision: 0 });
+  error = $state<string | null>(null);
+  pending = $state(0);
+  get revision() {
+    return this.#state.revision;
+  }
+  get manualOverride() {
+    return this.#state.manualOverride;
+  }
+  get watchedGames() {
     return this.#watchedGames;
   }
-
-  get series(): SeriesGame[] {
-    return this.#series;
+  get series() {
+    return this.#state.games;
   }
-
-  // Global ban pool: every hero played across the series, de-duped.
-  get bannedHeroIds(): number[] {
-    return bannedHeroIdsFromSeries(this.#series);
+  get bannedHeroIds() {
+    return bannedHeroIdsFromSeries(this.series);
   }
-
   get #api() {
     return globalThis.window?.dotaSpectatorTools?.fearless;
   }
 
   async load(): Promise<void> {
-    if (this.#api === undefined) {
-      logWarning(BRIDGE_UNAVAILABLE);
-      return;
-    }
-
-    this.#watchedGames = await this.#api.getWatchedGames();
-    this.#series = await this.#api.getSeries();
+    await Promise.all([this.#refreshWatchedGames(), this.#refreshSeries()]);
   }
-
-  // Subscribe to the main process's "a game was captured/fetched" notification so the watched list
-  // refreshes live while the page is open. Returns an unsubscribe for the page's onMount cleanup.
   subscribe(): () => void {
-    if (this.#api === undefined) {
-      return () => {};
-    }
-
-    return this.#api.onWatchedGamesChanged(() => {
+    const api = this.#api;
+    if (!api) return () => {};
+    const watched = api.onWatchedGamesChanged(() => {
       void this.#refreshWatchedGames();
     });
+    const series = api.onSeriesChanged(() => {
+      void this.#refreshSeries();
+    });
+    return () => {
+      watched();
+      series();
+    };
   }
-
   isInSeries(matchId: string): boolean {
-    return this.#series.some((game) => game.matchId === matchId);
+    return this.series.some((game) => game.matchId === matchId);
+  }
+  addToSeries(game: WatchedGame, revision = this.revision): Promise<boolean> {
+    return this.#edit(
+      {
+        kind: 'add',
+        game: { matchId: game.matchId, heroIds: game.heroIds, label: seriesLabel(game) }
+      },
+      revision
+    );
+  }
+  addManualSeriesGame(heroIds: number[], revision = this.revision): Promise<boolean> {
+    return this.#edit(
+      {
+        kind: 'add',
+        game: {
+          matchId: 'manual-' + globalThis.crypto.randomUUID(),
+          heroIds,
+          label: `Manual entry (${heroIds.length} heroes)`
+        }
+      },
+      revision
+    );
+  }
+  removeFromSeries(matchId: string): Promise<boolean> {
+    return this.#edit({ kind: 'remove', matchId });
+  }
+  clearSeries(): Promise<boolean> {
+    return this.#edit({ kind: 'clear' });
+  }
+  useAutomaticSeries(): Promise<boolean> {
+    return this.#edit({ kind: 'automatic' });
   }
 
-  addToSeries(game: WatchedGame): void {
-    if (this.isInSeries(game.matchId)) {
-      return;
+  async fetchMatch(matchId: string): Promise<Result<{ game: WatchedGame }>> {
+    try {
+      if (!this.#api) throw new Error('Open the desktop app to fetch a match.');
+      return await this.#api.fetchMatch(matchId);
+    } catch (error) {
+      return { ok: false, reason: errorMessage(error) };
     }
-
-    void this.#persistSeries([
-      ...this.#series,
-      { matchId: game.matchId, heroIds: game.heroIds, label: seriesLabel(game) }
-    ]);
   }
-
-  // Add a hand-picked game (used when OpenDota can't parse a match). It goes straight to the series
-  // with a synthetic id, since there's no real match to record in the watched list.
-  addManualSeriesGame(heroIds: number[]): void {
-    if (heroIds.length === 0) {
-      return;
-    }
-
-    const matchId = `manual-${Date.now()}`;
-    void this.#persistSeries([
-      ...this.#series,
-      { matchId, heroIds, label: `Manual entry (${heroIds.length} heroes)` }
-    ]);
-  }
-
-  removeFromSeries(matchId: string): void {
-    void this.#persistSeries(this.#series.filter((game) => game.matchId !== matchId));
-  }
-
-  clearSeries(): void {
-    void this.#persistSeries([]);
-  }
-
-  // Pull an un-spectated game's heroes from OpenDota into the watched list. The list refresh comes
-  // through the change notification, but we also refresh here so it updates even if that's missed.
-  async fetchMatch(matchId: string): Promise<{ ok: boolean; reason?: string }> {
-    if (this.#api === undefined) {
-      return { ok: false, reason: BRIDGE_UNAVAILABLE };
-    }
-
-    const result = await this.#api.fetchMatch(matchId);
-    if (result.ok) {
-      await this.#refreshWatchedGames();
-    }
-
-    return result;
-  }
-
   async #refreshWatchedGames(): Promise<void> {
-    if (this.#api === undefined) {
-      return;
+    try {
+      if (this.#api) this.#watchedGames = await this.#api.getWatchedGames();
+    } catch (error) {
+      this.error = errorMessage(error);
     }
-
-    this.#watchedGames = await this.#api.getWatchedGames();
   }
-
-  async #persistSeries(next: SeriesGame[]): Promise<void> {
-    // Update the reactive copy first so the UI + preview react immediately; the write is durable and
-    // triggers the overlay broadcast.
-    this.#series = next;
-
-    if (this.#api === undefined) {
-      logWarning(BRIDGE_UNAVAILABLE);
-      return;
+  async #refreshSeries(): Promise<void> {
+    try {
+      const next = await this.#api?.getSeries();
+      if (next && next.revision >= this.revision) this.#state = next;
+    } catch (error) {
+      this.error = errorMessage(error);
     }
-
-    await this.#api.setSeries($state.snapshot(next));
+  }
+  async #edit(command: FearlessCommand, revision = this.revision): Promise<boolean> {
+    this.pending++;
+    this.error = null;
+    try {
+      if (!this.#api) throw new Error('Open the desktop app to edit picks.');
+      const result = await this.#api.editSeries($state.snapshot(command), revision);
+      if (!result.ok) throw new Error(result.reason);
+      if (result.state.revision >= this.revision) this.#state = result.state;
+      return true;
+    } catch (error) {
+      this.error = errorMessage(error);
+      return false;
+    } finally {
+      this.pending--;
+    }
   }
 }
 
-// A human label for a game in the series: OpenDota team names when available, else the spectated
-// player names (Radiant vs Dire), else the bare match id.
 function seriesLabel(game: WatchedGame): string {
   if (game.radiantTeam !== undefined && game.direTeam !== undefined) {
     return `${game.radiantTeam} vs ${game.direTeam}`;
@@ -153,5 +144,4 @@ function seriesLabel(game: WatchedGame): string {
   return `Match ${game.matchId}`;
 }
 
-// Shared instance; the Fearless page loads + subscribes it on mount.
 export const fearlessSeries = new FearlessSeriesStore();

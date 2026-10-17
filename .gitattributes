@@ -1,0 +1,4 @@
+# The repo is LF-only; Windows editors otherwise stamp CRLF and turn an edit into a whole-file diff.
+* text=auto eol=lf
+
+src/overlay/elements/draftScreen/heroVideos/*.webm filter=lfs diff=lfs merge=lfs -text

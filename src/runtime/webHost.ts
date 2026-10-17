@@ -1,6 +1,8 @@
 import { extname } from 'node:path';
 
+import { getRequestPath } from './httpUtils.js';
 import { createManagedHttpServer } from './httpServer.js';
+import { createMediaFileHandler } from './mediaFiles.js';
 import type { OverlayGsiEventStream } from './overlayGsiEventStream.js';
 import { createStaticFileHandler } from './staticFiles.js';
 
@@ -11,6 +13,8 @@ export interface WebHostConfig {
   readonly port: number;
   // Serves the realtime SSE feed on /events so the studio preview connects on its own origin.
   readonly eventStream: OverlayGsiEventStream;
+  // When set, user media (team logos) under this directory is served at /media/, same-origin.
+  readonly mediaRoot?: string;
 }
 
 export interface WebHost {
@@ -40,11 +44,17 @@ export function createWebHost(config: WebHostConfig): WebHost {
     notFoundMessage: 'Studio route not found',
     readErrorMessage: 'Unable to read studio asset'
   });
+  const handleMedia =
+    config.mediaRoot === undefined ? null : createMediaFileHandler(config.mediaRoot, config);
 
   const httpServer = createManagedHttpServer({
     host: config.host,
     port: config.port,
     onRequest(request, response) {
+      if (handleMedia !== null && getRequestPath(request, config).startsWith('/media/')) {
+        void handleMedia(request, response);
+        return;
+      }
       void handle(request, response);
     }
   });

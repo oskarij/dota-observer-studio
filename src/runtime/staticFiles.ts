@@ -1,6 +1,7 @@
-import { readFile } from 'node:fs/promises';
+import { open } from 'node:fs/promises';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { extname, isAbsolute, join, relative } from 'node:path';
+import { pipeline } from 'node:stream/promises';
 
 import { OVERLAY_EVENTS_PATH } from '../shared/networkConfig.js';
 import { getRequestPath, type HttpServerAddress, writeJson } from './httpUtils.js';
@@ -30,13 +31,18 @@ export type StaticFileHandler = (
 // supplies only path-mapping and cache policy.
 export function createStaticFileHandler(config: StaticFileHandlerConfig): StaticFileHandler {
   return async function handle(request, response) {
-    if ((request.method?.toUpperCase() ?? 'GET') !== 'GET') {
+    const method = request.method?.toUpperCase() ?? 'GET';
+    if (method !== 'GET' && method !== 'HEAD') {
       writeNotFound(response, config.notFoundMessage);
       return;
     }
 
     const requestPath = getRequestPath(request, config.address);
-    if (config.connectEvents !== undefined && requestPath === OVERLAY_EVENTS_PATH) {
+    if (
+      method === 'GET' &&
+      config.connectEvents !== undefined &&
+      requestPath === OVERLAY_EVENTS_PATH
+    ) {
       config.connectEvents(request, response);
       return;
     }
@@ -54,13 +60,14 @@ export function createStaticFileHandler(config: StaticFileHandlerConfig): Static
     }
 
     try {
-      await serveFile(filePath, config.cacheControl(assetPath), response);
+      await serveFile(filePath, config.cacheControl(assetPath), request, response);
     } catch (error) {
+      if (response.headersSent || response.destroyed) return;
       if (isNodeFileError(error) && error.code === 'ENOENT') {
         const fallback = config.fallbackOnMissing?.(requestPath) ?? null;
         if (
           fallback !== null &&
-          (await serveFallback(config.assetRoot, fallback, config, response))
+          (await serveFallback(config.assetRoot, fallback, config, request, response))
         ) {
           return;
         }
@@ -79,6 +86,7 @@ async function serveFallback(
   assetRoot: string,
   fallback: string,
   config: StaticFileHandlerConfig,
+  request: IncomingMessage,
   response: ServerResponse
 ): Promise<boolean> {
   const fallbackPath = resolveWithinRoot(assetRoot, fallback);
@@ -87,10 +95,10 @@ async function serveFallback(
   }
 
   try {
-    await serveFile(fallbackPath, config.cacheControl(fallback), response);
+    await serveFile(fallbackPath, config.cacheControl(fallback), request, response);
     return true;
   } catch {
-    return false;
+    return response.headersSent || response.destroyed;
   }
 }
 
@@ -122,15 +130,66 @@ function decodePath(assetPath: string): string | null {
 async function serveFile(
   filePath: string,
   cacheControl: string,
+  request: IncomingMessage,
   response: ServerResponse
 ): Promise<void> {
-  const content = await readFile(filePath);
+  const file = await open(filePath, 'r');
+  try {
+    const info = await file.stat();
+    if (!info.isFile()) throw Object.assign(new Error('Not a file'), { code: 'ENOENT' });
+    const range =
+      request.method === 'HEAD' || request.headers['if-range'] !== undefined
+        ? null
+        : readByteRange(request.headers.range, info.size);
+    const headers = {
+      'Accept-Ranges': 'bytes',
+      'Cache-Control': cacheControl,
+      'Content-Type': getContentType(filePath)
+    };
+    if (range === 'unsatisfiable') {
+      response.writeHead(416, {
+        ...headers,
+        'Content-Range': `bytes */${info.size}`,
+        'Content-Length': 0
+      });
+      response.end();
+      return;
+    }
+    const start = range?.start ?? 0;
+    const end = range?.end ?? info.size - 1;
+    response.writeHead(range === null ? 200 : 206, {
+      ...headers,
+      'Content-Length': Math.max(0, end - start + 1),
+      ...(range !== null ? { 'Content-Range': `bytes ${start}-${end}/${info.size}` } : {})
+    });
+    if (request.method === 'HEAD' || info.size === 0) {
+      response.end();
+      return;
+    }
+    // Ten looping portraits can otherwise allocate ten multi-megabyte buffers at once. Honor
+    // video seek/range requests and stream bounded chunks with socket backpressure instead.
+    await pipeline(file.createReadStream({ start, end, autoClose: false }), response);
+  } finally {
+    await file.close();
+  }
+}
 
-  response.writeHead(200, {
-    'Cache-Control': cacheControl,
-    'Content-Type': getContentType(filePath)
-  });
-  response.end(content);
+function readByteRange(
+  header: string | undefined,
+  size: number
+): { start: number; end: number } | 'unsatisfiable' | null {
+  if (header === undefined) return null;
+  // Multiple ranges and unknown units are ignored (serve the complete representation).
+  const match = /^bytes=(\d*)-(\d*)$/.exec(header.trim());
+  if (match === null || (match[1] === '' && match[2] === '')) return null;
+  const suffix = match[1] === '';
+  const first = Number(suffix ? match[2] : match[1]);
+  const last = match[2] === '' || suffix ? size - 1 : Number(match[2]);
+  if (!Number.isSafeInteger(first) || !Number.isSafeInteger(last) || size === 0)
+    return 'unsatisfiable';
+  const start = suffix ? Math.max(0, size - first) : first;
+  const end = Math.min(last, size - 1);
+  return start > end ? 'unsatisfiable' : { start, end };
 }
 
 function getContentType(path: string): string {
@@ -146,10 +205,15 @@ function getContentType(path: string): string {
       return 'application/json; charset=utf-8';
     case '.ico':
       return 'image/x-icon';
+    case '.jpg':
+    case '.jpeg':
+      return 'image/jpeg';
     case '.png':
       return 'image/png';
     case '.svg':
       return 'image/svg+xml';
+    case '.webm':
+      return 'video/webm';
     case '.webp':
       return 'image/webp';
     case '.otf':

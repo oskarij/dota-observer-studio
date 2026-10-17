@@ -1,15 +1,13 @@
 import type { ComponentSettings } from '../../../shared/componentSettings.js';
-import type { DotaGsiData } from '../../../shared/dotaGsiPayload.js';
+import { DRAFT_GAME_STATES, type DotaGsiData } from '../../../shared/dotaGsiPayload.js';
 import { getHero } from '../../../shared/heroes/heroCatalog.js';
 
 import type { OverlayElement } from '../../overlayElement.js';
+import { applyElementSettings } from '../../elementSettings.js';
+import { getRequiredChild, setData } from '../../dom.js';
 
 import { getHeroIconUrl } from './heroIcons.js';
 import './fearlessDraft.css';
-
-// Only shown during the draft. Captains Mode runs the whole pick/ban phase in HERO_SELECTION; the
-// in-game overlay takes over at GAME_IN_PROGRESS, so the two never overlap.
-const DRAFT_GAME_STATE = 'DOTA_GAMERULES_STATE_HERO_SELECTION';
 
 export function mountFearlessDraftElement(container: HTMLElement): OverlayElement {
   const root = createFearlessDraftRoot();
@@ -18,54 +16,57 @@ export function mountFearlessDraftElement(container: HTMLElement): OverlayElemen
   // The fearless ban pool (heroes already played in the series), pushed from the studio over SSE
   // for the live overlay and via the stage for the preview. Empty until the first payload arrives.
   let bannedHeroIds: number[] = [];
-  let visible = false;
+  let inDraft = false;
+  let poolChanged = true;
 
   container.append(root);
 
-  function renderGrid(): void {
-    grid.replaceChildren(...bannedHeroIds.map(createHeroCell));
+  // An empty pool would still paint the standalone title, so game 1 of a series (and any draft
+  // before the studio has pushed a pool) hides the element outright rather than labelling nothing.
+  function syncVisibility(): void {
+    const shouldShow = root.dataset.enabled !== 'false' && inDraft && bannedHeroIds.length > 0;
+
+    if (shouldShow && poolChanged) {
+      grid.replaceChildren(...bannedHeroIds.map(createHeroCell));
+      poolChanged = false;
+    }
+
+    setData(root, 'visible', String(shouldShow));
   }
 
   return {
     id: 'fearless-draft',
     applyFearlessSeries(payload) {
-      bannedHeroIds = payload.bannedHeroIds;
-
-      // Rebuild now so a series edit reflects immediately while the grid is on screen.
-      if (visible) {
-        renderGrid();
+      if (
+        bannedHeroIds.length !== payload.bannedHeroIds.length ||
+        bannedHeroIds.some((id, index) => id !== payload.bannedHeroIds[index])
+      ) {
+        bannedHeroIds = [...payload.bannedHeroIds];
+        poolChanged = true;
       }
+
+      // Re-check here too, so a series edit that empties or fills the pool lands immediately
+      // instead of waiting for the next GSI tick.
+      syncVisibility();
     },
     applySettings(settings: ComponentSettings) {
-      applyFearlessDraftSettings(root, settings);
+      applyElementSettings(root, settings);
     },
     clear() {
-      visible = false;
-      root.dataset.visible = 'false';
+      inDraft = false;
+      syncVisibility();
     },
     destroy() {
       root.remove();
     },
     setEnabled(enabled) {
-      root.dataset.enabled = String(enabled);
+      setData(root, 'enabled', String(enabled));
+      syncVisibility();
     },
     update(gsiData: DotaGsiData) {
-      // No bans means nothing to show — first game of a series, or not part of a series at all.
-      const shouldShow =
-        root.dataset.enabled !== 'false' &&
-        gsiData.map?.game_state === DRAFT_GAME_STATE &&
-        bannedHeroIds.length > 0;
-
-      if (!shouldShow) {
-        visible = false;
-        root.dataset.visible = 'false';
-        return;
-      }
-
-      // Becoming visible (or staying visible): render the current pool. Cheap — a handful of nodes.
-      renderGrid();
-      visible = true;
-      root.dataset.visible = 'true';
+      const gameState = gsiData.map?.game_state;
+      inDraft = gameState !== undefined && DRAFT_GAME_STATES.includes(gameState);
+      syncVisibility();
     }
   };
 }
@@ -95,26 +96,10 @@ function createHeroCell(heroId: number): HTMLElement {
   return cell;
 }
 
-// Settings are applied as CSS custom properties so layout stays in CSS; the fearlessDraft.css
-// fallbacks keep the default config a visual no-op.
-function applyFearlessDraftSettings(root: HTMLElement, settings: ComponentSettings): void {
-  const { shadow } = settings;
-  const shadowValue = `0 0 ${shadow.blur}px ${shadow.color}, ${shadow.offsetX}px ${shadow.offsetY}px ${shadow.blur}px ${shadow.color}`;
-
-  root.style.setProperty('--fd-x', `${settings.position.x}px`);
-  root.style.setProperty('--fd-y', `${settings.position.y}px`);
-  root.style.setProperty('--fd-scale', String(settings.size / 100));
-  root.style.setProperty('--fd-color', settings.color);
-  root.style.setProperty('--fd-font-family', settings.font.family);
-  root.style.setProperty('--fd-font-weight', String(settings.font.weight));
-  root.style.setProperty('--fd-font-style', settings.font.italic ? 'italic' : 'normal');
-  root.style.setProperty('--fd-shadow', shadowValue);
-}
-
 function createFearlessDraftRoot(): HTMLElement {
   const root = document.createElement('section');
   root.id = 'fearless-draft';
-  root.className = 'fearless-draft';
+  root.className = 'overlay-element fearless-draft';
   root.dataset.enabled = 'true';
   root.dataset.visible = 'false';
   root.setAttribute('aria-live', 'polite');
@@ -124,14 +109,4 @@ function createFearlessDraftRoot(): HTMLElement {
   `;
 
   return root;
-}
-
-function getRequiredChild(root: HTMLElement, selector: string): HTMLElement {
-  const element = root.querySelector(selector);
-
-  if (!(element instanceof HTMLElement)) {
-    throw new Error(`Missing overlay element: ${selector}`);
-  }
-
-  return element;
 }
