@@ -80,8 +80,6 @@ export default tseslint.config(
       'dist/**',
       'node_modules/**',
       'tools/*.mjs',
-      'tests/performance/*.mjs',
-      'tests/performance/*.cjs',
       'tests/integration/*.mjs'
     ]
   },

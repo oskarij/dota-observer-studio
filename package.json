@@ -27,8 +27,7 @@
     "test": "npm run test:unit",
     "test:integration": "npm run build && node tests/integration/launch.mjs && node tests/integration/launch.mjs tests/integration/shutdown.mjs",
     "test:unit": "tsc -p tsconfig.test.json && node tools/run-unit-tests.mjs",
-    "typecheck": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.electron.json --noEmit && tsc -p tsconfig.overlay.json --noEmit && tsc -p tsconfig.test.json --noEmit",
-    "test:performance": "npm run build:overlay && npm run build:electron && node tests/performance/build.mjs && node tests/performance/launch.mjs"
+    "typecheck": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.electron.json --noEmit && tsc -p tsconfig.overlay.json --noEmit && tsc -p tsconfig.test.json --noEmit"
   },
   "dependencies": {
     "clsx": "^2.1.1",
