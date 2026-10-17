@@ -6,6 +6,7 @@ export const SETTINGS_SET_CHANNEL = 'settings:set';
 export const SETTINGS_EXPORT_CHANNEL = 'settings:export';
 export const SETTINGS_IMPORT_CHANNEL = 'settings:import';
 export const SETTINGS_OPEN_MEDIA_FOLDER_CHANNEL = 'settings:open-media-folder';
+export const SETTINGS_OPEN_LOGS_FOLDER_CHANNEL = 'settings:open-logs-folder';
 
 export const NETWORK_GET_CHANNEL = 'network:get';
 export const NETWORK_SET_CHANNEL = 'network:set';

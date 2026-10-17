@@ -20,6 +20,7 @@ export interface StudioApi {
     export(): Promise<Result<{ path: string }>>;
     import(): Promise<Result<{ config: OverlayConfig }>>;
     openMediaFolder(): Promise<Result>;
+    openLogsFolder(): Promise<Result>;
   };
   network: {
     get(): Promise<NetworkInfo>;

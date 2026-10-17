@@ -36,7 +36,7 @@
   let copyStatus = $state<string | null>(null);
   let portStatus = $state<string | null>(null);
   let dataStatus = $state<string | null>(null);
-  let cacheStatus = $state<string | null>(null);
+  let maintenanceStatus = $state<string | null>(null);
   let apiKeyInput = $state('');
   let apiKeyStatus = $state<string | null>(null);
   let busy = $state(false);
@@ -168,12 +168,17 @@
     confirmingClear = false;
     try {
       await bridge?.playerRanks?.clear();
-      cacheStatus = 'Rank cache cleared. Ranks refetch on the next spectated game.';
+      maintenanceStatus = 'Rank cache cleared. Ranks refetch on the next spectated game.';
     } catch {
-      cacheStatus = 'Could not clear the rank cache.';
+      maintenanceStatus = 'Could not clear the rank cache.';
     } finally {
       busy = false;
     }
+  }
+
+  async function openLogsFolder(): Promise<void> {
+    const result = await bridge?.settings?.openLogsFolder();
+    maintenanceStatus = result?.ok === false ? (result.reason ?? null) : null;
   }
 </script>
 
@@ -360,7 +365,7 @@
     <div class="grid gap-1">
       <h2 class="text-sm font-semibold">Maintenance</h2>
       <p class="text-xs text-muted-foreground">
-        Clear the cached OpenDota ranks used for the in-game medal.
+        Clear the cached OpenDota ranks used for the in-game medal, or open the log files.
       </p>
     </div>
     <div class="flex items-center gap-2">
@@ -374,8 +379,9 @@
         <Button variant="outline" onclick={() => (confirmingClear = true)} disabled={busy}>
           Clear rank cache
         </Button>
+        <Button variant="outline" onclick={openLogsFolder}>Open logs folder</Button>
       {/if}
     </div>
-    {@render status(cacheStatus)}
+    {@render status(maintenanceStatus)}
   </div>
 </section>

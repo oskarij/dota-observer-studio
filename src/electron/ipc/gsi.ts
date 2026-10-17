@@ -40,7 +40,7 @@ export function registerGsiIpc(networkStore: NetworkSettingsStore, lanActive: bo
       logError('Failed to install the GSI config', error);
       return {
         ok: false,
-        reason: 'Could not write the GSI config file. See the logs for details.'
+        reason: 'Could not write the GSI config file. Details are in the log (Open logs folder).'
       };
     }
   });

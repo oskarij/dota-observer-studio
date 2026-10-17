@@ -17,7 +17,8 @@ const api: StudioApi = {
     set: (...args) => ipcRenderer.invoke('settings:set', ...args),
     export: (...args) => ipcRenderer.invoke('settings:export', ...args),
     import: (...args) => ipcRenderer.invoke('settings:import', ...args),
-    openMediaFolder: () => ipcRenderer.invoke('settings:open-media-folder')
+    openMediaFolder: () => ipcRenderer.invoke('settings:open-media-folder'),
+    openLogsFolder: () => ipcRenderer.invoke('settings:open-logs-folder')
   },
   network: {
     get: (...args) => ipcRenderer.invoke('network:get', ...args),

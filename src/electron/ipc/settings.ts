@@ -1,4 +1,4 @@
-import { ipcMain, shell, type OpenDialogOptions, type SaveDialogOptions } from 'electron';
+import { app, ipcMain, shell, type OpenDialogOptions, type SaveDialogOptions } from 'electron';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 
 import type { OverlayGsiEventStream } from '../../runtime/overlayGsiEventStream.js';
@@ -7,6 +7,7 @@ import {
   SETTINGS_EXPORT_CHANNEL,
   SETTINGS_GET_CHANNEL,
   SETTINGS_IMPORT_CHANNEL,
+  SETTINGS_OPEN_LOGS_FOLDER_CHANNEL,
   SETTINGS_OPEN_MEDIA_FOLDER_CHANNEL,
   SETTINGS_SET_CHANNEL
 } from '../../shared/ipcChannels.js';
@@ -89,11 +90,17 @@ export function registerSettingsIpc(
     return error === '' ? { ok: true } : { ok: false, reason: error };
   });
 
+  ipcMain.handle(SETTINGS_OPEN_LOGS_FOLDER_CHANNEL, async (): Promise<Result> => {
+    const error = await shell.openPath(app.getPath('logs'));
+    return error === '' ? { ok: true } : { ok: false, reason: error };
+  });
+
   return () => {
     ipcMain.removeHandler(SETTINGS_GET_CHANNEL);
     ipcMain.removeHandler(SETTINGS_SET_CHANNEL);
     ipcMain.removeHandler(SETTINGS_EXPORT_CHANNEL);
     ipcMain.removeHandler(SETTINGS_IMPORT_CHANNEL);
     ipcMain.removeHandler(SETTINGS_OPEN_MEDIA_FOLDER_CHANNEL);
+    ipcMain.removeHandler(SETTINGS_OPEN_LOGS_FOLDER_CHANNEL);
   };
 }

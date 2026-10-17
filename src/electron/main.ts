@@ -1,5 +1,8 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, session, shell } from 'electron';
+import { createWriteStream } from 'node:fs';
+import { mkdir, rename } from 'node:fs/promises';
 import { join } from 'node:path';
+import { inspect } from 'node:util';
 
 import { createKnownPlayersStore } from '../persistence/knownPlayersStore.js';
 import { createPlayerRankStore } from '../persistence/playerRankStore.js';
@@ -16,7 +19,7 @@ import {
   APP_QUIT_CONFIRMED_CHANNEL,
   APP_SAVE_AND_QUIT_CHANNEL
 } from '../shared/ipcChannels.js';
-import { logError, logWarning } from '../shared/logger.js';
+import { logError, logWarning, setLogSink } from '../shared/logger.js';
 import { type ConfigurablePorts, LAN_BIND_HOST, NETWORK_HOST } from '../shared/networkConfig.js';
 
 import { createFearlessStore } from './fearlessStore.js';
@@ -181,6 +184,7 @@ async function createMainWindow(): Promise<void> {
 app
   .whenReady()
   .then(async () => {
+    await openLogFile();
     Menu.setApplicationMenu(null);
 
     if (app.isPackaged) {
@@ -382,10 +386,25 @@ app
     logError('Observer Studio failed to start', error);
     dialog.showErrorBox(
       'Observer Studio could not start',
-      'Observer Studio ran into an unexpected error while starting. See the logs for details.'
+      `Observer Studio ran into an unexpected error while starting. Details are in ${join(app.getPath('logs'), 'main.log')}.`
     );
     app.quit();
   });
+
+// Keeps this run's log and the previous run's in the logs folder (Settings → Open logs folder).
+async function openLogFile(): Promise<void> {
+  app.setAppLogsPath();
+  const dir = app.getPath('logs');
+  const path = join(dir, 'main.log');
+  await mkdir(dir, { recursive: true });
+  await rename(path, join(dir, 'main.old.log')).catch(() => {});
+  const file = createWriteStream(path);
+  file.once('error', () => setLogSink(null));
+  setLogSink((level, message, detail) => {
+    const suffix = detail === undefined ? '' : ` ${inspect(detail)}`;
+    file.write(`${new Date().toISOString()} ${level.toUpperCase()} ${message}${suffix}\n`);
+  });
+}
 
 function portInUseReason(port: number, error: unknown): string {
   logError(`Failed to bind port ${port}`, error);
