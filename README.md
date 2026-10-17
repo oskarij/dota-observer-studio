@@ -6,7 +6,9 @@ Browser sources: one for the draft, one for the game.
 
 ## Requirements
 
-Windows 10/11, Dota 2, and OBS (or anything that supports a Browser source).
+Windows 10/11, Dota 2, and OBS (or anything that supports a Browser source). The overlay uses the
+Radiance and Reaver fonts from the Dota 2 install on the PC that runs Observer Studio; without
+it, the overlay uses the system font.
 
 ## Quick start
 
@@ -70,3 +72,8 @@ npm run package   # build a Windows zip into release/
 
 [MIT](LICENSE). UI primitives under `src/lib/components/ui` are vendored from
 [shadcn-svelte](https://www.shadcn-svelte.com/) under their own license.
+
+Dota 2 content (hero icons, portraits and videos, rank medals, the preview screenshot) belongs to
+Valve Corporation and is not covered by the MIT license. Observer Studio is a free fan tool and is
+not affiliated with or endorsed by Valve. The Radiance and Reaver fonts are not included; they are
+read from your Dota 2 install. To have Valve content removed, open an issue.

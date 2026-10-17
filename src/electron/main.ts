@@ -22,6 +22,7 @@ import {
 import { logError, logWarning, setLogSink } from '../shared/logger.js';
 import { type ConfigurablePorts, LAN_BIND_HOST, NETWORK_HOST } from '../shared/networkConfig.js';
 
+import { copyDotaFonts } from './dotaFonts.js';
 import { createFearlessStore } from './fearlessStore.js';
 import { registerFontsIpc } from './ipc/fonts.js';
 import { registerGsiIpc } from './ipc/gsi.js';
@@ -224,6 +225,9 @@ app
     const teamsStore = createTeamsStore(join(app.getPath('userData'), 'teams.db'));
     closeTeamsStore = () => teamsStore.close();
     const mediaRoot = join(app.getPath('userData'), 'media');
+    await copyDotaFonts(mediaRoot).catch((error: unknown) => {
+      logWarning('Could not copy the Dota fonts', error);
+    });
 
     const playerRankStore = createPlayerRankStore(join(app.getPath('userData'), 'player-ranks.db'));
     const playerRankService = createPlayerRankService({

@@ -4,6 +4,7 @@ import type { DotaGsiData } from '../shared/dotaGsiPayload.js';
 import { resolveOverlayPhaseFromPath } from '../shared/overlayRoutes.js';
 import { connectOverlayRealtime, type RealtimeConnectionState } from './overlayRealtimeClient.js';
 
+import { registerFontFaces } from './fontFaces.js';
 import { applyOverlayConfigToStage, createOverlayStage } from './overlayStage.js';
 
 import './overlay.css';
@@ -13,6 +14,7 @@ const OVERLAY_ROOT_ID = 'overlay-root';
 // Which Browser source this page is: /overlay/draft/ and /overlay/ingame/ mount only their own
 // phase's elements, so OBS can layer each over its matching scene; the bare /overlay/ mounts all.
 const phase = resolveOverlayPhaseFromPath(window.location.pathname);
+registerFontFaces(document.fonts);
 
 const stage = createOverlayStage(getRequiredElement(OVERLAY_ROOT_ID), phase);
 // Last in <head>, so the operator's CSS wins over the bundled styles at equal specificity. Not

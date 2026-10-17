@@ -9,7 +9,7 @@
     type ElementBox
   } from '../../shared/componentSettings.js';
   import {
-    BUNDLED_FONTS,
+    DOTA_FONTS,
     defaultWeightFor,
     fontHasItalic,
     fontLabel,
@@ -274,7 +274,7 @@
               <Select.Content class="max-h-64">
                 <Select.Group>
                   <Select.GroupHeading>Overlay fonts</Select.GroupHeading>
-                  {#each BUNDLED_FONTS as font (font.id)}
+                  {#each DOTA_FONTS as font (font.id)}
                     <Select.Item value={font.family} label={font.label}>
                       <span style="font-family: '{font.family}'">{font.label}</span>
                     </Select.Item>

@@ -21,7 +21,8 @@ override a picker from CSS mark the variable `!important`:
 ```
 
 The variables below are not set by any picker and need no `!important`. A font that
-does not load falls back to Radiance.
+does not load falls back to Radiance, or to the system sans-serif when Dota 2 is not installed
+on the PC that runs Observer Studio.
 
 ## Variables
 

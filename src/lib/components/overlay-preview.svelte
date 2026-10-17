@@ -6,6 +6,7 @@
     SAMPLE_GSI_DATA,
     SAMPLE_KNOWN_PLAYERS
   } from '$lib/dev/sampleGsiData.js';
+  import { registerFontFaces } from '../../overlay/fontFaces.js';
   import {
     applyOverlayConfigToStage,
     createOverlayStage,
@@ -93,6 +94,7 @@
   let customSheet = $state.raw<CSSStyleSheet | null>(null);
   onMount(() => {
     const { document } = globalThis;
+    registerFontFaces(document.fonts);
     const sheet = new CSSStyleSheet();
     document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
     customSheet = sheet;

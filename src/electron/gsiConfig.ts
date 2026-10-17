@@ -62,12 +62,12 @@ async function steamRootCandidates(): Promise<string[]> {
 
 async function steamPathFromRegistry(): Promise<string | null> {
   try {
-    const { stdout } = await execFileAsync('reg', [
-      'query',
-      'HKCU\\Software\\Valve\\Steam',
-      '/v',
-      'SteamPath'
-    ]);
+    // Startup waits on this (the Dota font copy), so a stuck query must not hold the app.
+    const { stdout } = await execFileAsync(
+      'reg',
+      ['query', 'HKCU\\Software\\Valve\\Steam', '/v', 'SteamPath'],
+      { timeout: 5_000, windowsHide: true }
+    );
 
     // A REG_SZ line looks like: "    SteamPath    REG_SZ    c:/program files (x86)/steam"
     const match = /SteamPath\s+REG_SZ\s+(.+)$/im.exec(stdout);
