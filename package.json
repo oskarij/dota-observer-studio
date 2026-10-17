@@ -31,6 +31,7 @@
     "format:check": "prettier --check .",
     "lint": "eslint .",
     "package": "npm run build && electron-builder --win",
+    "prepare": "svelte-kit sync || echo ''",
     "preview": "vite preview --host 127.0.0.1 --port 4173 --strictPort",
     "test": "npm run test:unit",
     "test:integration": "npm run build && node tests/integration/launch.mjs && node tests/integration/launch.mjs tests/integration/shutdown.mjs",
