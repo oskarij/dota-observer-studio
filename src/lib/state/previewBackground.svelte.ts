@@ -1,6 +1,4 @@
-// Preview backdrop: transparency checkerboard vs. an in-game screenshot, so the overlay can be
-// previewed against a realistic Dota frame. Module-level so the choice persists across navigation;
-// page-local $state resets every time the Overlay page remounts.
+// Checkerboard or in-game screenshot behind the preview. Module-level, so it survives navigation.
 class PreviewBackgroundStore {
   #inGame = $state(false);
 

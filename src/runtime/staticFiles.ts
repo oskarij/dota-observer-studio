@@ -14,8 +14,7 @@ export interface StaticFileHandlerConfig {
   cacheControl(assetPath: string): string;
   // Optional fallback asset when the resolved file is missing (e.g. an SPA index). Null = 404.
   fallbackOnMissing?(requestPath: string): string | null;
-  // If set, a GET to OVERLAY_EVENTS_PATH is handed here instead of the files, so a host can serve
-  // the realtime SSE stream on its own origin alongside its assets.
+  // Handles GET OVERLAY_EVENTS_PATH (the SSE stream) when set.
   connectEvents?(request: IncomingMessage, response: ServerResponse): void;
   readonly notFoundMessage: string;
   readonly readErrorMessage: string;
@@ -26,9 +25,8 @@ export type StaticFileHandler = (
   response: ServerResponse
 ) => Promise<void>;
 
-// Serves files from one asset root; owns the GET guard, path-traversal guard, MIME table, and
-// 404/500 handling so the security-sensitive traversal guard lives in one place. Each host
-// supplies only path-mapping and cache policy.
+// Serves files from one asset root, behind the path-traversal guard. Each host supplies the path
+// mapping and cache policy.
 export function createStaticFileHandler(config: StaticFileHandlerConfig): StaticFileHandler {
   return async function handle(request, response) {
     const method = request.method?.toUpperCase() ?? 'GET';
@@ -166,8 +164,8 @@ async function serveFile(
       response.end();
       return;
     }
-    // Ten looping portraits can otherwise allocate ten multi-megabyte buffers at once. Honor
-    // video seek/range requests and stream bounded chunks with socket backpressure instead.
+    // Stream with backpressure and honor range requests: ten looping portraits would otherwise
+    // buffer ten multi-megabyte files at once.
     await pipeline(file.createReadStream({ start, end, autoClose: false }), response);
   } finally {
     await file.close();

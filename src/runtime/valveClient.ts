@@ -51,8 +51,8 @@ interface SteamResult {
 const PAGE_SIZE = 100;
 const MAX_PAGES = 10;
 
-// All requests run in main. Header authentication keeps credentials out of URLs and logs. Steam's
-// history endpoints need the operator's own key; without one they resolve as unavailable.
+// The key goes in a header, which keeps it out of URLs and logs. Without a key, the history
+// endpoints resolve as unavailable.
 export function createValveClient(request: typeof fetch, apiKey: () => string | null) {
   const matchesById = new Map<string, LeagueMatch>();
   const inFlight = new Map<string, Promise<SteamResult | null>>();

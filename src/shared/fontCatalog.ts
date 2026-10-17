@@ -37,7 +37,6 @@ export const BUNDLED_FONTS: BundledFontDefinition[] = [
     label: 'Radiance',
     family: 'RadianceOverlay',
     weights: weights([200, 300, 400, 600, 700]),
-    // Semibold is the weight the overlay shipped with; keep it the default.
     defaultWeight: 600,
     italic: true
   },
@@ -55,12 +54,10 @@ function bundled(family: string): BundledFontDefinition | undefined {
   return BUNDLED_FONTS.find((font) => font.family === family);
 }
 
-// Bundled fonts carry their own label; a system font is shown by its family name.
 export function fontLabel(family: string): string {
   return bundled(family)?.label ?? family;
 }
 
-// A bundled font's real faces, else the generic system set.
 export function fontWeights(family: string): FontWeightOption[] {
   return bundled(family)?.weights ?? SYSTEM_FONT_WEIGHTS;
 }

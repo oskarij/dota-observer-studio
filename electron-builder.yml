@@ -1,18 +1,16 @@
 appId: com.observerstudio.app
 productName: Observer Studio
 
-# Only the compiled output and runtime deps ship; src/, .svelte-kit/, tsconfig, etc. are excluded.
-# electron-builder still bundles production node_modules automatically (electron-store, font-list).
+# Production node_modules are added automatically.
 files:
   - build/electron/**/*
   - build/web/**/*
-  # The studio preview only shows still posters; the overlay host serves its own copy of the videos.
+  # The studio preview uses still posters; only the overlay host serves the videos.
   - '!build/web/**/*.webm'
   - build/overlay-assets/**/*
   - package.json
 
-# Keep setup instructions, the styling reference and the app license beside the executable in the
-# distributable ZIP.
+# Shipped beside the executable.
 extraFiles:
   - README.md
   - LICENSE
@@ -21,19 +19,13 @@ extraFiles:
 directories:
   output: release
 
-# Stable, descriptive zip name instead of electron-builder's default.
 artifactName: ${productName}-${version}-win-x64.${ext}
 
 win:
-  # zip = a folder with Observer Studio.exe + resources, compressed. Extract and run, no installer.
   target:
     - zip
-  # logo.png is 263x263 (>=256); electron-builder generates the multi-size exe icon from it.
-  # (icon.ico is only 32x32 and is still used for the in-app window icon at runtime.)
+  # The exe icon needs at least 256x256; static/icon.ico (32x32) is only the window icon.
   icon: static/logo.png
-  # Identifies the publisher in the exe metadata. The app is unsigned, so this is informational
-  # (populating the version resource reduces some AV false positives), not a verified signature.
+  # Exe metadata only: the build is unsigned.
   publisherName: oskarij
-  # Code signing is optional. To sign, drop the cert here (or set CSC_LINK / CSC_KEY_PASSWORD env vars):
-  # certificateFile: path/to/cert.pfx
-  # certificatePassword: ...
+  # To sign, set certificateFile and certificatePassword, or CSC_LINK and CSC_KEY_PASSWORD.

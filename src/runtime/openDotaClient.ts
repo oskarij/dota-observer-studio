@@ -1,11 +1,9 @@
 import { logWarning } from '../shared/logger.js';
 
-// Player ranks still use OpenDota. Tournament data is fetched by valveClient.
 const OPEN_DOTA_PLAYERS_URL = 'https://api.opendota.com/api/players';
 
-// 'resolved' is a definitive answer worth persisting: a 200 (rank_tier present or null) or a 404
-// (account OpenDota has never indexed -> no medal). 'transient' is 429/5xx/network; don't persist,
-// retry after a short backoff.
+// 'resolved' (a 200, or a 404 for an unknown account) is cached. 'transient' (429, 5xx, network
+// error) is retried after a backoff.
 export type RankFetchResult =
   | { readonly outcome: 'resolved'; readonly rankTier: number | null }
   | { readonly outcome: 'transient' };
@@ -14,7 +12,7 @@ export async function fetchPlayerRankTier(accountId: string): Promise<RankFetchR
   try {
     const response = await fetch(`${OPEN_DOTA_PLAYERS_URL}/${encodeURIComponent(accountId)}`);
 
-    // Unknown account: a definitive "no data", cached as null so we don't re-ask for 7 days.
+    // Unknown account: cached as no rank.
     if (response.status === 404) {
       return { outcome: 'resolved', rankTier: null };
     }

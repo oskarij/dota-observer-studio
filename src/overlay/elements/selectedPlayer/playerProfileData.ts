@@ -44,8 +44,8 @@ export function mmrToMedal(mmr: number | null): RankMedal | null {
   return 'herald';
 }
 
-// OpenDota encodes rank as a two-digit rank_tier: the tens digit is the medal (1=Herald..8=Immortal)
-// and the ones digit is the star count, which we don't surface. null = no public rank -> no medal.
+// rank_tier: the tens digit is the medal (1 Herald to 8 Immortal), the ones digit the stars
+// (ignored). null means no public rank.
 export function rankTierToMedal(rankTier: number | null): RankMedal | null {
   if (rankTier === null) {
     return null;

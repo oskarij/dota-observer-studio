@@ -9,14 +9,12 @@ import { NETWORK_HOST } from '../shared/networkConfig.js';
 
 const execFileAsync = promisify(execFile);
 
-// Observer Studio's own cfg file, named so it won't collide with other GSI tools' configs.
 export const CONFIG_FILE_NAME = 'gamestate_integration_observer_studio.cfg';
 
-// The tail from a Steam library root to the folder Dota reads GSI configs from.
+// Relative to a Steam library root.
 const DOTA_CFG_RELATIVE = join('steamapps', 'common', 'dota 2 beta', 'game', 'dota', 'cfg');
 
-// Locate `…/dota 2 beta/game/dota/cfg` by walking Steam's library folders. Returns null when Dota
-// can't be found (caller then falls back to a folder picker).
+// Searches every Steam library; null when Dota is in none of them.
 export async function resolveDotaCfgDir(): Promise<string | null> {
   for (const steamRoot of await steamRootCandidates()) {
     for (const library of await steamLibraryPaths(steamRoot)) {
@@ -82,8 +80,7 @@ async function steamPathFromRegistry(): Promise<string | null> {
   }
 }
 
-// Every library root listed in libraryfolders.vdf (Dota may live on a non-default drive), plus the
-// Steam root itself as a fallback.
+// Library roots from libraryfolders.vdf, plus the Steam root.
 async function steamLibraryPaths(steamRoot: string): Promise<string[]> {
   const paths = new Set<string>([steamRoot]);
 

@@ -1,7 +1,5 @@
-// Animated hero portraits keyed by internal name, resolved to bundled asset URLs at build time by
-// Vite (same mechanism as the fearless-draft hero icons). The webms are generated + committed (via
-// Git LFS) by scripts/fetch-hero-assets.mjs. A missing video resolves to null so slots can fall
-// back to the static hero icon.
+// Animated hero portraits by internal name, from tools/fetch-hero-assets.mjs (stored in Git LFS).
+// null when a hero has no video; the slot then shows the hero icon.
 const videoModules = import.meta.glob<string>('./heroVideos/*.webm', {
   eager: true,
   import: 'default',

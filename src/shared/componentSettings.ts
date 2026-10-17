@@ -223,7 +223,7 @@ export function mergeOverlayConfigDefaults(input: unknown): OverlayConfig {
       ...base,
       ...value,
       position: { ...base.position, ...value.position },
-      // Saved positions predate anchors and meant top-left; without one, keep the default pair.
+      // A saved position without an anchor predates anchors and means top-left.
       anchor:
         value.position === undefined
           ? { ...base.anchor, ...value.anchor }

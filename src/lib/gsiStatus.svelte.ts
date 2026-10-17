@@ -12,8 +12,6 @@ export class GsiStatusWatcher {
   }
 
   start(): () => void {
-    // Routed through the shared SSE decoder so this watcher follows the same connection contract as
-    // the overlay and the preview feed instead of opening its own raw EventSource.
     return connectOverlayRealtime({
       onStatus: (status) => {
         this.#status = status === 'live' ? 'connected' : 'disconnected';

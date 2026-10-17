@@ -25,7 +25,6 @@ const INGAME_STATES: readonly DotaGameState[] = [
   'DOTA_GAMERULES_STATE_POST_GAME'
 ];
 
-// Logos render as an <img>; names and scores as text.
 const DOM_KIND: Record<SeriesInfoKind, 'text' | 'logo'> = {
   'team-name': 'text',
   'team-logo': 'logo',

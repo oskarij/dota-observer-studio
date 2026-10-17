@@ -13,12 +13,9 @@ import { projectOverlayPayload } from '../shared/overlayPayload.js';
 import type { SeriesStatePayload } from '../shared/seriesState.js';
 import type { GsiPayload } from './gsiListener.js';
 
-// The SSE fan-out hub for overlay clients. It owns no socket: the overlay host (and, in a packaged
-// build, the web host) route GET /events here, so the live overlay and the studio preview each
-// connect on their own origin without a dedicated port or CORS. It is a singleton that survives a
-// host's port rebind.
+// SSE fan-out for overlay clients. It owns no socket: each host routes GET /events here, so it
+// survives a port rebind.
 export interface OverlayGsiEventStream {
-  // Register a routed GET /events request as an SSE client.
   connect(request: IncomingMessage, response: ServerResponse): void;
   broadcast(payload: GsiPayload): void;
   getClientCount(): number;
@@ -44,7 +41,6 @@ export function createOverlayGsiEventStream(): OverlayGsiEventStream {
   let currentKnownPlayers: readonly KnownPlayer[] | null = null;
   let currentFearlessSeries: FearlessSeriesPayload | null = null;
   let currentSeriesState: SeriesStatePayload | null = null;
-  // Every rank pushed this session, replayed to clients that connect after it was sent.
   const playerRanks = new Map<string, PlayerRank>();
   let heartbeatTimer: NodeJS.Timeout | null = null;
   let latestPayload: GsiPayload | null = null;

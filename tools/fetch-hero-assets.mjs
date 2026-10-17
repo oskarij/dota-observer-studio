@@ -1,10 +1,7 @@
-// Generator for the bundled hero constants + art used by the draft overlays. Run with
-// `node tools/fetch-hero-assets.mjs "<path to the 'dota 2 beta' install>"`, then
-// tools/generate-hero-posters.mjs. Hero ids and names come from OpenDota's public constants and the
-// fearless icons from the Valve CDN; the draft pick-slot videos are the game's own animated hero
-// portraits, copied from the local install. The output is committed: heroesData.ts,
-// heroIcons/*.png and heroVideos/*.webm. A generated .ts module (not JSON) is emitted so it compiles
-// cleanly under both the NodeNext and ES2022 tsconfigs.
+// Regenerates the committed hero data and art: heroesData.ts, heroIcons/*.png, heroVideos/*.webm.
+// Run `node tools/fetch-hero-assets.mjs "<path to the 'dota 2 beta' install>"`, then
+// tools/generate-hero-posters.mjs. Ids and names come from OpenDota's constants, the icons from the
+// Valve CDN, and the draft videos from the local install.
 import { copyFile, mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';

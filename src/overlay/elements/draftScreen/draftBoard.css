@@ -1,7 +1,4 @@
-/* Movable pick/ban board, authored at 1760x332 and shipped at full size, so it spans 80 to 1840
-   on the stage and its rows land on whole pixels — the team names anchor to those edges and the
-   fearless title to the RADIANT/DIRE row. Theming hooks: --db-accent, --db-active-image,
-   --db-slot-background, --db-slot-border (docs/custom-styling.md). */
+/* 1760x332 at 100% size, so the rows land on whole pixels. Hooks: docs/custom-styling.md. */
 
 .draft-board {
   display: flex;
@@ -100,8 +97,7 @@
     0 2px 8px rgba(0, 0, 0, 0.5);
 }
 
-/* The slot being chosen can carry an image (--db-active-image, none by default), e.g. a league
-   mark. It breathes so the turn reads as live, slowly enough not to pull the eye off the draft. */
+/* The active slot can show an image (--db-active-image), e.g. a league mark. */
 .draft-board__slot[data-active='true']::before {
   animation: draft-board-breathe 4.2s ease-in-out infinite;
   background: var(--db-active-image, none) center / contain no-repeat;
@@ -144,7 +140,6 @@
   width: 100%;
 }
 
-/* Banned heroes read as unavailable. */
 .draft-board__slot--ban .draft-board__portrait {
   filter: grayscale(0.85) brightness(0.7);
 }
@@ -175,8 +170,7 @@
   justify-content: center;
 }
 
-/* m:ss keeps its length, but proportional digits do not keep their width, which slid both
-   reserves as the numbers ticked; the per-character cells above hold each one still. */
+/* Proportional digits change width; the per-character cells keep the reserves still. */
 .draft-board__reserve {
   font-size: 26px;
   line-height: 1;

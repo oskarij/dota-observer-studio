@@ -14,9 +14,8 @@ Windows 10/11, Dota 2, and OBS (or anything that supports a Browser source).
    `Observer Studio.exe`. It's unsigned, so on the SmartScreen prompt click **More info → Run anyway**.
 2. **Settings → Game integration → Install GSI config**, then add the `-gamestateintegration` launch
    option to Dota (Steam → Dota 2 → Properties → Launch Options) and restart Dota.
-3. **Settings → OBS browser sources**: the overlay is two Browser sources, one for the draft and one
-   for the game. Copy each URL into a Browser source in the matching OBS scene (transparent
-   background, your canvas size). Build both on the **Overlay** page; its Draft / In-game tabs switch
+3. **Settings → OBS browser sources**: add each URL as a Browser source in the matching OBS scene,
+   at your canvas size. Build both scenes on the **Overlay** page; its Draft / In-game tabs switch
    between them.
 
 GSI only sends data while you're spectating or in a match, so the status stays "Not connected" until
@@ -45,18 +44,10 @@ preview. Put fonts and images in the media folder (**Open media folder**) and us
 `url(/media/<file>)`. The styling hooks and recipes are in
 [docs/custom-styling.md](docs/custom-styling.md).
 
-## Performance on a shared gaming/streaming PC
+## Performance
 
-The Studio preview uses still hero portraits and static effects, while OBS keeps its animations.
-Edits and live match information update immediately. Sample mode has a fixed clock and does no
-ongoing rendering while idle; Live mode keeps the draft countdown running. Minimizing Studio
-suspends the preview and restoring it shows the latest state.
-
-New GSI configs cap updates at five per second. The throttle interval is 200 ms (previously 100 ms); draft countdowns still tick locally between
-game updates. Browser sources receive changes to visible overlay data, with current state replayed
-when a source reconnects.
-
-Rendering regression checks and measurement details are in [tests/performance](tests/performance/README.md).
+The Studio preview shows still hero portraits; OBS shows the animated ones. Minimizing Studio
+pauses the preview, and restoring it shows the latest state.
 
 ## OBS or Dota on another PC
 

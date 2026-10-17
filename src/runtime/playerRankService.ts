@@ -22,7 +22,6 @@ export interface PlayerRankServiceConfig {
 }
 
 export interface PlayerRankService {
-  // Inspect a GSI payload for the selected player and ensure its rank is cached + pushed.
   handlePayload(payload: GsiPayload): void;
   clearSessionCache(): void;
   dispose(): void;

@@ -1,5 +1,4 @@
-// A saved team the studio can assign to a series slot. Edited in the studio, persisted to SQLite,
-// and referenced by known players (teamId) and the series state.
+// A saved team, referenced by known players (teamId) and the series state.
 export interface Team {
   id: string;
   name: string;

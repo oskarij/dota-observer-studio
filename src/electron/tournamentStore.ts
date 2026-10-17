@@ -11,8 +11,7 @@ export interface TournamentStore {
 }
 
 export function createTournamentStore(): TournamentStore {
-  // The Steam key is sealed with the OS keystore (DPAPI on Windows), so the settings file never
-  // holds it in plain text.
+  // The Steam key is encrypted with the OS keystore (DPAPI on Windows), never stored in plain text.
   const store = new Store<{ tournament: PersistedTournament; steamApiKey?: string }>({
     name: 'tournament',
     defaults: { tournament: { matches: [] } }

@@ -6,10 +6,8 @@ import type { GsiPayload } from './gsiListener.js';
 
 const FULL_LINEUP = 10;
 
-// Records each spectated game (match id + its 10 picked heroes) once it reaches GAME_IN_PROGRESS,
-// where the lineup is locked. The operator later picks games from this list to build a fearless
-// series. Capture is idempotent per match (the store dedupes), and a same-match guard avoids
-// rewriting on every payload while one game is live.
+// Records each spectated game's 10 heroes once it reaches GAME_IN_PROGRESS. The store dedupes by
+// match id; the same-match guard skips the write on every later payload of a live game.
 export interface FearlessCapture {
   handlePayload(payload: GsiPayload): void;
 }

@@ -22,7 +22,7 @@ test('each phase page resolves back to its phase, with or without the trailing s
 });
 
 test('the bare overlay route and non-page paths resolve to no phase', () => {
-  // Bare route = every element, the pre-split behaviour an older OBS source still relies on.
+  // The bare route renders every element.
   assert.equal(resolveOverlayPhaseFromPath('/overlay/'), null);
   assert.equal(resolveOverlayPhaseFromPath('/overlay'), null);
   assert.equal(resolveOverlayPhaseFromPath('/overlay/assets/index-abc.js'), null);

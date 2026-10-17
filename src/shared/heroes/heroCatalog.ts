@@ -1,11 +1,7 @@
 import { HEROES } from './heroesData.js';
 
-// Static hero constants (id -> internal/localized name), generated from OpenDota's constants by
-// scripts/fetch-hero-assets.mjs and committed so the app resolves hero ids fully offline. `id`
-// matches both the GSI hero id and OpenDota's hero_id, so one table serves every source. The
-// matching portrait icons live next to the fearless-draft overlay element (see heroIcons.ts there).
-// The data is a generated .ts module (not JSON) so it compiles cleanly under both the NodeNext and
-// ES2022 tsconfigs that include src/shared.
+// Hero constants from tools/fetch-hero-assets.mjs, so hero ids resolve offline. `id` is both the
+// GSI hero id and OpenDota's hero_id.
 export interface Hero {
   readonly id: number;
   readonly internalName: string;

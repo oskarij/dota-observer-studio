@@ -4,10 +4,8 @@ import test from 'node:test';
 
 import { createGsiListener, type GsiPayload } from '../src/runtime/gsiListener.js';
 
-// Exercises the live port-rebind contract that main.ts's applyPorts orchestrates: the GSI listener
-// is swapped to a new port without a restart, the old port is released, payload subscribers are
-// re-wired to the new server, and a rebind onto an occupied port fails without disturbing the
-// running server. These are the guarantees the Settings "Network ports" Save action depends on.
+// The rebind steps main.ts's applyPorts runs: move the GSI listener to a new port, free the old
+// one, re-wire subscribers, and fail without side effects when the new port is taken.
 
 const HOST = '127.0.0.1';
 const PORT_A = 31994;

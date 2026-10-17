@@ -14,8 +14,7 @@ import type { SeriesStatePayload } from '../shared/seriesState.js';
 
 export type RealtimeConnectionState = 'connected' | 'disconnected';
 
-// Single SSE decoder shared by overlay.ts and the studio preview (gsiFeed.svelte.ts), so a new
-// event type is wired here once instead of drifting between consumers. Handlers are optional.
+// Every SSE consumer decodes through this client; add new event types here.
 export interface OverlayRealtimeHandlers {
   onGsiData?(data: DotaGsiData): void;
   onStatus?(status: GsiStatus): void;
@@ -33,8 +32,6 @@ export function connectOverlayRealtime(handlers: OverlayRealtimeHandlers): () =>
     return () => {};
   }
 
-  // The /events SSE route is served on the same origin that served this page (the overlay host, or
-  // the web host for the studio preview), so it works over loopback or a LAN address with no CORS.
   const statusOnly =
     !handlers.onGsiData &&
     !handlers.onSettings &&
@@ -42,6 +39,7 @@ export function connectOverlayRealtime(handlers: OverlayRealtimeHandlers): () =>
     !handlers.onFearlessSeries &&
     !handlers.onSeriesState &&
     !handlers.onPlayerRank;
+  // Same origin as the page, so it works over loopback or a LAN address without CORS.
   const events = new EventSource(
     `${window.location.origin}${OVERLAY_EVENTS_PATH}${statusOnly ? '?statusOnly=1' : ''}`
   );

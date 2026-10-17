@@ -15,18 +15,13 @@ export interface OverlayRenderOptions {
 
 export interface OverlayElement {
   readonly id: string;
-  // Optional: only elements that resolve names/MMR implement it.
   applyKnownPlayers?(players: readonly KnownPlayer[]): void;
-  // Fearless ban pool pushed over SSE. Optional: only the fearless-draft element uses it.
   applyFearlessSeries?(payload: FearlessSeriesPayload): void;
-  // Resolved series state (team names/logos/score) pushed over SSE. Optional: series-info elements only.
   applySeriesState?(payload: SeriesStatePayload): void;
-  // Optional: only elements with non-styling settings implement it.
   applyOptions?(options: ComponentOptions): void;
-  // OpenDota rank pushed over SSE. Optional: only elements that show a medal use it.
   applyPlayerRank?(rank: PlayerRank): void;
   applySettings(settings: ComponentSettings): void;
-  // Hide the element because the GSI feed went stale or disconnected.
+  // Called when the GSI feed goes stale or disconnects.
   clear(): void;
   destroy(): void;
   setEnabled(enabled: boolean): void;

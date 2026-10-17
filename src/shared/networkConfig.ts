@@ -1,8 +1,6 @@
 import type { OverlayPhase } from './overlayElementCatalog.js';
 import { overlayScenePath } from './overlayRoutes.js';
 
-// Single source of truth for the host + ports the runtime servers bind to (main, event-stream
-// endpoint, control UI).
 export const NETWORK_HOST = '127.0.0.1';
 
 // Bind address that accepts connections on every interface (loopback + LAN), used when LAN access
@@ -14,12 +12,9 @@ export const NETWORK_PORTS = {
   gsiListener: 3334
 } as const;
 
-// The SSE route the overlay host (and the packaged web host) expose for the realtime feed; served
-// on the page's own origin, so a client connects to `${location.origin}${OVERLAY_EVENTS_PATH}`.
+// The SSE route. The overlay host and the packaged web host serve it on the page's own origin.
 export const OVERLAY_EVENTS_PATH = '/events';
 
-// The user-configurable ports. The event-stream port is intentionally absent: it is internal
-// plumbing baked into the overlay bundle that the user never types anywhere, so it stays fixed.
 export interface ConfigurablePorts {
   overlayHost: number;
   gsiListener: number;
@@ -30,9 +25,8 @@ export const DEFAULT_CONFIGURABLE_PORTS: ConfigurablePorts = {
   gsiListener: NETWORK_PORTS.gsiListener
 };
 
-// Persisted network settings: the configurable ports plus whether the overlay host and GSI listener
-// are exposed to the LAN (default off = loopback only, for an OBS or observer PC separate from the
-// app). The web host that serves the studio UI always stays on loopback.
+// allowLanAccess exposes the overlay host and the GSI listener to the LAN. The studio web host
+// always stays on loopback.
 export interface NetworkSettings {
   ports: ConfigurablePorts;
   allowLanAccess: boolean;
@@ -43,16 +37,12 @@ export const DEFAULT_NETWORK_SETTINGS: NetworkSettings = {
   allowLanAccess: false
 };
 
-// Which integration servers couldn't bind their port at startup (port busy). Non-fatal: the app
-// still opens, and the UI surfaces it so the user can change the port.
+// Servers whose port was busy at startup. Non-fatal: the UI shows it so the user can change it.
 export interface PortConflicts {
   overlayHost: boolean;
   gsiListener: boolean;
 }
 
-// What NETWORK_GET_CHANNEL returns: the ports, the LAN toggle, whether a changed toggle needs a
-// restart to take effect, the overlay/GSI URLs built from the advertised host, and any port that
-// could not be bound.
 export interface NetworkInfo {
   ports: ConfigurablePorts;
   allowLanAccess: boolean;
@@ -95,8 +85,7 @@ export interface PortValidationError {
   message: string;
 }
 
-// Returns the first problem found, or null when the ports are safe to bind. Both the Settings UI
-// (to disable Save) and the main-process store (defensive fallback) call this.
+// The first problem found, or null when the ports are safe to bind.
 export function validatePorts(ports: ConfigurablePorts): PortValidationError | null {
   const entries: { field: keyof ConfigurablePorts; label: string }[] = [
     { field: 'overlayHost', label: 'Overlay host port' },

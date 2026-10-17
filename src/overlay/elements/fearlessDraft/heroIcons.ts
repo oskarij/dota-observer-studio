@@ -1,7 +1,4 @@
-// Hero portraits keyed by internal name, resolved to bundled asset URLs at build time by Vite (the
-// same asset-URL mechanism the rank medals use). The files are generated + committed by
-// scripts/fetch-hero-assets.mjs. A missing icon resolves to null so the grid can fall back to a
-// labelled placeholder instead of a broken image.
+// Hero icons by internal name, from tools/fetch-hero-assets.mjs. null when a hero has no icon.
 const iconModules = import.meta.glob<string>('./heroIcons/*.png', {
   eager: true,
   import: 'default',

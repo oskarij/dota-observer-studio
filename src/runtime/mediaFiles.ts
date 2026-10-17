@@ -1,10 +1,8 @@
 import type { HttpServerAddress } from './httpUtils.js';
 import { createStaticFileHandler, type StaticFileHandler } from './staticFiles.js';
 
-// User media (team logos) served at /media/ from a userData directory. Shared by the overlay and
-// web hosts so both origins resolve the same root-relative logo URLs. The files are tiny and
-// rarely fetched, so no-cache keeps them always fresh — including files dropped into the media
-// dir by hand, which bypass the logo picker's timestamped (cache-busting) names.
+// Serves the media folder at /media/ on both hosts. no-cache, because files dropped in by hand do
+// not get the logo picker's cache-busting names.
 export function createMediaFileHandler(
   mediaRoot: string,
   address: HttpServerAddress

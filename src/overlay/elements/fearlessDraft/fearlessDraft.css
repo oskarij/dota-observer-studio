@@ -37,7 +37,6 @@
   height: 100%;
   object-fit: cover;
   width: 100%;
-  /* Read as unavailable: desaturated + dimmed under the red frame. */
   filter: grayscale(0.7) brightness(0.78);
 }
 

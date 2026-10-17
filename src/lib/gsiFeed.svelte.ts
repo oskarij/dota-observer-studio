@@ -3,19 +3,13 @@ import { connectOverlayRealtime } from '../overlay/overlayRealtimeClient.js';
 import type { PlayerRank } from '../shared/overlayPlayerRankEvent.js';
 import type { SeriesStatePayload } from '../shared/seriesState.js';
 
-// Latest live GSI payload + ranks from the realtime stream, for the studio preview's "Live" mode.
-// Decodes the stream through the shared realtime client (the same one the standalone overlay uses,
-// so the two can't drift) but keeps the data as reactive state instead of pushing it into a stage.
+// The realtime stream as reactive state, for the studio preview's Live mode.
 export class GsiFeed {
   #data = $state.raw<DotaGsiData | null>(null);
   #live = $state(false);
-  // OpenDota ranks pushed over SSE, latest per account id; the preview feeds these to the stage
-  // so in-game name mode shows a medal, mirroring the standalone overlay (overlay.ts).
+  // Latest rank per account id.
   #ranks = $state.raw<PlayerRank[]>([]);
-  // Latest fearless ban pool pushed over SSE, fed to the stage so the live preview shows the same
-  // draft grid as the standalone overlay.
   #fearlessBannedHeroIds = $state.raw<number[]>([]);
-  // Latest resolved series state pushed over SSE, fed to the stage for the draft-screen preview.
   #seriesState = $state.raw<SeriesStatePayload | null>(null);
 
   // null when the stream is stale/disconnected.
@@ -54,7 +48,7 @@ export class GsiFeed {
           }
         },
         onPlayerRank: (rank) => {
-          // Replace any prior rank for this account; new array so the preview's effect re-runs.
+          // A new array, so the preview's effect re-runs.
           this.#ranks = [...this.#ranks.filter((r) => r.accountId !== rank.accountId), rank];
         },
         onFearlessSeries: (payload) => {

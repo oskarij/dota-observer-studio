@@ -14,17 +14,14 @@ export const OVERLAY_PHASE_LABELS: Record<OverlayPhase, string> = {
 export const FEARLESS_DRAFT_ID = 'fearless-draft';
 export const DRAFT_BOARD_ID = 'draft-board';
 
-// The freely movable team-identity readouts (name/logo/score), all rendered from the series SSE
-// payload. Each exists once per phase (draft + in-game) so a caster can place the same readout
-// independently in a draft-screen layout and an in-game scorebug; each variant self-hides outside
-// its phase.
+// Team name, logo and score readouts, rendered from the series payload. Each exists once per phase,
+// so the draft screen and the in-game scorebug place them independently.
 export type SeriesInfoKind = 'team-name' | 'team-logo' | 'series-score';
 export type SeriesInfoSide = 'radiant' | 'dire';
 export type SeriesInfoScope = OverlayPhase;
 
 export interface SeriesInfoElement {
   readonly id: string;
-  // Label shown in the phase-filtered menu (no phase suffix, since the tab already names the phase).
   readonly menuLabel: string;
   readonly kind: SeriesInfoKind;
   readonly side: SeriesInfoSide;
@@ -53,7 +50,6 @@ export const SERIES_INFO_ELEMENTS: SeriesInfoElement[] = SERIES_INFO_BASES.flatM
 export interface OverlayElementDefinition {
   readonly id: string;
   readonly enabled: boolean;
-  // Label for the phase-filtered menu (no phase suffix, since the tab already names the phase).
   readonly menuLabel: string;
   readonly phase: OverlayPhase;
 }
@@ -79,7 +75,6 @@ const STANDALONE_DEFINITIONS: OverlayElementDefinition[] = [
     phase: 'draft'
   },
   {
-    // Pick/ban board for Captains Mode drafts; off by default so enabling it is a choice.
     enabled: false,
     id: DRAFT_BOARD_ID,
     menuLabel: 'Draft Board',
@@ -103,10 +98,8 @@ export const OVERLAY_ELEMENT_DEFINITIONS: OverlayElementDefinition[] = [
   }))
 ];
 
-// One row in the studio component menu. Standalone elements list as-is; each series-info kind
-// collapses its radiant/dire pair into a single row — the row's toggle drives both element ids,
-// and the settings panel tabs between the members. The per-side element ids (and their settings/
-// enabled entries) are unchanged underneath.
+// One row in the component menu. A radiant/dire pair shares one row: its toggle drives both ids,
+// and the settings panel tabs between them.
 export interface OverlayMenuEntry {
   readonly key: string;
   readonly menuLabel: string;

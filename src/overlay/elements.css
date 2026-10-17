@@ -134,8 +134,8 @@
   top: var(--el-y);
   transform: translate(var(--el-shift-x), var(--el-shift-y)) scale(var(--el-scale));
   transform-origin: var(--el-anchor-y) var(--el-anchor-x);
-  /* Auto width would shrink-to-fit against the space right of --el-x, squeezing a right- or
-     centre-anchored element near the stage edge; the natural width is what gets anchored. */
+  /* Auto width shrinks to the space right of --el-x and squeezes right- or centre-anchored
+     elements near the stage edge. */
   width: max-content;
 }
 

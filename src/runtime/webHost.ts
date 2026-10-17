@@ -9,24 +9,20 @@ import { createStaticFileHandler } from './staticFiles.js';
 export interface WebHostConfig {
   readonly assetRoot: string;
   readonly host: string;
-  // Pass 0 to bind an OS-assigned free port (collision-proof); read the real one back via port().
+  // 0 lets the OS pick a free port; read it back with port().
   readonly port: number;
-  // Serves the realtime SSE feed on /events so the studio preview connects on its own origin.
   readonly eventStream: OverlayGsiEventStream;
-  // When set, user media (team logos) under this directory is served at /media/, same-origin.
   readonly mediaRoot?: string;
 }
 
 export interface WebHost {
   start(): Promise<void>;
   stop(): Promise<void>;
-  // The actual bound port once started, else null.
   port(): number | null;
 }
 
-// Serves the packaged studio UI (the SvelteKit static build) over loopback HTTP so the main window
-// loads it from an http:// origin instead of file://. file:// breaks the build's absolute asset
-// URLs (/_app/...) and the client router's History API navigation, which is the white-screen cause.
+// Serves the packaged studio UI over loopback HTTP: under file://, the absolute /_app/ asset URLs
+// and the router's History API navigation break.
 export function createWebHost(config: WebHostConfig): WebHost {
   const handle = createStaticFileHandler({
     assetRoot: config.assetRoot,

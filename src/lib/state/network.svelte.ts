@@ -1,8 +1,6 @@
 import type { NetworkInfo } from '../../shared/networkConfig.js';
 
-// Shared network info (ports, URLs, LAN toggle, and any failed port bind). Loaded in the layout so
-// the home-page port-conflict banner and the Settings page read one source; refresh() re-fetches it
-// (e.g. after a port change clears a conflict).
+// Loaded once in the layout; the port-conflict banner and the Settings page share it.
 class NetworkStore {
   #info = $state<NetworkInfo | null>(null);
 

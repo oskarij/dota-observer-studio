@@ -2,14 +2,7 @@ import { anchorShift, type ComponentSettings } from '../shared/componentSettings
 import { setStyle } from './dom.js';
 import './elements.css';
 
-// The one place a ComponentSettings becomes CSS, shared by every movable element. The values land
-// as --el-* custom properties on the element's root, which carries the `overlay-element` class
-// that reads them (elements.css).
-//
-// `position` is a plain stage coordinate; `anchor` names the point on the element's own box that
-// lands there — its left edge, its centre, its bottom-right corner. The translate slides the box off
-// its top-left corner by that much, and the transform-origin makes the size slider scale it about
-// the same point, so the anchored point is what holds still as the content or the scale changes.
+// Writes the --el-* properties that elements.css reads.
 export function applyElementSettings(root: HTMLElement, settings: ComponentSettings): void {
   const anchor = settings.anchor ?? { x: 'left', y: 'top' };
   const { shadow } = settings;

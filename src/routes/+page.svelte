@@ -43,7 +43,6 @@
     { value: 'in-progress', label: 'In-game' }
   ];
 
-  // Custom CSS spans every element in both scenes, so it has its own view beside the components.
   let view = $state<'components' | 'css'>('components');
   const VIEW_TABS = [
     { value: 'components', label: 'Components' },

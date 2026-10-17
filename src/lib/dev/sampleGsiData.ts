@@ -166,9 +166,7 @@ export const SAMPLE_KNOWN_PLAYERS: readonly KnownPlayer[] = [
   { accountId: '900000008', name: 'MarkoDota', mmr: 5200, teamId: null }
 ];
 
-// Draft-phase snapshot for previewing the draft-phase overlays: a mid-draft Captains Mode pick/ban
-// block for the draft board (Dire actively picking with ~21s left), plus the game_state the
-// fearless-draft grid keys on (its ban pool comes from SAMPLE_BANNED_HERO_IDS).
+// Mid-draft Captains Mode sample: Dire picking with ~21 s left.
 export const SAMPLE_DRAFT_GSI_DATA: DotaGsiData = {
   player: SAMPLE_GSI_DATA.player ?? {},
   map: {
@@ -215,8 +213,7 @@ export const SAMPLE_DRAFT_GSI_DATA: DotaGsiData = {
   }
 };
 
-// Stand-in series state so the team-name/logo/score elements render in Sample mode. The bundled
-// placeholder logos keep the logo elements visible before the user has configured any real teams.
+// Sample series, so the team name, logo and score elements render before any team is set up.
 export const SAMPLE_SERIES_STATE: SeriesStatePayload = {
   radiant: {
     name: 'Taneli Esports',
@@ -231,8 +228,7 @@ export const SAMPLE_SERIES_STATE: SeriesStatePayload = {
   seriesConfigured: true
 };
 
-// A stand-in fearless ban pool (~16 heroes, as if two prior games of a series were played) so the
-// draft grid has something to render while the operator authors its position/size.
+// Sample fearless ban pool, so the grid renders in Sample mode.
 export const SAMPLE_BANNED_HERO_IDS: readonly number[] = [
   1, 8, 11, 14, 19, 22, 25, 31, 35, 41, 44, 47, 53, 74, 86, 114
 ];

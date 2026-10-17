@@ -28,12 +28,11 @@ export interface DotaGsiMap {
   readonly game_state?: DotaGameState;
   // e.g. 'DOTA_GAMEMODE_CM'; observed as a string but kept loose in case Dota sends the enum number.
   readonly game_mode?: string | number;
-  // The spectated match's id. Present whenever a match is assigned; '0' (or absent) before then.
+  // '0' or absent before a match is assigned.
   readonly matchid?: string;
-  // True while the match is paused; the draft timers freeze in place while it holds.
+  // The draft timers freeze while true.
   readonly paused?: boolean;
-  // Which side won: 'radiant' | 'dire' | 'none'. Kept as plain string (any other value must be
-  // treated as undecided); appears at POST_GAME ('none' until then, when present at all).
+  // 'radiant' or 'dire' at POST_GAME, 'none' before. Treat any other value as undecided.
   readonly win_team?: string;
 }
 
@@ -141,7 +140,7 @@ export function getSelectedDotaGsiPlayer(gsiData: DotaGsiData): SelectedDotaGsiP
   return null;
 }
 
-// The spectated match id, or null before a match is assigned. GSI sends '0' in menus/between games.
+// null before a match is assigned (GSI sends '0' in menus and between games).
 export function getDotaGsiMatchId(gsiData: DotaGsiData): string | null {
   const matchId = gsiData.map?.matchid;
 
@@ -182,7 +181,6 @@ const CM_PICKS_PER_TEAM = 5;
 const CM_BANS_PER_TEAM = 7;
 const CD_BANS_PER_TEAM = 3;
 
-// game_mode arrives as a string, but keep the enum numbers in case Dota ever sends them raw.
 const CD_MODES: readonly (string | number)[] = ['DOTA_GAMEMODE_CD', 16];
 
 export interface DraftSlot {

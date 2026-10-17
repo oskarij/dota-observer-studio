@@ -16,13 +16,11 @@ import type { NetworkSettingsStore } from '../networkSettingsStore.js';
 
 export type NetworkSetResult = Result;
 
-// Rebinds the running servers to the new ports in-process. Implemented in main.ts (it owns the
-// server instances); resolves ok:false if a port can't be bound, leaving the old servers running.
+// Rebinds the running servers. Resolves ok:false and keeps the old servers when a port is busy.
 export type ApplyPorts = (ports: ConfigurablePorts) => Promise<NetworkSetResult>;
 
-// Ports apply live (SET rebinds the servers); the LAN toggle is persisted and applies on the next
-// launch, so lanActive (what's bound now) drives the advertised host and the restart-pending flag.
-// SET re-validates ports rather than trusting the renderer.
+// Ports apply live. The LAN toggle applies on the next launch, so lanActive (what is bound now)
+// sets the advertised host and the restart flag.
 export function registerNetworkIpc(
   store: NetworkSettingsStore,
   applyPorts: ApplyPorts,

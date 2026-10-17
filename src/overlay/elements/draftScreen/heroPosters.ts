@@ -1,5 +1,5 @@
-// Frames extracted from the bundled videos by tools/generate-hero-posters.mjs.
-// Using images keeps Studio's crop faithful without opening any video decoders.
+// Still frames of the hero videos, from tools/generate-hero-posters.mjs. The studio preview shows
+// these, so it opens no video decoders.
 const posterModules = import.meta.glob<string>('./heroPosters/*.webp', {
   eager: true,
   import: 'default',

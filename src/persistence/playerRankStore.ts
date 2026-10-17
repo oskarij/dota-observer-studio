@@ -2,10 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 
 import { logWarning } from '../shared/logger.js';
 
-// Persistent cache of OpenDota rank_tier keyed by account id, so the in-game medal isn't refetched
-// for every seen player. node:sqlite (built into Electron's Node) is used instead of better-sqlite3,
-// whose prebuilt native binary doesn't match Electron's ABI. A null rankTier is a real, cached value
-// ("checked, no public rank"); fetchedAt drives the staleness/TTL check in playerRankService.
+// OpenDota rank_tier cache by account id. A null rankTier is a cached answer: no public rank.
 export interface PlayerRankRecord {
   readonly rankTier: number | null;
   readonly fetchedAt: number;
@@ -19,8 +16,7 @@ export interface PlayerRankStore {
 }
 
 export function createPlayerRankStore(filePath: string): PlayerRankStore {
-  // The rank cache is a nice-to-have, not load-bearing; a corrupt or locked DB file must not block
-  // app startup. On failure we degrade to a no-op store so the medal path just refetches each run.
+  // A corrupt or locked file must not block startup; fall back to a store that caches nothing.
   try {
     return openPlayerRankStore(filePath);
   } catch (error) {

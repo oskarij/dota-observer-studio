@@ -27,8 +27,7 @@ export function createNetworkSettingsStore(): NetworkSettingsStore {
       // Merge over defaults so a config saved before a field existed still gets a value.
       const merged: ConfigurablePorts = { ...DEFAULT_CONFIGURABLE_PORTS, ...store.get(PORTS_KEY) };
 
-      // Defensive: a hand-edited file (or a future reserved-port change) must never brick startup
-      // by binding to a reserved/duplicate/out-of-range port. Fall back to the defaults instead.
+      // A hand-edited file must not break startup; fall back to the defaults.
       const error = validatePorts(merged);
       if (error !== null) {
         logWarning(`Stored network ports are invalid (${error.message}); falling back to defaults`);

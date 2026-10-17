@@ -1,8 +1,7 @@
 import { networkInterfaces } from 'node:os';
 
-// The machine's first non-internal IPv4 address, used to advertise the overlay/GSI URLs when LAN
-// access is on. Prefers a private (RFC 1918) address when several interfaces are up, so a VPN or
-// virtual adapter doesn't win. Null when the machine has no external interface.
+// Prefers a private (RFC 1918) address, so a VPN or virtual adapter does not win. Null when there
+// is no external IPv4 interface.
 export function getLanIpv4(): string | null {
   let fallback: string | null = null;
 

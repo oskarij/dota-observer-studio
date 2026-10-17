@@ -41,7 +41,7 @@
   let apiKeyStatus = $state<string | null>(null);
   let busy = $state(false);
 
-  // Swaps the trigger for an inline confirm/cancel pair (mirrors the component "Reset to defaults" affordance).
+  // Swaps the button for an inline confirm/cancel pair.
   let confirmingClear = $state(false);
 
   onMount(async () => {
@@ -114,8 +114,7 @@
     }
   }
 
-  // The LAN switch persists on toggle (it applies on the next restart), so it isn't tied to the
-  // port Save below. Saved ports are reused so an unsaved port draft isn't committed by the toggle.
+  // Saves on toggle, apart from the port Save. Sends the saved ports, not the unsaved drafts.
   async function applyLanAccess(value: boolean): Promise<void> {
     allowLanAccess = value;
     if (busy || network === null) return;
@@ -153,7 +152,6 @@
     try {
       const result = await bridge?.settings?.import();
       if (result?.ok) {
-        // Refresh the renderer's working copy + reset dirty state from the imported config.
         await overlayConfig.load();
         dataStatus = 'Imported. The overlay layout has been updated.';
       } else {

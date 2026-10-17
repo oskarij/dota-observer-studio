@@ -34,6 +34,7 @@ does not load falls back to Radiance.
 | `--db-figure-width`       | `1ch`                       | Width of one timer digit, so digits do not jitter  |
 | `--db-figure-colon-width` | `0.45ch`                    | Width of the timer's colon                         |
 | `--fd-ban-border`         | `rgba(220, 60, 50, 0.85)`   | Frame of each hero in the fearless ban pool        |
+| `--fd-icon-width`         | `84px`                      | Width of each hero in the fearless ban pool        |
 
 ## Elements
 

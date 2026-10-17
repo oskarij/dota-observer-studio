@@ -13,16 +13,14 @@ export function mountFearlessDraftElement(container: HTMLElement): OverlayElemen
   const root = createFearlessDraftRoot();
   const grid = getRequiredChild(root, '[data-fearless-grid]');
 
-  // The fearless ban pool (heroes already played in the series), pushed from the studio over SSE
-  // for the live overlay and via the stage for the preview. Empty until the first payload arrives.
+  // Heroes already played in the series.
   let bannedHeroIds: number[] = [];
   let inDraft = false;
   let poolChanged = true;
 
   container.append(root);
 
-  // An empty pool would still paint the standalone title, so game 1 of a series (and any draft
-  // before the studio has pushed a pool) hides the element outright rather than labelling nothing.
+  // Hidden while the pool is empty, so the title never shows over an empty grid.
   function syncVisibility(): void {
     const shouldShow = root.dataset.enabled !== 'false' && inDraft && bannedHeroIds.length > 0;
 
@@ -45,8 +43,7 @@ export function mountFearlessDraftElement(container: HTMLElement): OverlayElemen
         poolChanged = true;
       }
 
-      // Re-check here too, so a series edit that empties or fills the pool lands immediately
-      // instead of waiting for the next GSI tick.
+      // A pool change shows without waiting for the next GSI tick.
       syncVisibility();
     },
     applySettings(settings: ComponentSettings) {
@@ -85,8 +82,8 @@ function createHeroCell(heroId: number): HTMLElement {
     img.alt = hero.localizedName;
     cell.append(img);
   } else {
-    // Unknown id or missing icon (e.g. a brand-new hero before assets are refreshed): show the
-    // name (or raw id) rather than a broken image so the slot is still accounted for.
+    // Unknown hero or missing icon (a new hero before the assets are refreshed): show the name or
+    // id instead of a broken image.
     const fallback = document.createElement('span');
     fallback.className = 'fearless-draft__fallback';
     fallback.textContent = hero?.localizedName ?? `#${heroId}`;

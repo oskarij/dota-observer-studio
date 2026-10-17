@@ -18,9 +18,8 @@ import { showOpenDialog, showSaveDialog } from './dialogs.js';
 
 export type GsiInstallResult = Result<{ path: string }>;
 
-// Auto-detects the Dota cfg folder, falling back to a folder picker when Dota can't be located.
-// Uses the currently-stored GSI port (changes apply on relaunch). Export writes the same cfg with
-// the LAN address to a chosen file, for Dota on another PC.
+// Install falls back to a folder picker when Dota is not found. Export writes the cfg with the LAN
+// address, for Dota on another PC.
 export function registerGsiIpc(networkStore: NetworkSettingsStore, lanActive: boolean): () => void {
   ipcMain.handle(GSI_INSTALL_CHANNEL, async (): Promise<GsiInstallResult> => {
     try {

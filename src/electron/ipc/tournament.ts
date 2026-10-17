@@ -12,7 +12,6 @@ import type { TournamentStore } from '../tournamentStore.js';
 
 export type TournamentCommandResult = Result;
 
-// Steam Web API keys are 32 hex characters.
 const STEAM_API_KEY = /^[0-9A-F]{32}$/i;
 
 export function registerTournamentIpc(

@@ -2,10 +2,7 @@
   import { getHeroIconUrl } from '../../overlay/elements/fearlessDraft/heroIcons.js';
   import { getHero } from '../../shared/heroes/heroCatalog.js';
 
-  // Renders a row of hero portraits by id, reusing the same bundled icons + catalog as the overlay
-  // so the studio and the live grid stay visually consistent. Optional `labels` (aligned with
-  // heroIds, e.g. player names) are appended to each icon's hover tooltip. `scroll` keeps the strip
-  // on one line and scrolls it instead of wrapping — for icons sitting in a table-like row.
+  // `labels` align with heroIds and are added to the tooltips. `scroll` keeps one line and scrolls.
   let {
     heroIds,
     width = 56,

@@ -9,9 +9,7 @@ export interface OverlayHostConfig {
   readonly assetRoot: string;
   readonly host: string;
   readonly port: number;
-  // Serves the realtime SSE feed on /events alongside the overlay assets, same-origin.
   readonly eventStream: OverlayGsiEventStream;
-  // When set, user media (team logos) under this directory is served at /media/, same-origin.
   readonly mediaRoot?: string;
 }
 
@@ -20,8 +18,8 @@ export interface OverlayHost {
   stop(): Promise<void>;
 }
 
-// Serves the built overlay bundle under /overlay/ over loopback HTTP for the OBS browser sources: one
-// page per phase plus the bare route, all mapped onto the bundle by overlayRoutes.ts.
+// Serves the overlay bundle under /overlay/ for the OBS Browser sources; overlayRoutes.ts maps the
+// paths.
 export function createOverlayHost(config: OverlayHostConfig): OverlayHost {
   const handle = createStaticFileHandler({
     assetRoot: config.assetRoot,

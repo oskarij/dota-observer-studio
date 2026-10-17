@@ -356,9 +356,7 @@
 </div>
 
 <style>
-  /* Stage coordinates run to 4 digits in ~64px-wide inputs: drop the native number spinners
-     (arrow keys and typing still work) so the full value stays visible; px-2 above slims the
-     padding for the same reason. */
+  /* No spinners, so 4-digit coordinates fit the narrow inputs. Arrow keys still step. */
   .coord-fields :global(input[type='number']) {
     appearance: textfield;
   }

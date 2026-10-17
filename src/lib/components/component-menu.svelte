@@ -6,9 +6,7 @@
 
   import { FEARLESS_DRAFT_ID, type OverlayMenuEntry } from '../../shared/overlayElementCatalog.js';
 
-  // The page passes the menu entries for the currently selected phase (already filtered) so the
-  // menu is a dumb list. Mutating enabled[id] propagates to the parent's $state proxy; no bind:
-  // needed. selectedKey is owned by the page so the settings panel can read the selection.
+  // Writes to enabled[id] reach the parent's $state proxy without bind:.
   let {
     entries,
     enabled,
@@ -47,8 +45,7 @@
           ? 'bg-primary/10'
           : ''}"
       >
-        <!-- Stretched-link pattern: this button's ::before covers the whole row so the
-             item selects everywhere, while the eye floats above it (z-10). -->
+        <!-- ::before covers the row, so the whole row selects; the icons sit above it (z-10). -->
         <button
           type="button"
           class="flex min-w-0 flex-1 cursor-pointer items-center px-4 py-3.5 text-left before:absolute before:inset-0 before:content-['']"
@@ -61,10 +58,7 @@
           </span>
         </button>
 
-        <!-- These float above the row's stretched-link (z-10) so they stay clickable. -->
         <div class="relative z-10 mr-3 flex shrink-0 items-center gap-1">
-          <!-- Behavioral options live inline below the settings panel now; only the fearless draft
-               still has a dedicated management page (its series lives on the Series page). -->
           {#if entry.key === FEARLESS_DRAFT_ID}
             <a
               aria-label={`Manage ${entry.menuLabel}`}

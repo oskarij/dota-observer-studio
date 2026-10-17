@@ -1,5 +1,4 @@
-// Preview data source: static sample vs. live game feed. Module-level so the choice persists
-// across navigation; page-local $state resets every time the Overlay page remounts.
+// Sample or live preview data. Module-level, so it survives navigation.
 class PreviewSourceStore {
   #live = $state(false);
 

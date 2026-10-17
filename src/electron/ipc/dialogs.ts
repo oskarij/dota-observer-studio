@@ -7,9 +7,6 @@ import {
   type SaveDialogReturnValue
 } from 'electron';
 
-// Shared file-dialog helpers: parent every dialog to the app window (falling back to a parentless
-// dialog when there's none) so the parent lookup isn't copy-pasted into each IPC handler.
-
 function focusedWindow(): BrowserWindow | undefined {
   return BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0];
 }

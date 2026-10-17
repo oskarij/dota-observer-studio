@@ -8,7 +8,6 @@
 @custom-variant data-horizontal (&[data-orientation='horizontal']);
 @custom-variant data-vertical (&[data-orientation='vertical']);
 
-/* Graphite Console: neutral graphite base with a single teal brand accent. */
 :root {
   --radius: 0.5rem;
   --background: #fbfbfa;

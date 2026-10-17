@@ -15,8 +15,6 @@ export function registerPlayerRanksIpc(
       store.deleteAll();
       service.clearSessionCache();
     } catch (error) {
-      // A locked/busy DB can throw here; surface a clean message to the renderer instead of a raw
-      // rejection.
       logError('Failed to clear the player rank cache', error);
       throw new Error('Could not clear the rank cache.');
     }

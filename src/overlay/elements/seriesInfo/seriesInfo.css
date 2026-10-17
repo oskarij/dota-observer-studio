@@ -1,8 +1,5 @@
-/* Freely movable series-info elements (team names/logos/scores/tournament text). */
-
-/* Names are capped and cut with an ellipsis; scores and logos have no --si-max-width set, so they
-   stay unbounded. The cap is on the content rather than the root so the root still shrinks to fit
-   a short name, which is what the anchor is measured against. */
+/* Names end in an ellipsis at --si-max-width (unset for scores and logos). The cap is on the
+   content, so the root still shrinks to a short name, which is what the anchor measures. */
 .series-info--text .series-info__content {
   display: block;
   font-size: 40px;
