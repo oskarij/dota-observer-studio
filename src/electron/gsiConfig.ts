@@ -28,9 +28,12 @@ export async function resolveDotaCfgDir(): Promise<string | null> {
   return null;
 }
 
-// Writes the cfg into `<cfgDir>/gamestate_integration/`. Tolerates the user picking the
-// `gamestate_integration` folder itself (a natural mistake) so we don't nest a second one inside it.
-export async function writeGsiConfig(cfgDir: string, gsiPort: number): Promise<string> {
+// Writes to `<cfgDir>/gamestate_integration/`, or to cfgDir when the user picked that folder.
+export async function writeGsiConfig(
+  cfgDir: string,
+  gsiPort: number,
+  token: string
+): Promise<string> {
   const targetDir =
     basename(cfgDir).toLowerCase() === 'gamestate_integration'
       ? cfgDir
@@ -38,7 +41,7 @@ export async function writeGsiConfig(cfgDir: string, gsiPort: number): Promise<s
   await mkdir(targetDir, { recursive: true });
 
   const filePath = join(targetDir, CONFIG_FILE_NAME);
-  await writeFile(filePath, buildGsiConfig(NETWORK_HOST, gsiPort), 'utf8');
+  await writeFile(filePath, buildGsiConfig(NETWORK_HOST, gsiPort, token), 'utf8');
   return filePath;
 }
 
@@ -103,13 +106,11 @@ async function steamLibraryPaths(steamRoot: string): Promise<string[]> {
 
 // host is the address Dota POSTs to: loopback for a local install, or the app's LAN IP for an
 // exported config used by Dota on another PC.
-export function buildGsiConfig(host: string, gsiPort: number): string {
-  // Five updates/second is enough for selection/name changes; draft countdowns run locally.
-  // Capping generation in Dota also reduces work on the game thread, before our listener sees it.
-  // Valve KeyValues (VDF). Only the blocks the overlay actually reads are enabled (see
-  // dotaGsiPayload.ts: the map, hero, player, draft, and league blocks); the rest are listed but
-  // off so the payloads stay small. An IP literal (not localhost) matches the IPv4-only listener
-  // and avoids an IPv6 (::1) resolution miss.
+export function buildGsiConfig(host: string, gsiPort: number, token: string): string {
+  // Only the blocks dotaGsiPayload.ts reads are on. throttle 0.2 caps Dota at five updates per
+  // second; draft countdowns tick locally. The host is an IPv4 literal because localhost can
+  // resolve to ::1, which the IPv4 listener does not accept. Dota sends the auth token with
+  // every update.
   return `"Observer Studio Integration"
 {
     "uri"           "http://${host}:${gsiPort}/gsi"
@@ -117,6 +118,10 @@ export function buildGsiConfig(host: string, gsiPort: number): string {
     "buffer"        "0.1"
     "throttle"      "0.2"
     "heartbeat"     "30.0"
+    "auth"
+    {
+        "token"          "${token}"
+    }
     "data"
     {
         "provider"       "1"

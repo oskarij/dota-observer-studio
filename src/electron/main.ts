@@ -16,7 +16,7 @@ import {
   APP_QUIT_CONFIRMED_CHANNEL,
   APP_SAVE_AND_QUIT_CHANNEL
 } from '../shared/ipcChannels.js';
-import { logError } from '../shared/logger.js';
+import { logError, logWarning } from '../shared/logger.js';
 import { type ConfigurablePorts, LAN_BIND_HOST, NETWORK_HOST } from '../shared/networkConfig.js';
 
 import { createFearlessStore } from './fearlessStore.js';
@@ -197,6 +197,7 @@ app
     const networkSettingsStore = createNetworkSettingsStore();
     const networkSettings = networkSettingsStore.get();
     let ports = networkSettings.ports;
+    const gsiToken = networkSettingsStore.gsiToken();
     const overlayAssetRoot = join(app.getAppPath(), 'build/overlay-assets/overlay');
 
     const lanActive = networkSettings.allowLanAccess;
@@ -206,6 +207,8 @@ app
     overlayGsiEventStream = eventStream;
     unsubscribeGsiLiveness = gsiLiveness.onStatusChange((status) => {
       eventStream.setStatus(status);
+      if (status === 'rejected')
+        logWarning('Rejected GSI updates without the auth token; the GSI config is outdated');
     });
     eventStream.start();
 
@@ -256,17 +259,23 @@ app
       const unsubscribeSession = listener.onPayload((payload) =>
         seriesSession.handlePayload(payload)
       );
+      const unsubscribeRejected = listener.onRejected(() => gsiLiveness.markRejected());
 
       return () => {
         unsubscribeBroadcast();
         unsubscribeRank();
         unsubscribeSession();
+        unsubscribeRejected();
       };
     };
 
     const portConflicts = { overlayHost: false, gsiListener: false };
 
-    gsiListener = createGsiListener({ host: lanBindHost, port: ports.gsiListener });
+    gsiListener = createGsiListener({
+      host: lanBindHost,
+      port: ports.gsiListener,
+      token: gsiToken
+    });
     overlayHost = createOverlayHost({
       assetRoot: overlayAssetRoot,
       host: lanBindHost,
@@ -284,7 +293,11 @@ app
       let nextHost: ReturnType<typeof createOverlayHost> | null = null;
 
       if (next.gsiListener !== ports.gsiListener) {
-        const candidate = createGsiListener({ host: lanBindHost, port: next.gsiListener });
+        const candidate = createGsiListener({
+          host: lanBindHost,
+          port: next.gsiListener,
+          token: gsiToken
+        });
         try {
           await candidate.start();
           nextListener = candidate;

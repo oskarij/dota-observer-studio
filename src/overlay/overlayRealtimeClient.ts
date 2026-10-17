@@ -58,7 +58,8 @@ export function connectOverlayRealtime(handlers: OverlayRealtimeHandlers): () =>
   };
 
   events.addEventListener(GSI_STATUS_EVENT, (event) => {
-    const status: GsiStatus = event.data === 'live' ? 'live' : 'stale';
+    const status: GsiStatus =
+      event.data === 'live' || event.data === 'rejected' ? event.data : 'stale';
     handlers.onStatus?.(status);
   });
 

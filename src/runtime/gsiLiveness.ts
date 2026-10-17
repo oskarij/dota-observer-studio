@@ -8,6 +8,7 @@ export interface GsiLivenessConfig {
 export interface GsiLiveness {
   getStatus(): GsiStatus;
   markAlive(): void;
+  markRejected(): void;
   onStatusChange(listener: (status: GsiStatus) => void): () => void;
   stop(): void;
 }
@@ -30,6 +31,13 @@ export function createGsiLiveness(config: GsiLivenessConfig = {}): GsiLiveness {
 
   function markAlive(): void {
     setStatus('live');
+    armStaleTimer();
+  }
+
+  // A rejected update never replaces a live feed, so a stray sender cannot flap the status.
+  function markRejected(): void {
+    if (status === 'live') return;
+    setStatus('rejected');
     armStaleTimer();
   }
 
@@ -60,6 +68,7 @@ export function createGsiLiveness(config: GsiLivenessConfig = {}): GsiLiveness {
       return status;
     },
     markAlive,
+    markRejected,
     onStatusChange: statusObservers.add,
     stop() {
       clearStaleTimer();

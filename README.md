@@ -53,8 +53,9 @@ pauses the preview, and restoring it shows the latest state.
 
 Turn on **Settings → Network access → Allow LAN access** and restart. Settings then shows the URLs
 with your LAN address: use the overlay URLs in OBS on the other PC, or **Export config for another
-PC** to get a GSI config for a separate Dota machine. This exposes the GSI listener to your network,
-so use it only on networks you trust.
+PC** to get a GSI config for a separate Dota machine. The GSI listener accepts only updates with
+your install's token, but anyone on the network can open the overlay pages, so use it only on
+networks you trust.
 
 ## Build from source
 

@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
+import { isRecord } from '../shared/validation.js';
 import { createManagedHttpServer } from './httpServer.js';
 import { getRequestPath, normalizePath, writeJson, writeNoContent } from './httpUtils.js';
 import { createObservers } from './observers.js';
@@ -10,17 +11,19 @@ export interface GsiListenerConfig {
   readonly host: string;
   readonly path?: string;
   readonly port: number;
+  // Dota sends it from the GSI config's auth block; updates without it are rejected.
+  readonly token: string;
 }
 
 export interface GsiListener {
   onPayload(listener: (payload: GsiPayload) => void): () => void;
+  onRejected(listener: (payload: GsiPayload) => void): () => void;
   start(): Promise<void>;
   stop(): Promise<void>;
 }
 
 const DEFAULT_GSI_PATH = '/gsi';
-// GSI payloads are small (gsiConfig trims the data blocks), so a tight cap avoids a localhost OOM
-// from an oversized POST to the unauthenticated listener.
+// GSI payloads are small (gsiConfig trims the data blocks). The cap applies before the token check.
 const MAX_GSI_BODY_BYTES = 256 * 1024;
 
 class HttpError extends Error {
@@ -35,6 +38,7 @@ class HttpError extends Error {
 export function createGsiListener(config: GsiListenerConfig): GsiListener {
   const endpointPath = normalizePath(config.path ?? DEFAULT_GSI_PATH);
   const payloadObservers = createObservers<GsiPayload>('GSI payload');
+  const rejectedObservers = createObservers<GsiPayload>('GSI rejected payload');
 
   const httpServer = createManagedHttpServer({
     host: config.host,
@@ -73,12 +77,19 @@ export function createGsiListener(config: GsiListenerConfig): GsiListener {
       throw new HttpError(400, 'GSI payload must be a JSON object');
     }
 
+    if (!isRecord(payload.auth) || payload.auth.token !== config.token) {
+      writeJson(response, 401, { error: 'GSI auth token missing or wrong' });
+      rejectedObservers.emit(payload);
+      return;
+    }
+
     writeNoContent(response);
     payloadObservers.emit(payload);
   }
 
   return {
     onPayload: payloadObservers.add,
+    onRejected: rejectedObservers.add,
     start: httpServer.start,
     stop: httpServer.stop
   };

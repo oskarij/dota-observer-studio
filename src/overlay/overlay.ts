@@ -69,8 +69,8 @@ window.addEventListener('beforeunload', () => {
 function applyGsiStatus(status: GsiStatus): void {
   document.documentElement.dataset.gsiStatus = status;
 
-  // On `live` the next payload re-renders elements; only `stale` needs an explicit hide.
-  if (status === 'stale') {
+  // On `live` the next payload re-renders elements; any other status hides them.
+  if (status !== 'live') {
     latestData = null;
     stage.clear();
   }

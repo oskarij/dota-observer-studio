@@ -34,7 +34,7 @@ export function registerGsiIpc(networkStore: NetworkSettingsStore, lanActive: bo
       }
 
       const gsiPort = networkStore.get().ports.gsiListener;
-      const path = await writeGsiConfig(cfgDir, gsiPort);
+      const path = await writeGsiConfig(cfgDir, gsiPort, networkStore.gsiToken());
       return { ok: true, path };
     } catch (error) {
       logError('Failed to install the GSI config', error);
@@ -59,7 +59,11 @@ export function registerGsiIpc(networkStore: NetworkSettingsStore, lanActive: bo
         return { ok: false, reason: 'Export canceled.' };
       }
 
-      await writeFile(result.filePath, buildGsiConfig(host, gsiPort), 'utf8');
+      await writeFile(
+        result.filePath,
+        buildGsiConfig(host, gsiPort, networkStore.gsiToken()),
+        'utf8'
+      );
       return { ok: true, path: result.filePath };
     } catch (error) {
       logError('Failed to export the GSI config', error);

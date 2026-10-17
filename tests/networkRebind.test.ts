@@ -11,10 +11,11 @@ import { probePort } from './portProbe.js';
 const HOST = '127.0.0.1';
 const PORT_A = 31994;
 const PORT_B = 31995;
+const TOKEN = 'test-token';
 
 // POSTs a JSON payload to the GSI endpoint and resolves with the response status code.
 async function postPayload(port: number, payload: GsiPayload): Promise<number> {
-  const body = JSON.stringify(payload);
+  const body = JSON.stringify({ ...payload, auth: { token: TOKEN } });
 
   return await new Promise<number>((resolve, reject) => {
     const req = request({ host: HOST, port, path: '/gsi', method: 'POST' }, (response) => {
@@ -33,7 +34,7 @@ test('rebinding to a new port serves there, frees the old port, and re-wires sub
   const wire = (listener: ReturnType<typeof createGsiListener>): (() => void) =>
     listener.onPayload((payload) => received.push(payload));
 
-  let listener = createGsiListener({ host: HOST, port: PORT_A });
+  let listener = createGsiListener({ host: HOST, token: TOKEN, port: PORT_A });
   await listener.start();
   let unwire = wire(listener);
 
@@ -41,8 +42,8 @@ test('rebinding to a new port serves there, frees the old port, and re-wires sub
   assert.equal(await postPayload(PORT_A, { provider: { a: 1 } }), 204);
   assert.equal(received.length, 1);
 
-  // Start the new server on PORT_B *before* tearing down the old one (start-new-before-stop-old).
-  const candidate = createGsiListener({ host: HOST, port: PORT_B });
+  // Start the new server before stopping the old one.
+  const candidate = createGsiListener({ host: HOST, token: TOKEN, port: PORT_B });
   await candidate.start();
 
   unwire();
@@ -63,16 +64,16 @@ test('rebinding to a new port serves there, frees the old port, and re-wires sub
 test('rebinding onto an occupied port fails and leaves the running server intact', async () => {
   const received: GsiPayload[] = [];
 
-  const listener = createGsiListener({ host: HOST, port: PORT_A });
+  const listener = createGsiListener({ host: HOST, token: TOKEN, port: PORT_A });
   await listener.start();
   const unwire = listener.onPayload((payload) => received.push(payload));
 
   // Squat on the target port so the candidate cannot bind it.
-  const squatter = createGsiListener({ host: HOST, port: PORT_B });
+  const squatter = createGsiListener({ host: HOST, token: TOKEN, port: PORT_B });
   await squatter.start();
 
   // applyPorts starts a candidate and returns ok:false on bind failure without committing the swap.
-  const candidate = createGsiListener({ host: HOST, port: PORT_B });
+  const candidate = createGsiListener({ host: HOST, token: TOKEN, port: PORT_B });
   await assert.rejects(candidate.start(), 'binding an occupied port must reject');
   await candidate.stop().catch(() => {});
 

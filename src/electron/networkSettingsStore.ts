@@ -1,4 +1,5 @@
 import Store from 'electron-store';
+import { randomBytes } from 'node:crypto';
 
 import { logWarning } from '../shared/logger.js';
 import {
@@ -10,15 +11,21 @@ import {
 
 const PORTS_KEY = 'networkPorts';
 const LAN_ACCESS_KEY = 'allowLanAccess';
+const GSI_TOKEN_KEY = 'gsiToken';
 
 export interface NetworkSettingsStore {
   get(): NetworkSettings;
+  gsiToken(): string;
   setPorts(ports: ConfigurablePorts): void;
   setLanAccess(allow: boolean): void;
 }
 
 export function createNetworkSettingsStore(): NetworkSettingsStore {
-  const store = new Store<{ networkPorts: ConfigurablePorts; allowLanAccess: boolean }>({
+  const store = new Store<{
+    networkPorts: ConfigurablePorts;
+    allowLanAccess: boolean;
+    gsiToken?: string;
+  }>({
     defaults: { networkPorts: { ...DEFAULT_CONFIGURABLE_PORTS }, allowLanAccess: false }
   });
 
@@ -37,6 +44,14 @@ export function createNetworkSettingsStore(): NetworkSettingsStore {
         ports: error !== null ? { ...DEFAULT_CONFIGURABLE_PORTS } : merged,
         allowLanAccess: store.get(LAN_ACCESS_KEY) === true
       };
+    },
+    // Created on first use, so each install has its own.
+    gsiToken() {
+      const saved = store.get(GSI_TOKEN_KEY);
+      if (typeof saved === 'string' && /^[0-9a-f]{32}$/.test(saved)) return saved;
+      const token = randomBytes(16).toString('hex');
+      store.set(GSI_TOKEN_KEY, token);
+      return token;
     },
     setPorts(ports) {
       store.set(PORTS_KEY, ports);
