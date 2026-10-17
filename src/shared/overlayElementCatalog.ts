@@ -131,10 +131,9 @@ export const OVERLAY_MENU_ENTRIES: OverlayMenuEntry[] = [
       key: `${kind}-${scope}`,
       menuLabel,
       phase: scope,
-      members: (['radiant', 'dire'] as const).map((side) => ({
-        label: side === 'radiant' ? 'Radiant' : 'Dire',
-        id: `${kind}-${side}-${scope}`
-      }))
+      members: SERIES_INFO_ELEMENTS.filter(
+        (element) => element.kind === kind && element.scope === scope
+      ).map(({ id, side }) => ({ label: side === 'radiant' ? 'Radiant' : 'Dire', id }))
     }))
   )
 ];

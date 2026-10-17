@@ -35,18 +35,3 @@ export function validPartialSettings(value: unknown): boolean {
     shadow: (item) => fields(item, { color, blur: nonnegative, offsetX: finite, offsetY: finite })
   });
 }
-
-export function validPartialOptions(value: unknown, defaults: object): boolean {
-  const rules: Record<string, Validator> = {
-    showName: boolean,
-    showMedal: boolean,
-    showDuringStrategyTime: boolean,
-    nameSource: oneOf('profile', 'ingame'),
-    rankValue: oneOf('mmr', 'hidden'),
-    maxWidth: positive
-  };
-  return fields(
-    value,
-    Object.fromEntries(Object.keys(defaults).map((key) => [key, rules[key] ?? (() => false)]))
-  );
-}

@@ -43,7 +43,7 @@ export interface ComponentOptionsById {
 }
 
 export function isTeamNameId(id: string): id is `team-name-${string}` {
-  return /^team-name-(radiant|dire)-(draft|ingame)$/.test(id);
+  return SERIES_INFO_ELEMENTS.some((element) => element.kind === 'team-name' && element.id === id);
 }
 
 export function isPlayerNamesId(id: string): id is `player-names-${string}` {
@@ -105,6 +105,14 @@ export function isSelectedPlayerOptions(options: unknown): options is SelectedPl
     (options.nameSource === 'profile' || options.nameSource === 'ingame') &&
     (options.rankValue === 'mmr' || options.rankValue === 'hidden')
   );
+}
+
+export function isOptionsFor(id: string, options: unknown): boolean {
+  if (id === SELECTED_PLAYER_ID) return isSelectedPlayerOptions(options);
+  if (id === DRAFT_BOARD_ID) return isDraftBoardOptions(options);
+  if (isPlayerNamesId(id)) return isPlayerNamesOptions(options);
+  if (isTeamNameId(id)) return isTeamNameOptions(options);
+  return false;
 }
 
 export function createDefaultComponentOptions(): ComponentOptionsById {

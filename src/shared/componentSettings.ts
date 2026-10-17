@@ -1,7 +1,8 @@
 import { isRecord } from './validation.js';
-import { validPartialSettings, validPartialOptions } from './configValidation.js';
+import { validPartialSettings } from './configValidation.js';
 import {
   createDefaultComponentOptions,
+  isOptionsFor,
   type ComponentOptions,
   type ComponentOptionsById
 } from './componentOptions.js';
@@ -205,9 +206,14 @@ export function mergeOverlayConfigDefaults(input: unknown): OverlayConfig {
   for (const [id, settings] of Object.entries(input.settings)) {
     if (!validPartialSettings(settings)) throw new Error('Invalid settings for ' + id + '.');
   }
-  for (const [id, options] of Object.entries(input.options ?? {})) {
+  for (const [id, value] of Object.entries(input.options ?? {})) {
     const base = defaults.options[id];
-    if (base === undefined || !validPartialOptions(options, base))
+    if (
+      base === undefined ||
+      !isRecord(value) ||
+      !Object.keys(value).every((key) => Object.hasOwn(base, key)) ||
+      !isOptionsFor(id, { ...base, ...value })
+    )
       throw new Error('Invalid options for ' + id + '.');
   }
   const config = input as {
